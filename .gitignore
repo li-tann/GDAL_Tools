@@ -1,0 +1,9 @@
+# Production
+/build
+
+# vs
+/.vs
+/.vscode
+
+vcruntime140d.dll
+vcruntime140_1d.dll
