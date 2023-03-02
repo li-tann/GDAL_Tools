@@ -72,9 +72,12 @@ int main(int argc, char* argv[])
     if(ds_out == nullptr)
         return  return_msg(-4, "img_out.dataset is nullptr.");
 
-    err = ds_out->SetProjection(ds_in->GetProjectionRef());
-    if(err > 1)
-        return  return_msg(-5, "ds_out.setProjection(ds_in->GetProjectionRef()) failed.");
+    if(!ds_in->GetProjectionRef()){
+        err = ds_out->SetProjection(ds_in->GetProjectionRef());
+        if(err > 1)
+            return  return_msg(-5, "ds_out.setProjection(ds_in->GetProjectionRef()) failed.");
+    }
+    
 
     double gt[6];
     err = ds_in->GetGeoTransform(gt);
@@ -157,6 +160,7 @@ int main(int argc, char* argv[])
 
     GDALClose(ds_in);
     GDALClose(ds_out);
+    
 
     return return_msg(1, "_NAN-Points_Fill_in_Val end.");
 

@@ -1,0 +1,1 @@
+gdal_translate.exe dom-float.tif dom-float-none.tif -a_nodata 0

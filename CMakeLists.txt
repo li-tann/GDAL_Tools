@@ -14,3 +14,7 @@ include(CPack)
 add_executable(_NAN-Points_Fill_in_Val nan_point_fill_in.cpp)
 target_link_libraries(_NAN-Points_Fill_in_Val PRIVATE GDAL::GDAL)
 target_link_libraries(_NAN-Points_Fill_in_Val PRIVATE spdlog::spdlog spdlog::spdlog_header_only)
+
+add_executable(_set_NoData_Value set_nodata_value.cpp)
+target_link_libraries(_set_NoData_Value PRIVATE GDAL::GDAL)
+target_link_libraries(_set_NoData_Value PRIVATE spdlog::spdlog spdlog::spdlog_header_only)
