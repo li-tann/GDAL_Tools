@@ -1,6 +1,10 @@
 cmake_minimum_required(VERSION 3.0.0)
 project(execs VERSION 0.1.0)
 
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_EXTENSIONS off)
+set(CMAKE_CXX_STANDARD_REQUIRED on)
+
 include(CTest)
 enable_testing()
 
@@ -11,9 +15,9 @@ set(CPACK_PROJECT_NAME ${PROJECT_NAME})
 set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})
 include(CPack)
 
-add_executable(_NAN-Points_Fill_in_Val nan_point_fill_in.cpp)
-target_link_libraries(_NAN-Points_Fill_in_Val PRIVATE GDAL::GDAL)
-target_link_libraries(_NAN-Points_Fill_in_Val PRIVATE spdlog::spdlog spdlog::spdlog_header_only)
+add_executable(_nan_TransTo nan_transto.cpp template_nan_convert_to.h)
+target_link_libraries(_nan_TransTo PRIVATE GDAL::GDAL)
+target_link_libraries(_nan_TransTo PRIVATE spdlog::spdlog spdlog::spdlog_header_only)
 
 add_executable(_set_NoData_Value set_nodata_value.cpp)
 target_link_libraries(_set_NoData_Value PRIVATE GDAL::GDAL)

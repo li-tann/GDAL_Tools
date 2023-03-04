@@ -8,7 +8,14 @@
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/basic_file_sink.h>
 
+#define EXE_NAME "_set_NoData_Value"
+
 using namespace std;
+namespace fs = std::filesystem;
+
+string EXE_PLUS_FILENAME(string extention){
+    return string(EXE_NAME)+"."+ extention;
+}
 
 int main(int argc, char* argv[])
 {
@@ -16,7 +23,7 @@ int main(int argc, char* argv[])
     string msg;
     CPLErr err;
 
-    auto my_logger = spdlog::basic_logger_mt("_Set_NoData_Value", "_Set_NoData_Value.txt");
+    auto my_logger = spdlog::basic_logger_mt(EXE_NAME, EXE_PLUS_FILENAME("txt"));
 
     auto return_msg = [my_logger](int rtn, string msg){
         my_logger->info(msg);
@@ -25,9 +32,9 @@ int main(int argc, char* argv[])
     };
 
     if(argc < 3){
-        msg =   "_Set_NoData_Value.exe\n"
-                " manual:\n" 
-                " argv[0]: _Set_NoData_Value,\n"
+        msg =   EXE_PLUS_FILENAME("exe\n");
+        msg +=  " manual:\n" 
+                " argv[0]: " EXE_NAME ",\n"
                 " argv[1]: input imgpath,\n"
                 " argv[2]: value, NoData Value.";
         return return_msg(-1,msg);
@@ -38,7 +45,7 @@ int main(int argc, char* argv[])
 
     double val = atof(argv[2]);
 
-    GDALDataset* ds_in = static_cast<GDALDataset*>(GDALOpen(argv[1],GA_ReadOnly));
+    GDALDataset* ds_in = static_cast<GDALDataset*>(GDALOpen(argv[1],GA_Update));
     if(ds_in == nullptr)
         return return_msg(-2,"img_in.dataset is nullptr.");
 
@@ -48,7 +55,7 @@ int main(int argc, char* argv[])
     GDALDataType datatype = ds_in->GetRasterBand(1)->GetRasterDataType();
     int sizeof_datatype = 0;
 
-    for(int band = 1; band < bands; band++)
+    for(int band = 1; band <= bands; band++)
     {
         GDALRasterBand* rb_in = ds_in->GetRasterBand(band);
         // err = rb_in->SetNoDataValue(val);
