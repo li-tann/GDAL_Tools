@@ -1,3 +1,6 @@
+#ifndef TEMPLATE_NAN_CONVERT_TO
+#define TEMPLATE_NAN_CONVERT_TO
+
 #include <gdal_priv.h>
 
 #include <vector>
@@ -109,3 +112,5 @@ tuple_bs value_transto(GDALDataset* ds, _Ty value_in, _Ty value_out)
     cout<<func_name <<" successd."<<endl;
     return make_tuple(true, "value_transto func successd.");
 }
+
+#endif //TEMPLATE_NAN_CONVERT_TO
