@@ -26,6 +26,6 @@ target_link_libraries(_set_NoData_Value PRIVATE GDAL::GDAL)
 target_link_libraries(_set_NoData_Value PRIVATE spdlog::spdlog spdlog::spdlog_header_only)
 
 # float格式的二进制影像转换为tif并输出
-add_executable(_binary_to_tif_float binary_img_to_tif_float.cpp template_binary_img_io.h)
+add_executable(_binary_to_tif_float binary_img_to_tif.cpp template_binary_img_io.h)
 target_link_libraries(_binary_to_tif_float PRIVATE GDAL::GDAL)
 target_link_libraries(_binary_to_tif_float PRIVATE spdlog::spdlog spdlog::spdlog_header_only)
