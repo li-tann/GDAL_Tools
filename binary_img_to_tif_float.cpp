@@ -55,6 +55,10 @@ int main(int argc, char* argv[])
         return return_msg(-2,"ifstream::open argv[1] failed.");
     }
 
+
+
+    
+
     float* arr = new float[width * height];
     int num = 0;
     unsigned int value2;

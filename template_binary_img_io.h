@@ -35,7 +35,18 @@ bool load_binary_to_arr(const char* binary_imgpath, int width, int height, _Ty* 
     }
 }
 
-
+template<typename _Ty>
+inline _Ty binary_swap(_Ty src)
+{
+    _Ty dst;
+    size_t src_size = sizeof(_Ty);
+    unsigned char* src_uc = static_cast<unsigned char*>(&src);
+    unsigned char* dst_uc = static_cast<unsigned char*>(&dst);
+    for (size_t i = 0; i < src_size; i++) {
+        dst_uc[i] = src_uc[src_size - 1 - i];
+    }
+    return dst;
+}
 
 
 #endif //TEMPLATE_BINARY_IMG_IO
