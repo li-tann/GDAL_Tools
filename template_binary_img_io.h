@@ -3,42 +3,11 @@
 
 #include <iostream>
 #include <fstream>
+#include <complex>
 
 #include <gdal_priv.h>
 
 using tuple_bs = std::tuple<bool, std::string>;
-
-/// 还没有测试
-
-/// arr 不需要定义长度
-template<typename _Ty>
-bool load_binary_to_arr(const char* binary_imgpath, int width, int height, _Ty* arr)
-{
-    using namespace std;
-    if(arr != nullptr){
-        delete[] arr;
-        arr = new _Ty[width * height];
-    }
-
-    ifstream ifs(binary_imgpath,ifstream::binary);
-    if(!ifs.is_open()){
-        return false;
-    }
-
-    size_t sizeof_Ty = sizeof(_Ty);
-    int num = 0;
-    _Ty val_init;
-    while (ifs.read((char*)&val_init, sizeof_Ty)) { //一直读到文件结束
-        //高低位字节变换
-        _Ty val_trans;
-        for(int i=0; i< sizeof_Ty; i++)
-        {
-            int j = sizeof_Ty - 1 - i;
-            ((char*)&val_trans)[j] = ((char*)&val_init)[i];
-        }
-        arr[num++] = val_trans;
-    }
-}
 
 template<typename _Ty>
 inline _Ty binary_swap(_Ty src)
@@ -54,50 +23,6 @@ inline _Ty binary_swap(_Ty src)
 }
 
 template<typename _Ty>
-bool binary_to_array(const char* binary_imgpath, int width, int height, _Ty* arr, bool swap = true)
-{
-    using namespace std;
-    if(arr != nullptr){
-        delete[] arr;
-        arr = new _Ty[width * height];
-    }
-
-    ifstream ifs(binary_imgpath,ifstream::binary);
-    if(!ifs.is_open()){
-        return false;
-    }
-
-    size_t sizeof_Ty = sizeof(_Ty);
-    int num = 0;
-    _Ty val_init;
-    while (ifs.read((char*)&val_init, sizeof_Ty) || num <= width * height) { //一直读到文件结束
-        //高低位字节变换
-        arr[num++] = swap ? binary_swap(val_init) : val_trans;
-    }
-    ifs.close();
-    return true;
-}
-
-template<typename _Ty>
-bool array_to_binary(_Ty* array, int array_size, const char* binary_imgpath)
-{
-    using namespace std;
-    ofstream ofs(binary_imgpath, ofstream::binary);
-    if(!ofs.is_open()){
-        return false;
-    }
-
-    for(int i=0; i< array_size; i++){
-        ofs.write((char*)(array[i]),sizeof(_Ty));
-    }
-
-    ofs.close();
-    return true;
-}
-
-
-
-template<typename _Ty>
 class binary_tif_io
 {
 public:
@@ -111,7 +36,6 @@ public:
     tuple_bs read_binary(const char* filepath, bool b_swap = true)
     {
         using namespace std;
-
         ifstream ifs(filepath,ifstream::binary);
         if(!ifs.is_open()){
             return make_tuple(false,"ifs.open failed.");
@@ -120,48 +44,157 @@ public:
         size_t sizeof_Ty = sizeof(_Ty);
         int num = 0;
         _Ty val_init;
-        while (ifs.read((char*)&val_init, sizeof_Ty)) { //一直读到文件结束
-            //高低位字节变换
+        while (ifs.read((char*)&val_init, sizeof_Ty)) { 
+            //high-low bytes trans
             array[num++] = b_swap ? binary_swap(val_init) : val_init;
             if(num >= width * height)break;
         }
         ifs.close();
         return make_tuple(true,"read_binary succeed.");
     }
-    bool write_binary(const char* filepath)
+    
+    tuple_bs write_binary(const char* filepath, bool b_swap = true)
     {
         using namespace std;
         ofstream ofs(filepath, ofstream::binary);
         if(!ofs.is_open()){
-            return false;
+            return make_tuple(false,"ofs.open failed.");
         }
 
         for(int i=0; i< width * height; i++){
-            ofs.write((char*)(array[i]),sizeof(_Ty));
+            _Ty val = (b_swap ? binary_swap(array[i]) : array[i]);
+            ofs.write((char*)(&val),sizeof(_Ty));
         }
 
         ofs.close();
-        return true;
+        return make_tuple(true,"write_binary succeed.");
     }
 
-    bool read_tif(const char* filepath)
+    tuple_bs read_tif(const char* filepath)
     {
+        using namespace std;
         GDALAllRegister();
         GDALDataset* ds = static_cast<GDALDataset*>(GDALOpen(filepath,GA_ReadOnly));
-        if(ds == nullptr || ds->GetRasterXSize()!=width || ds->GetRasterYSize() != height){
-            return false;
+        if(ds == nullptr){
+            return make_tuple(false, "dataset is nullptr.");
+        }
+        if(ds->GetRasterXSize()!=width || ds->GetRasterYSize() != height){
+            GDALClose(ds);
+            return make_tuple(false, "ds.size is diff with width or height.");
         }
         
         GDALRasterBand* rb = ds->GetRasterBand(1);
         CPLErr err = rb->RasterIO(GF_Read,0,0,width,height,array,width,height,rb->GetRasterDataType(),0,0);
         GDALClose(ds);
         if(err == CE_Failure){
-            return false;
+            return make_tuple(false,"rasterband.rasterio.read failed.");
         }
-        return true;
+        return make_tuple(true,"read_tif succeed.");;
     }
 
     tuple_bs write_tif(const char* filepath, GDALDataType dt)
+    {
+        using namespace std;
+        GDALAllRegister();
+        GDALDriver* driver = GetGDALDriverManager()->GetDriverByName("GTiff");
+        GDALDataset* ds = driver->Create(filepath, width, height, 1, dt, nullptr);
+        if(ds == nullptr){
+            return make_tuple(false,"dataset is nullptr.");
+        }
+
+        GDALRasterBand* rb = ds->GetRasterBand(1);
+        CPLErr err = rb->RasterIO(GF_Write,0,0,width,height,array,width,height,dt,0,0);
+        GDALClose(ds);
+        if(err == CE_Failure){
+            return make_tuple(false,"rasterband.rasterio.write failed.");
+        }
+        return make_tuple(true,"write_tif succeed.");;
+
+    }
+
+};
+
+/// @brief 
+/// @tparam _Ty if datatype we have is fcomplex, then print float in _Ty
+template<typename _Ty>
+class binary_tif_io_cpx
+{
+public:
+    std::complex<_Ty>* array;
+    int width; 
+    int height;
+
+    binary_tif_io_cpx(int w, int h):width(w),height(h){array = new std::complex<_Ty>[width * height];};
+    ~binary_tif_io_cpx(){if(array != nullptr)delete[] array;}
+
+    tuple_bs read_binary_cpx(const char* filepath, bool b_swap = true)
+    {
+        using namespace std;
+        ifstream ifs(filepath,ifstream::binary);
+        if(!ifs.is_open()){
+            return make_tuple(false,"ifs.open failed.");
+        }
+
+        size_t sizeof_Ty = sizeof(_Ty);
+        int num = 0;
+        _Ty val_init;
+        bool isReal {true}; // isReal -- isImag
+        while (ifs.read((char*)&val_init, sizeof_Ty)) { 
+            //high-low bytes trans
+            if(isReal){
+                array[num].real(b_swap ? binary_swap(val_init) : val_init);
+            }else{
+                array[num++].imag(b_swap ? binary_swap(val_init) : val_init);
+            }
+            isReal = !isReal;
+                
+            if(num >= width * height)break;
+        }
+        ifs.close();
+        return make_tuple(true,"read_binary succeed.");
+    }
+    
+    tuple_bs write_binary_cpx(const char* filepath, bool b_swap = true)
+    {
+        using namespace std;
+        ofstream ofs(filepath, ofstream::binary);
+        if(!ofs.is_open())
+            return make_tuple(false,"ofs.open failed.");
+
+        for(int i=0; i< width * height; i++){
+            _Ty real = (b_swap ? binary_swap(array[i].real()) : array[i].real());
+            _Ty imag = (b_swap ? binary_swap(array[i].imag()) : array[i].imag());
+            ofs.write((char*)(&real),sizeof(_Ty));
+            ofs.write((char*)(&imag),sizeof(_Ty));
+        }
+
+        ofs.close();
+        return make_tuple(true,"write_binary succeed.");
+    }
+
+    tuple_bs read_tif_cpx(const char* filepath)
+    {
+        using namespace std;
+        GDALAllRegister();
+        GDALDataset* ds = static_cast<GDALDataset*>(GDALOpen(filepath,GA_ReadOnly));
+        if(ds == nullptr){
+            return make_tuple(false, "dataset is nullptr.");
+        }
+        if(ds->GetRasterXSize()!=width || ds->GetRasterYSize() != height){
+            GDALClose(ds);
+            return make_tuple(false, "ds.size is diff with width or height.");
+        }
+        
+        GDALRasterBand* rb = ds->GetRasterBand(1);
+        CPLErr err = rb->RasterIO(GF_Read,0,0,width,height,array,width,height,rb->GetRasterDataType(),0,0);
+        GDALClose(ds);
+        if(err == CE_Failure){
+            return make_tuple(false,"rasterband.rasterio.read failed.");
+        }
+        return make_tuple(true,"read_tif succeed.");;
+    }
+
+    tuple_bs write_tif_cpx(const char* filepath, GDALDataType dt)
     {
         using namespace std;
         GDALAllRegister();

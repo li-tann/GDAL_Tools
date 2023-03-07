@@ -25,7 +25,12 @@ add_executable(_set_NoData_Value set_nodata_value.cpp)
 target_link_libraries(_set_NoData_Value PRIVATE GDAL::GDAL)
 target_link_libraries(_set_NoData_Value PRIVATE spdlog::spdlog spdlog::spdlog_header_only)
 
-# float格式的二进制影像转换为tif并输出
-add_executable(_binary_to_tif_float binary_img_to_tif.cpp template_binary_img_io.h)
-target_link_libraries(_binary_to_tif_float PRIVATE GDAL::GDAL)
-target_link_libraries(_binary_to_tif_float PRIVATE spdlog::spdlog spdlog::spdlog_header_only)
+# float格式（不止）的二进制影像转换为tif并输出
+add_executable(_binary_to_tif binary_img_to_tif.cpp template_binary_img_io.h)
+target_link_libraries(_binary_to_tif PRIVATE GDAL::GDAL)
+target_link_libraries(_binary_to_tif PRIVATE spdlog::spdlog spdlog::spdlog_header_only)
+
+# tif转换为二进制格式
+add_executable(_tif_to_binary tif_to_binary.cpp template_binary_img_io.h)
+target_link_libraries(_tif_to_binary PRIVATE GDAL::GDAL)
+target_link_libraries(_tif_to_binary PRIVATE spdlog::spdlog spdlog::spdlog_header_only)

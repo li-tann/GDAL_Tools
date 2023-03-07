@@ -21,8 +21,11 @@ string EXE_PLUS_FILENAME(string extention){
     return string(EXE_NAME)+"."+ extention;
 }
 
-enum binary_datatype{binary_unknown, binary_int, binary_float};
-std::string str_datatype[3] = {"unknown", "int", "float"};
+#define DATATYPE_LENGTH 4
+enum binary_datatype{binary_unknown, binary_int, binary_float, binary_fcomplex};
+std::string str_datatype[DATATYPE_LENGTH] = {"unknown", "int", "float", "fcomplex"};
+
+using namespace std;
 
 int main(int argc, char* argv[])
 {
@@ -37,15 +40,16 @@ int main(int argc, char* argv[])
         return rtn;
     };
 
-    if(argc < 6){
+    if(argc < 7){
         msg =   EXE_PLUS_FILENAME("exe\n");
         msg +=  " manual:\n" 
                 " argv[0]: " EXE_NAME ",\n"
-                " argv[1]: input binary image filepath, datatype is float,\n"
+                " argv[1]: input binary image filepath,\n"
                 " argv[2]: img width,\n"
                 " argv[3]: img height,\n"
-                " argv[4]: img datatype, support list: int, float, ...\n"
-                " argv[5]: output tif image filepath,\n";
+                " argv[4]: img datatype, support list: int, float, fcomplex ...\n"
+                " argv[5]: high-low byte trans, true of false,\n"
+                " argv[6]: output tif image filepath,\n";
         return return_msg(-1,msg);
     }
 
@@ -56,7 +60,7 @@ int main(int argc, char* argv[])
     int width = atoi(argv[2]);
     int height = atoi(argv[3]);
     binary_datatype bin_datatype =binary_unknown;
-    for(int i=0; i< 3; i++){
+    for(int i=0; i< DATATYPE_LENGTH; i++){
         if(str_datatype[i] ==  argv[4])
             bin_datatype = binary_datatype(i);
     }
@@ -64,29 +68,41 @@ int main(int argc, char* argv[])
     if(bin_datatype == binary_unknown){
         return return_msg(-2,"unsupported datatype.");
     }
+
+    bool high_low_byte_trans = true;
+    if(argv[5] == "false"){
+        high_low_byte_trans = false;
+    }
      
     switch (bin_datatype)
     {
     case binary_int:{
-        binary_tif_io<int>* btio = new binary_tif_io<int>(width,height);
-        btio->read_binary(argv[1]);
-        btio->write_tif(argv[5],GDT_Int32);
-        delete[] btio;
-        }break;
-
-    case binary_float:{
-        // binary_tif_io<float>* btio = new binary_tif_io<float>(width,height);
-        binary_tif_io<float> btio(width,height);
-        auto ans = btio.read_binary(argv[1]);
-        if(!std::get<0>(ans)){
+        binary_tif_io<int> btio(width,height);
+        auto ans = btio.read_binary(argv[1], high_low_byte_trans);
+        if(!std::get<0>(ans))
             return return_msg(-4, std::get<1>(ans));
-        }
-        ans = btio.write_tif(argv[5],GDT_Float32);
-        if(!std::get<0>(ans)){
+        ans = btio.write_tif(argv[6],GDT_Int32);
+        if(!std::get<0>(ans))
             return return_msg(-5, std::get<1>(ans));
-        }
-        }break;
-
+    }break;
+    case binary_float:{
+        binary_tif_io<float> btio(width,height);
+        auto ans = btio.read_binary(argv[1], high_low_byte_trans);
+        if(!std::get<0>(ans))
+            return return_msg(-4, std::get<1>(ans));
+        ans = btio.write_tif(argv[6],GDT_Float32);
+        if(!std::get<0>(ans))
+            return return_msg(-5, std::get<1>(ans));
+    }break;
+    case binary_fcomplex:{
+        binary_tif_io_cpx<float> btio(width,height);
+        auto ans = btio.read_binary_cpx(argv[1], high_low_byte_trans);
+        if(!std::get<0>(ans))
+            return return_msg(-4, std::get<1>(ans));
+        ans = btio.write_tif_cpx(argv[6],GDT_CFloat32);
+        if(!std::get<0>(ans))
+            return return_msg(-5, std::get<1>(ans));
+    }break;
     default:
         return return_msg(-3, "unknown datatype.");
         break;
