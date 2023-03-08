@@ -34,3 +34,13 @@ target_link_libraries(_binary_to_tif PRIVATE spdlog::spdlog spdlog::spdlog_heade
 add_executable(_tif_to_binary tif_to_binary.cpp template_binary_img_io.h)
 target_link_libraries(_tif_to_binary PRIVATE GDAL::GDAL)
 target_link_libraries(_tif_to_binary PRIVATE spdlog::spdlog spdlog::spdlog_header_only)
+
+# 统计影像信息
+add_executable(_statistics statistics.cpp)
+target_link_libraries(_statistics PRIVATE GDAL::GDAL)
+target_link_libraries(_statistics PRIVATE spdlog::spdlog spdlog::spdlog_header_only)
+
+#百分比拉伸
+add_executable(_histogram_stretch histogram_stretch.cpp template_stretch.h)
+target_link_libraries(_histogram_stretch PRIVATE GDAL::GDAL)
+target_link_libraries(_histogram_stretch PRIVATE spdlog::spdlog spdlog::spdlog_header_only)
