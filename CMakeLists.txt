@@ -44,3 +44,8 @@ target_link_libraries(_statistics PRIVATE spdlog::spdlog spdlog::spdlog_header_o
 add_executable(_histogram_stretch histogram_stretch.cpp template_stretch.h)
 target_link_libraries(_histogram_stretch PRIVATE GDAL::GDAL)
 target_link_libraries(_histogram_stretch PRIVATE spdlog::spdlog spdlog::spdlog_header_only)
+
+#创建delaunay
+add_executable(_create_delaunay CreateDelaunay.cpp)
+target_link_libraries(_create_delaunay PRIVATE GDAL::GDAL)
+target_link_libraries(_create_delaunay PRIVATE spdlog::spdlog spdlog::spdlog_header_only)
