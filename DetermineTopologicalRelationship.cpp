@@ -55,9 +55,13 @@ int main(int argc, char* argv[])
 
     pos_x = stod(str_splited[0]);
     pos_y = stod(str_splited[1]);
-
+    
     GDALAllRegister();
     OGRRegisterAll();
+
+    OGRPoint target_point;
+    target_point.setX(pos_x);
+    target_point.setY(pos_y);
 
     GDALDataset* dataset = (GDALDataset*)GDALOpenEx(argv[2], GDAL_OF_VECTOR, NULL, NULL, NULL);
     if(!dataset){
@@ -73,74 +77,40 @@ int main(int argc, char* argv[])
         OGRGeometry* geometry = feature->GetGeometryRef();
         if (geometry != NULL)
         {
-            OGRwkbGeometryType type = geometry->getGeometryType();
-            cout<<"geometry.type: "<<type<<endl;
-            if(type != wkbPolygon && type != wkbMultiPolygon){
-                return_msg(0, "unsupported geometry type.");
-                continue;
+            if(0)//old
+            {
+                OGRwkbGeometryType type = geometry->getGeometryType();
+                cout<<"geometry.type: "<<type<<endl;
+                if(type != wkbPolygon && type != wkbMultiPolygon){
+                    return_msg(0, "unsupported geometry type.");
+                    continue;
+                }
+
+                /// 判断点与它的拓扑关系
+                bool b = geometry->Intersect((OGRGeometry*)&target_point);
+                within = within || b;
+                if(within)
+                    break;
             }
-                
-            // if (type == wkbPoint)
-            // {
-            //     OGRPoint* point = (OGRPoint*)geometry;
-            //     double x = point->getX();
-            //     double y = point->getY();
-            //     printf("Point (%f %f)\n", x, y);
-            // }
-            // else if (type == wkbLineString)
-            // {
-            //     OGRLineString* lineString = (OGRLineString*)geometry;
-            //     int count = lineString->getNumPoints();
-            //     for (int i = 0; i < count; ++i)
-            //     {
-            //         OGRPoint point;
-            //         lineString->getPoint(i, &point);
-            //         double x = point.getX();
-            //         double y = point.getY();
-            //         printf("LineString Point %d (%f %f)\n", i + 1, x, y);
-            //     }
-            // }
-            // else if (type == wkbPolygon)
-            // {
-            //     OGRPolygon* polygon = (OGRPolygon*)geometry;
-            //     int count = polygon->getNumInteriorRings() + 1;
-            //     for (int i = 0; i < count; ++i)
-            //     {
-            //         OGRLinearRing* ring;
-            //         if (i == 0)
-            //             ring = polygon->getExteriorRing();
-            //         else
-            //             ring = polygon->getInteriorRing(i - 1);
-            //         int pointCount = ring->getNumPoints();
-            //         for (int j = 0; j < pointCount; ++j)
-            //         {
-            //             OGRPoint point;
-            //             ring->getPoint(j, &point);
-            //             double x = point.getX();
-            //             double y = point.getY();
-            //             printf("Polygon Ring %d Point %d (%f %f)\n", i + 1, j + 1, x, y);
-            //         }
-            //     }
-            // }
-
-            /// 判断点与它的拓扑关系
-            OGRPoint target_point;
-            target_point.setX(pos_x);
-            target_point.setY(pos_y);
-
-
-            bool b = geometry->Intersect((OGRGeometry*)&target_point);
-            within = within || b;
-            if(within)
-                break;
+            if (geometry->Contains(&target_point))
+            {
+                within = true;
+            }
         }
 
         OGRFeature::DestroyFeature(feature);
     }
 
     GDALClose(dataset);
+#ifdef WIN32
+    std::string str_in = "\x1b[1;32mi\x1b[1;32mn\x1b[0m ";
+    std::string str_out = "\x1b[1;31mo\x1b[1;31mu\x1b[1;31mt\x1b[1;31ms\x1b[1;31mi\x1b[1;31md\x1b[1;31me\x1b[0m ";
+#elif define(__linux__)
+    std::string str_in = "\033[32mi\033[32mn\033[0m ";
+    std::string str_out = "\033[31mo\033[31mu\033[31mt\033[31ms\033[31mi\033[31md\033[31me\033[0m ";
+#endif
 
-    msg = "point("+to_string(pos_x)+","+to_string(pos_y)+") is " + (within ? "in" : "out") + " of this shp file.";
+    msg = "point("+to_string(pos_x)+","+to_string(pos_y)+") is " + (within ? str_in : str_out) + "this shp file.";
     return_msg(2, msg);
 
     return return_msg(1, EXE_NAME " end.");
