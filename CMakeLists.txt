@@ -49,3 +49,8 @@ target_link_libraries(_histogram_stretch PRIVATE spdlog::spdlog spdlog::spdlog_h
 add_executable(_create_delaunay CreateDelaunay.cpp)
 target_link_libraries(_create_delaunay PRIVATE GDAL::GDAL)
 target_link_libraries(_create_delaunay PRIVATE spdlog::spdlog spdlog::spdlog_header_only)
+
+#判断点是否在shp文件中
+add_executable(_determine_topological_relationship DetermineTopologicalRelationship.cpp)
+target_link_libraries(_determine_topological_relationship PRIVATE GDAL::GDAL)
+target_link_libraries(_determine_topological_relationship PRIVATE spdlog::spdlog spdlog::spdlog_header_only)
