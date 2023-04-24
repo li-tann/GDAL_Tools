@@ -9,18 +9,18 @@
 
 using tuple_bs = std::tuple<bool, std::string>;
 
-template<typename _Ty>
-inline _Ty binary_swap(_Ty src)
-{
-    _Ty dst;
-    size_t src_size = sizeof(_Ty);
-    unsigned char* src_uc = (unsigned char*)(&src);
-    unsigned char* dst_uc = (unsigned char*)(&dst);
-    for (size_t i = 0; i < src_size; i++) {
-        dst_uc[i] = src_uc[src_size - 1 - i];
-    }
-    return dst;
-}
+// template<typename _Ty>
+// inline _Ty binary_swap(_Ty src)
+// {
+//     _Ty dst;
+//     size_t src_size = sizeof(_Ty);
+//     unsigned char* src_uc = (unsigned char*)(&src);
+//     unsigned char* dst_uc = (unsigned char*)(&dst);
+//     for (size_t i = 0; i < src_size; i++) {
+//         dst_uc[i] = src_uc[src_size - 1 - i];
+//     }
+//     return dst;
+// }
 
 template<typename _Ty>
 class binary_tif_io
@@ -32,6 +32,18 @@ public:
 
     binary_tif_io(int w, int h):width(w),height(h){array = new _Ty[width * height];};
     ~binary_tif_io(){if(array != nullptr)delete[] array;}
+
+    _Ty binary_swap(_Ty src)
+{
+    _Ty dst;
+    size_t src_size = sizeof(_Ty);
+    unsigned char* src_uc = (unsigned char*)(&src);
+    unsigned char* dst_uc = (unsigned char*)(&dst);
+    for (size_t i = 0; i < src_size; i++) {
+        dst_uc[i] = src_uc[src_size - 1 - i];
+    }
+    return dst;
+}
 
     tuple_bs read_binary(const char* filepath, bool b_swap = true)
     {

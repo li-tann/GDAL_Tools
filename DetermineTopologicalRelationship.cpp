@@ -3,12 +3,12 @@
 #include <ogrsf_frmts.h>
 #include <iostream>
 #include <fstream>
+#include <chrono>
 
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/basic_file_sink.h>
 
 #define EXE_NAME "_determine_topological_relationship"
-#define HISTOGRAM_SIZE 256
 
 using namespace std;
 namespace fs = std::filesystem;
@@ -18,9 +18,13 @@ string EXE_PLUS_FILENAME(string extention){
 }
 
 void strSplit(std::string input, std::vector<std::string>& output, std::string split, bool clearVector = true);
+double spend_time(decltype (std::chrono::system_clock::now()) start);
 
 int main(int argc, char* argv[])
 {
+
+    auto start = chrono::system_clock::now();
+
     GDALAllRegister();
     string msg;
 
@@ -102,6 +106,8 @@ int main(int argc, char* argv[])
     }
 
     GDALClose(dataset);
+
+    cout<<"spend time:"<<spend_time(start)<<"s"<<endl;
 #ifdef WIN32
     std::string str_in = "\x1b[1;32mi\x1b[1;32mn\x1b[0m ";
     std::string str_out = "\x1b[1;31mo\x1b[1;31mu\x1b[1;31mt\x1b[1;31ms\x1b[1;31mi\x1b[1;31md\x1b[1;31me\x1b[0m ";
@@ -135,4 +141,12 @@ void strSplit(std::string input, std::vector<std::string>& output, std::string s
     output.push_back(input.substr(pos1, pos2 - pos1));
     strSplit(input.substr(pos2 + 1), output, split,false);
     
+}
+
+double spend_time(decltype (std::chrono::system_clock::now()) start)
+{
+    auto end = std::chrono::system_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+    double second = double(duration.count()) * std::chrono::microseconds::period::num / std::chrono::microseconds::period::den;
+    return second;
 }
