@@ -31,6 +31,7 @@ int main(int argc, char* argv[])
     auto start = chrono::system_clock::now();
 
     GDALAllRegister();
+    funcrst rst;
     string msg;
 
     auto my_logger = spdlog::basic_logger_mt(EXE_NAME, EXE_PLUS_FILENAME("txt"));
@@ -92,10 +93,12 @@ int main(int argc, char* argv[])
     }
 
     /// 颜色表
+    color_map_v2 color_map(argv[5]);
+    if(!color_map.is_opened()){
+        msg = "color_map open failed.";
+        return return_msg(-3,msg);
+    }
 
-
-
-    
 
     GDALAllRegister();
 
@@ -110,16 +113,183 @@ int main(int argc, char* argv[])
 
     int width = ds_in->GetRasterXSize();
     int height = ds_in->GetRasterYSize();
+
+    int mled_row = height / multilook;
+    int mled_col = width / multilook;
+
     GDALDataType datatype_in = rb_in->GetRasterDataType();
     if(datatype_in != GDT_UInt16 && datatype_in != GDT_Int16 && 
     datatype_in != GDT_UInt32 && datatype_in != GDT_Int32 &&
     datatype_in != GDT_Float32 && datatype_in != GDT_Float64 &&
     datatype_in != GDT_CFloat32 && datatype_in != GDT_CInt16){
+        GDALClose(ds_in);
         msg = fmt::format("datatype_in is {}, not a supported datatype.",datatype_in);
         return return_msg(-3,msg);
     }
 
-    /// 1.影像多视处理
+
+    GDALDataType datatype_mem = datatype_in;
+    if(datatype_mem == GDT_CFloat32) datatype_mem = GDT_Float32;
+    if(datatype_mem == GDT_CInt16) datatype_mem = GDT_Int16;
+
+    /// 1.影像多视处理, 并转换为实数影像,并生成一个MEM的影像
+    GDALDriver* mem_driver = GetGDALDriverManager()->GetDriverByName("MEM");
+    GDALDataset* ds_mem = mem_driver->Create("", mled_row, mled_col, 1, datatype_mem, nullptr);
+    GDALRasterBand* rb_mem = ds_mem->GetRasterBand(1);
+    switch (datatype_in)
+    {
+    case GDT_UInt16:{
+        /// 多视
+        unsigned short* arr = new unsigned short[width * height];
+        rb_in->RasterIO(GF_Read, 0, 0, width, height, arr, width, height, datatype_in, 0, 0);
+        unsigned short* arr_multied = nullptr;
+        arr_multilook(arr, arr_multied, width, height, multilook, multilook);
+        delete[] arr;
+        rb_mem->RasterIO(GF_Write, 0,0,mled_col, mled_row, arr_multied, mled_col, mled_row, datatype_mem, 0,0);
+
+        /// 最值
+        double min, max;
+        if(minmax_method == enum_minmax_method::manual_){
+            min = manual_min;
+            max = manual_max;
+        }else{
+            rst = cal_stretched_minmax(rb_mem, 255,stretch_percent, min, max);
+            if(!rst){
+                GDALClose(ds_in);
+                msg = fmt::format("cal_stretched_minmax, reason :{}",rst.explain);
+                return return_msg(-4,msg);
+            }
+        }
+    }break;
+    
+    default:
+        break;
+    }
+
+    /// 想要方便写模板函数或者宏的话, 操作单位最好是RasterBand
+
+{
+     /// 如果是float 格式的话
+
+    datatype_in = GDT_Float32;
+    datatype_mem = GDT_Float32;
+    GDALDataset* ds_mem = mem_driver->Create("", mled_row, mled_col, 1, datatype_mem, nullptr);
+    GDALRasterBand* rb_mem = ds_mem->GetRasterBand(1);
+    float* arr_mem = new float[mled_row * mled_col];
+
+    /// 1.multilook, create mem
+
+    float* arr_in = new float[width * height];
+    rb_in->RasterIO(GF_Read, 0, 0, width, height, arr_in, width, height, datatype_in, 0, 0);
+    arr_multilook(arr_in, arr_mem, width, height, multilook, multilook);
+    delete[] arr_in;
+    rb_mem->RasterIO(GF_Write, 0,0,mled_col, mled_row, arr_mem, mled_col, mled_row, datatype_mem, 0,0);
+    /// 不知道arr_mem可不可以删除
+    delete[] arr_mem;
+
+    /// 2.get min&max
+
+    if(1){}
+
+    /// 3.create colormap, and update mem
+
+    /// 4.print mem
+}
+
+{
+    /// 如果是float complex 格式的话
+
+    datatype_in = GDT_CFloat32;
+    datatype_mem = GDT_Float32;
+    GDALDataset* ds_mem = mem_driver->Create("", mled_row, mled_col, 1, datatype_mem, nullptr);
+    GDALRasterBand* rb_mem = ds_mem->GetRasterBand(1);
+    float* arr_mem = new float[mled_row * mled_col];
+
+    /// 1.multilook, [cpx_tO_real], create mem
+
+    complex<float>* arr_in = new complex<float>[width * height];
+    rb_in->RasterIO(GF_Read, 0, 0, width, height, arr_in, width, height, datatype_in, 0, 0);
+    complex<float>* arr_mem_temp = new complex<float>[mled_row * mled_col];
+    arr_multilook_cpx(arr_in, arr_mem_temp, width, height, multilook, multilook);
+    delete[] arr_in;
+    cpx_to_real(arr_mem_temp, arr_mem, image_type);
+    delete[] arr_mem_temp;
+    rb_mem->RasterIO(GF_Write, 0,0,mled_col, mled_row, arr_mem, mled_col, mled_row, datatype_mem, 0,0);
+    /// 不知道arr_mem可不可以删除
+    delete[] arr_mem;
+
+    /// 2.get min&max
+
+    double min, max;
+    if(minmax_method == enum_minmax_method::manual_){
+        min = manual_min;
+        max = manual_max;
+    }else{
+        rst = cal_stretched_minmax(rb_mem, 255,stretch_percent, min, max);
+        if(!rst){
+            GDALClose(ds_in);
+            GDALClose(ds_mem);
+            msg = fmt::format("cal_stretched_minmax, reason :{}",rst.explain);
+            return return_msg(-4,msg);
+        }
+    }
+ 
+    /// 3.create colormap
+
+    rst = color_map.mapping(min, max);
+
+    /// 4.print mem
+
+    GDALDriver* png_driver = GetGDALDriverManager()->GetDriverByName("PNG");
+    GDALDataset* ds_mem_out = mem_driver->Create("", mled_row, mled_col, 4, GDT_Byte, nullptr);
+    for(int row=0; row<mled_row; row++)
+    {
+        char* arr_mem_out_1 = new char[mled_col];
+        char* arr_mem_out_2 = new char[mled_col];
+        char* arr_mem_out_3 = new char[mled_col];
+        char* arr_mem_out_4 = new char[mled_col];
+        float* arr_mem = new float[mled_col];
+        rb_mem->RasterIO(GF_Read, 0,row, mled_col, 1, arr_mem, mled_col, 1, datatype_mem, 0,0);
+        for(int col=0; col < mled_col; col++)
+        {
+            if(isnan(arr_mem[col])){
+                arr_mem_out_1[col] = 0;
+                arr_mem_out_2[col] = 0;
+                arr_mem_out_3[col] = 0;
+                arr_mem_out_4[col] = 255;
+                continue;
+            }else{
+                rgba color = color_map.mapping_color(arr_mem[col]);
+                arr_mem_out_1[col] = color.red;
+                arr_mem_out_2[col] = color.green;
+                arr_mem_out_3[col] = color.blue;
+                arr_mem_out_4[col] = color.alpha;
+            }
+        }
+        ds_mem_out->GetRasterBand(1)->RasterIO(GF_Write,0,row, mled_col, 1, arr_mem_out_1, mled_col, 1, datatype_mem, 0,0);
+        ds_mem_out->GetRasterBand(2)->RasterIO(GF_Write,0,row, mled_col, 1, arr_mem_out_2, mled_col, 1, datatype_mem, 0,0);
+        ds_mem_out->GetRasterBand(3)->RasterIO(GF_Write,0,row, mled_col, 1, arr_mem_out_3, mled_col, 1, datatype_mem, 0,0);
+        ds_mem_out->GetRasterBand(4)->RasterIO(GF_Write,0,row, mled_col, 1, arr_mem_out_4, mled_col, 1, datatype_mem, 0,0);
+        delete[] arr_mem_out_1;
+        delete[] arr_mem_out_2;
+        delete[] arr_mem_out_3;
+        delete[] arr_mem_out_4;
+        delete[] arr_mem;
+    }
+
+
+
+    GDALDataset* ds_out = png_driver->CreateCopy(argv[6],ds_mem_out, TRUE,0,0,0);
+
+    /// 填写png的数组
+
+}
+
+
+
+
+
+
 
     /// 2.获取影像的最值, (现有的基于rasterband的方法, 需要先创建一个空地址的dataset(但因为这个dataset最后生成png时也要使用, 所以不会浪费时间))
 

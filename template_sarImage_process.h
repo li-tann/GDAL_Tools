@@ -136,5 +136,4 @@ funcrst cpx_to_real(complex<_Ty>* arr_in, _Ty* arr_out, sar_image_type type)
     return funcrst(true, "cpx_to_real success.");
 }
 
-
 #endif
