@@ -10,6 +10,7 @@ enable_testing()
 
 find_package(GDAL CONFIG REQUIRED)
 find_package(spdlog CONFIG REQUIRED)
+find_package(fmt CONFIG REQUIRED)
 
 set(CPACK_PROJECT_NAME ${PROJECT_NAME})
 set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})
@@ -54,3 +55,14 @@ target_link_libraries(_create_delaunay PRIVATE spdlog::spdlog spdlog::spdlog_hea
 add_executable(_determine_topological_relationship DetermineTopologicalRelationship.cpp)
 target_link_libraries(_determine_topological_relationship PRIVATE GDAL::GDAL)
 target_link_libraries(_determine_topological_relationship PRIVATE spdlog::spdlog spdlog::spdlog_header_only)
+
+# 打印sar影像
+add_executable(_print_sar_image print_sar_image.cpp template_sarImage_process.h datatype.cpp datatype.h)
+target_link_libraries(_print_sar_image PRIVATE GDAL::GDAL)
+target_link_libraries(_print_sar_image PRIVATE spdlog::spdlog spdlog::spdlog_header_only)
+target_link_libraries(_print_sar_image PRIVATE fmt::fmt)
+
+# 融合sar影像
+add_executable(_merge_sar_image merge_sar_image.cpp template_sarImage_process.h)
+target_link_libraries(_merge_sar_image PRIVATE GDAL::GDAL)
+target_link_libraries(_merge_sar_image PRIVATE spdlog::spdlog spdlog::spdlog_header_only)
