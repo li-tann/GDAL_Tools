@@ -8,6 +8,8 @@
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/basic_file_sink.h>
 
+#include "datatype.h"
+
 #define EXE_NAME "_merge_sar_image"
 
 using namespace std;
@@ -17,51 +19,27 @@ string EXE_PLUS_FILENAME(string extention){
     return string(EXE_NAME)+"."+ extention;
 }
 
-void strSplit(std::string input, std::vector<std::string>& output, std::string split, bool clearVector = true);
-double spend_time(decltype (std::chrono::system_clock::now()) start);
+enum class merge_Method_{percentage};
 
 int main(int argc, char* argv[])
 {
+    MAIN_INIT(EXE_NAME);
 
-    auto start = chrono::system_clock::now();
-
-    GDALAllRegister();
-    string msg;
-
-    auto my_logger = spdlog::basic_logger_mt(EXE_NAME, EXE_PLUS_FILENAME("txt"));
-
-    auto return_msg = [my_logger](int rtn, string msg){
-        my_logger->info(msg);
-		spdlog::info(msg);
-        return rtn;
-    };
-
-    /// 默认已经输入的相位和底图都是8bit图
-    /// 1.相位地址, 2.底图地址, 3.融合方式, 4.输出地址
-    if(argc < 3){
+    if(argc < 4){
         msg =   EXE_PLUS_FILENAME("exe\n");
         msg +=  " manual:\n" 
                 " argv[0]: " EXE_NAME ",\n"
-                " argv[1]: point(like: x,y),\n"
-                " argv[2]: shp file.\n";
+                " argv[1]: input_filepath_up, only supported 4bands, 8bit png image.\n"
+                " argv[2]: input_filepath_down, only supported 4bands, 8bit png image.\n"
+                " argv[3]: merge method, such as: 'percentage,0.3,0.7', ''.\n"
+                " argv[4]: print filepath (*.png).\n";
         return return_msg(-1,msg);
     }
-
-    return_msg(0,EXE_NAME " start.");
-
-
-    vector<string> str_splited;
-    double pos_x, pos_y;
-    
-    strSplit(argv[1], str_splited, ",", true);
-
-    if(str_splited.size() < 2){
-        return return_msg(-3,"number of valid data in argv[1] is less than 2.");
-    }
+    return return_msg(1, EXE_NAME " start.");
 
     GDALAllRegister();
 
-    return_msg(2, msg);
+    
 
     return return_msg(1, EXE_NAME " end.");
 }

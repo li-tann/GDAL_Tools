@@ -1,11 +1,25 @@
-#ifndef DATATYPE
-#define DATATYPE
+#ifndef DATATYPE_H
+#define DATATYPE_H
 
 #include <vector>
 #include <string>
 #include <complex>
+#include <chrono>
+
+#include <gdal_priv.h>
 
 using namespace std;
+
+#define MAIN_INIT(EXE_NAME)															\
+	auto start = chrono::system_clock::now();										\
+    GDALAllRegister();																\
+    string msg;																		\
+    auto my_logger = spdlog::basic_logger_mt(EXE_NAME, EXE_PLUS_FILENAME("txt"));	\
+    auto return_msg = [my_logger](int rtn, string msg){								\
+        my_logger->info(msg);														\
+		spdlog::info(msg);															\
+        return rtn;																	\
+    };
 
 struct funcrst{
     funcrst() {};
@@ -27,11 +41,11 @@ inline size_t dynamic_array_size(_Ty* array)
 }
 
 /// @brief RGBA
-/// r,g,b: 0~255, a:0~1(0是透明, 1是全实)
+/// r,g,b: 0~255, a:0~255(0是全透明, 255是实心)
 struct rgba {
 	int red, green, blue, alpha;
 	rgba():red(0), green(0), blue(0), alpha(0) {};
-	rgba(int r, int g, int b, double a) :
+	rgba(int r, int g, int b, int a) :
 		red(r > 255 ? 255 : (r < 0 ? 0 : r)), 
 		green(g > 255 ? 255 : (g < 0 ? 0 : g)),
 		blue(b > 255 ? 255 : (b < 0 ? 0 : b)),

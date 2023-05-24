@@ -57,7 +57,10 @@ target_link_libraries(_determine_topological_relationship PRIVATE GDAL::GDAL)
 target_link_libraries(_determine_topological_relationship PRIVATE spdlog::spdlog spdlog::spdlog_header_only)
 
 # 打印sar影像
-add_executable(_print_sar_image print_sar_image.cpp template_sarImage_process.h datatype.cpp datatype.h)
+add_executable(_print_sar_image print_sar_image.cpp template_sarImage_process.h datatype.cpp)
+target_include_directories(	_print_sar_image 
+							INTERFACE 
+							${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(_print_sar_image PRIVATE GDAL::GDAL)
 target_link_libraries(_print_sar_image PRIVATE spdlog::spdlog spdlog::spdlog_header_only)
 target_link_libraries(_print_sar_image PRIVATE fmt::fmt)

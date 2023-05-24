@@ -39,11 +39,10 @@ color_map_v2::color_map_v2(const char* color_map_filepath)
 {
     fs::path p(color_map_filepath);
 
-    
-    if(p.extension().string() == "cm"){
+    if(p.extension().string() == ".cm"){
         load_cm(color_map_filepath);
     }
-    else if(p.extension().string() == "cpt"){
+    else if(p.extension().string() == ".cpt"){
         load_cpt(color_map_filepath);
     }
     else{
@@ -76,8 +75,8 @@ funcrst color_map_v2::is_opened()
         return_bool = false;
     }
 
-    int node_size = _msize(node) / sizeof(*node);
-    int color_size = _msize(color) / sizeof(*color);
+    int node_size = int(_msize(node) / sizeof(*node));
+    int color_size = int(_msize(color) / sizeof(*color));
     if (node_size + 1 != color_size) {
         error_explain += fmt::format("node.size({})+1 != color.size({})", node_size, color_size);
         return_bool = false;
@@ -256,18 +255,22 @@ funcrst cal_stretched_minmax(GDALRasterBand* rb, int histogram_size, double stre
 	/// 换算成百分比
 	double* histgram_accumulate_percent = new double[histogram_size];
 	bool update_min{ false }, update_max{ false };
+    int index_min{-1}, index_max{-1};
 	for (int i = 0; i < histogram_size; i++) {
 		histgram_accumulate_percent[i] = 1. * histgram_accumulate[i] / histgram_accumulate[histogram_size - 1];
 		if (i == 0)continue;
 		if ((histgram_accumulate_percent[i - 1] <= stretch_rate || i == 1) && histgram_accumulate_percent[i] >= stretch_rate) {
 			min = minmax[0] + (minmax[1] - minmax[0]) / histogram_size * (i - 1);
+            index_min = i;
 			update_min = true;
 		}
 		if (histgram_accumulate_percent[i - 1] <= 1 - stretch_rate && histgram_accumulate_percent[i] >= 1 - stretch_rate) {
 			max = minmax[0] + (minmax[1] - minmax[0]) / histogram_size * i;
+            index_max = i;
 			update_max = true;
 		}
 	}
+
 	delete[] histgram_result;
 	delete[] histgram_accumulate;
 
