@@ -69,3 +69,7 @@ target_link_libraries(_print_sar_image PRIVATE fmt::fmt)
 add_executable(_merge_sar_image merge_sar_image.cpp template_sarImage_process.h)
 target_link_libraries(_merge_sar_image PRIVATE GDAL::GDAL)
 target_link_libraries(_merge_sar_image PRIVATE spdlog::spdlog spdlog::spdlog_header_only)
+
+# duqu EGM2008文件, 并写出
+add_executable(_read_egm2008 read_egm2008.cpp)
+target_link_libraries(_read_egm2008 PRIVATE spdlog::spdlog spdlog::spdlog_header_only)
