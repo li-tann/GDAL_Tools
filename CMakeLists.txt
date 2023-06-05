@@ -71,5 +71,6 @@ target_link_libraries(_merge_sar_image PRIVATE GDAL::GDAL)
 target_link_libraries(_merge_sar_image PRIVATE spdlog::spdlog spdlog::spdlog_header_only)
 
 # duqu EGM2008文件, 并写出
-add_executable(_read_egm2008 read_egm2008.cpp)
+add_executable(_read_egm2008 read_egm2008.cpp datatype.cpp)
+target_link_libraries(_read_egm2008 PRIVATE GDAL::GDAL)
 target_link_libraries(_read_egm2008 PRIVATE spdlog::spdlog spdlog::spdlog_header_only)

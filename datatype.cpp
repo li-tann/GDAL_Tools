@@ -284,3 +284,92 @@ funcrst cal_stretched_minmax(GDALRasterBand* rb, int histogram_size, double stre
 
 	return funcrst(true, "cal_stretched_minmax success.");
 }
+
+/// egm2008
+
+egm2008::egm2008(/* args */)
+{
+}
+
+egm2008::~egm2008()
+{
+    if(arr == nullptr)
+        delete[] arr;
+}
+
+funcrst egm2008::init(std::string path)
+{
+    ifstream ifs(path, ifstream::binary);
+    if(!ifs.is_open()){
+        lastError = "init, ifs.is_open return false.";
+        return funcrst(false, lastError);
+    }
+
+    auto start = std::chrono::system_clock::now();
+
+    std::string str;
+    width = 0;
+    height = 0;
+    float value;
+    zero_number = 0;
+    bool stat_width = false;   
+    while (ifs.read((char*)&value, 4)) { //一直读到文件结束
+        if(value == 0){
+            ++zero_number;
+            if(zero_number == 1){
+                stat_width = true;
+            }
+            if(zero_number == 2){
+                stat_width = false;
+            }
+        }
+        else{
+            if(stat_width){
+                ++width;
+            }
+        }
+    }
+    ifs.seekg(0,ios::beg);
+    
+    cout<<"zero_number:"<<zero_number<<endl;
+
+    double seconds = spend_time(start);
+    cout<<"init, spend_time: "<<seconds<<"s."<<endl;
+
+    height = zero_number / 2;
+    if(height != (width / 2 + 1)){
+        lastError = fmt::format("init, height({}) != width({}) / 2 + 1\n",height, width);
+        return funcrst(false, lastError);
+    }
+
+    spacing = double(360) / width; 
+
+    /// 计算完height 和 width 后, 可以定义数组长度
+
+    arr = new float[height * width];
+    int num = 0;
+    while (ifs.read((char*)&value, 4)){ //一直读到文件结束
+        if(value == 0){
+            continue;
+        }
+        else{
+            if(num >= height * width){
+                lastError = fmt::format("init, the number({}) of non-zero is more than height({}) * width({})", num, height, width);
+                return funcrst(false,lastError);
+            }
+            arr[num] = value;
+            ++num;
+        }
+    }
+
+    ifs.close();
+    return funcrst(true, "init, success.");
+}
+
+long egm2008::cal_off(size_t row, size_t col)
+{
+    if(row > height || col > width){
+        return -1;
+    }
+    return row * (width + 2) + width + 1;
+}
