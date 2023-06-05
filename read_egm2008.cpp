@@ -62,9 +62,12 @@ int main(int argc, char* argv[])
     /// step.1 判断是单点计算还是批量还是DEM
     method input_method = method::unknown; 
 
+    double lon, lat;
+
     std::string str_input = argv[1];
     fs::path input_path(str_input);
     if(fs::exists(input_path)){
+        /// 如果确定输入的是一个文件, 那么以文件对待, 进行判断
         if(input_path.extension() ==".tif" || input_path.extension() ==".tiff" /* || input_path.extension() == ".hgt" */){
             input_method = method::dem;
         }else if(input_path.extension() ==".txt"){
@@ -93,6 +96,13 @@ int main(int argc, char* argv[])
             return return_msg(-2,msg);
         }
         input_method = method::point;
+        lon = stod(splited[0]);
+        lat = stod(splited[1]);
+
+        if(lon > 180 || lon < -180 || lat > 90 || lat < -90){
+             msg = "the coordinates input are not valid value, please ensure that the longitude and latitude are within the range[-180,180], [-90, 90] ";
+            return return_msg(-2,msg);
+        }
     }
 
     /// 识别EGM类型, 不能只靠文件名
@@ -107,6 +117,8 @@ int main(int argc, char* argv[])
     cout<<"width:  "<<egm.width<<endl;
     cout<<"spacing:"<<egm.spacing<<endl;
 
+    // cout<<"arr[n*1080]"<<egm.arr[1080]<<","<<egm.arr[2*1080]<<","<<egm.arr[3*1080]<<","<<egm.arr[4*1080]<<","<<egm.arr[5*1080]<<endl;
+
     /// 根据method输出数据
 
 
@@ -116,26 +128,54 @@ int main(int argc, char* argv[])
     switch (input_method)
     {
     case method::point:{
-        /* code */
-        }break;
+        float height_anomaly = egm.calcluate_height_anomaly_single_point(lon, lat);
+        cout<<fmt::format("cal single_point's height anomaly: {}.",height_anomaly)<<endl;
+        }
+        break;
     case method::txt:{
-        /* code */
-        }break;
+        rst = egm.write_height_anomaly_txt(argv[1], argv[3]);
+        return return_msg(-3,rst.explain);
+        }
+        break;
     case method::dem:{
-        /* code */
-        }break;
+        GDALAllRegister();
+        GDALDataset* ds_in  = (GDALDataset*)GDALOpen(argv[1],GA_ReadOnly);
+        if(!ds_in){
+            return return_msg(-3,"ds_in is nullptr");
+        }
+        GDALRasterBand* rb_in = ds_in->GetRasterBand(1);
+        int dem_width = ds_in->GetRasterXSize();
+        int dem_height = ds_in->GetRasterYSize();
+        double dem_gt[6];
+        ds_in->GetGeoTransform(dem_gt);
+
+        GDALDriver* tif_driver = GetGDALDriverManager()->GetDriverByName("GTiff");
+        GDALDataset* ds_out = tif_driver->Create(argv[3],dem_width, dem_height,1,GDT_Float32,nullptr);
+        if(!ds_out){
+            return return_msg(-3,"ds_out is nullptr");
+        }
+        float* interped_arr = new float[dem_height * dem_width];
+        rst = egm.write_height_anomaly_image(dem_height, dem_width, dem_gt, interped_arr);
+        return_msg(-4,rst.explain);
+        if(!rst){
+            return return_msg(-4,rst.explain);
+        }
+
+        cout<<"interped_arr.size():"<<dynamic_array_size(interped_arr)<<endl;
+
+        GDALRasterBand* rb_out = ds_out->GetRasterBand(1);
+        rb_out->RasterIO(GF_Write,0,0,dem_width, dem_height, interped_arr,dem_width, dem_height,GDT_Float32,0,0);
+
+        ds_out->SetGeoTransform(dem_gt);
+        ds_out->SetProjection(ds_in->GetProjectionRef());
+        
+
+        delete[] interped_arr;
+        GDALClose(ds_in);
+        GDALClose(ds_out);
+        }
+        break;
     }
-
-    
-
-
-
-    
-
-
-    /// 建立一个EGM的类, 具备功能: 给定
-
-
 
 
     return return_msg(1, EXE_NAME " end.");

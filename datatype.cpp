@@ -329,6 +329,7 @@ funcrst egm2008::init(std::string path)
             }
         }
     }
+    ifs.clear();
     ifs.seekg(0,ios::beg);
     
     cout<<"zero_number:"<<zero_number<<endl;
@@ -343,6 +344,13 @@ funcrst egm2008::init(std::string path)
     }
 
     spacing = double(360) / width; 
+
+    egm_gt[0] = 0;
+    egm_gt[1] = spacing;
+    egm_gt[2] = 0;
+    egm_gt[3] = 90;
+    egm_gt[4] = 0;
+    egm_gt[5] = -spacing;
 
     /// 计算完height 和 width 后, 可以定义数组长度
 
@@ -362,8 +370,22 @@ funcrst egm2008::init(std::string path)
         }
     }
 
+    cout<<"2se, num:"<<num<<endl;
     ifs.close();
     return funcrst(true, "init, success.");
+}
+
+xy egm2008::cal_image_pos(double lon, double lat)
+{
+    /// 原数据中, 经度的取值范围是0~360, 所以需要对lon进行一定处理
+    /// 默认输入的数据时-180~180, -90~90之间, 需要在外面对异常数据进行限制
+    if(lon < 0)
+        lon += 360;
+
+    xy dst;
+    dst.y = (lat - egm_gt[3]) / egm_gt[5]; 
+    dst.x = (lon - egm_gt[0]) / egm_gt[1];
+    return dst;
 }
 
 long egm2008::cal_off(size_t row, size_t col)
@@ -371,5 +393,105 @@ long egm2008::cal_off(size_t row, size_t col)
     if(row > height || col > width){
         return -1;
     }
-    return row * (width + 2) + width + 1;
+    return row * (width + 2) + col + 1;
+}
+
+
+float egm2008::calcluate_height_anomaly_single_point(double lon, double lat)
+{
+    xy image_pos = cal_image_pos(lon, lat);
+    // cout<<"cal_image_pos: "<<image_pos.to_str()<<endl;
+    
+    /// 数组描述的是一个圆柱体, 经度到达尾部时, 下一列数据可以取0 
+    int pos_left = int(image_pos.x);
+    int pos_right = (pos_left == width - 1) ? 0 : pos_left + 1;
+    
+    int pos_top = int(image_pos.y);
+    if(pos_top == -90){
+        pos_top = -89;
+    }
+    int pos_down  = pos_top + 1;
+
+    // cout<<"pos_left: "<<pos_left<<endl;
+    // cout<<"pos_right: "<<pos_right<<endl;
+    // cout<<"pos_top: "<<pos_top<<endl;
+    // cout<<"pos_down: "<<pos_down<<endl;
+
+    float value_topleft = arr[pos_top * width + pos_left];
+    float value_topright = arr[pos_top * width + pos_right];
+    float value_downleft = arr[pos_down * width + pos_left];
+    float value_downright = arr[pos_down * width + pos_right];
+
+    // cout<<"value_topleft: "<<value_topleft<<endl;
+    // cout<<"value_topright: "<<value_topright<<endl;
+    // cout<<"value_downleft: "<<value_downleft<<endl;
+    // cout<<"value_downright: "<<value_downright<<endl;
+
+
+    xy delta(image_pos.x - pos_left, image_pos.y - pos_top);
+    float value =   (1 - delta.y) * (1 - delta.x) * value_topleft + 
+                    (1 - delta.y) * (delta.x) * value_topright +
+                    (delta.y) * (1 - delta.x) * value_downleft + 
+                    (delta.y) * (delta.x) * value_downright;
+    
+    return value;
+}
+
+funcrst egm2008::write_height_anomaly_txt(const char* input_filepath, const char* output_filepath)
+{
+    ifstream ifs(input_filepath);
+    if(!ifs.is_open()){
+        return funcrst(false, "write_height_anomaly_txt, ifs(input) open failed.");
+    }
+
+    ofstream ofs(output_filepath);
+    if(!ofs.is_open()){
+        return funcrst(false, "write_height_anomaly_txt, ofs(output) open failed.");
+    }
+
+    string str;
+    while (getline(ifs,str))
+    {
+        vector<string> splited;
+        ofs<<str;
+        strSplit(str,splited,",");
+        if(splited.size() < 2)
+            continue;
+        
+        double lon = stod(splited[0]);
+        double lat = stod(splited[1]);
+        if(lon > 180 || lon < -180 || lat > 90 || lat < -90){
+            ofs<<", the coordinate is not a valid value."<<endl;
+            continue;
+        }
+  
+        float value = calcluate_height_anomaly_single_point(lon, lat);
+        ofs<<","<<value<<endl;
+    }
+
+    ifs.close();
+    ofs.close();
+
+    return funcrst(true, "write_height_anomaly_txt, success.");
+    
+}
+
+funcrst egm2008::write_height_anomaly_image(int interped_height, int interped_width, double interped_gt[], float* height_anomaly_arr)
+{
+    for(int i=0; i<interped_height; ++i)
+    {
+        for(int j=0; j<interped_width; ++j)
+        {
+            double lon = interped_gt[0] + interped_gt[1] * j;
+            double lat = interped_gt[3] + interped_gt[5] * i;
+            
+            if(lon > 180 || lon < -180 || lat > 90 || lat < -90){
+                height_anomaly_arr[i*interped_width + j] = NAN; 
+            }else{
+                height_anomaly_arr[i*interped_width + j] = calcluate_height_anomaly_single_point(lon, lat);
+            }
+        }
+    }
+
+    return funcrst(true, "write_height_anomaly_image, success.");
 }

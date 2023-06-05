@@ -107,6 +107,15 @@ struct err_hei_image{
 	float* arr;
 };
 
+struct xy{
+	xy():x(0),y(0){}
+	xy(double x_, double y_):x(x_),y(y_){}
+	string to_str(){
+		return "(" + std::to_string(x) + "," + std::to_string(y) + ")";
+	}
+	double x, y;
+};
+
 
 ///  10′*10′的EGM文件, 有1081(180*6+1)行和2160(360*6)列   (这里的列数不计算每行起止处的两个0)
 ///  以此类推, 1′*1′的EGM文件, 有10801(180*60+1)行21600(360*60)列
@@ -121,45 +130,34 @@ public:
 	funcrst init(std::string path);
 
 	/// 返回某行列号对应在二进制中的偏移量, 如果输入的行列号超过宽高, 则返回-1
-	
-	struct xy{
-		xy():x(0),y(0){}
-		xy(double x_, double y_):x(x_),y(y_){}
-		string to_str(){
-			return fmt::format("({},{})",x,y);
-		}
-		double x, y;
-	};
 
-	enum point_type{integer, row_integer, col_integer, none_integer};	
+	enum point_type{rc_integer, row_integer, col_integer, none_integer};	
 	/// 四种点类型, 对应四种插值方式: 整数可以直接取值, 行整数或列整数使用线性插值, 非整数使用双线性插值
 
-	xy index_transto_xy(size_t index){
-		return xy(index / width, index % width);
-	};
-
 	/// 计算经纬度的对应的像平面坐标(行列号, )
-	size_t cal_image_pos(double lon, double lat);
+	xy cal_image_pos(double lon, double lat);
 	
 	long cal_off(size_t row, size_t col);
 
-	/// 提供经纬度, 输出范围内(再向四周扩张到整数)
-	void write_arrs(err_hei_image* errHeiImg);
+	
+	/// 单点计算高程异常值
+	float calcluate_height_anomaly_single_point(double lon, double lat);
+
+	funcrst write_height_anomaly_txt(const char* input_filepath, const char* output_filepath);
 
 	/// 输入宽高和六参数, 可以确定一景DEM的基本信息, 计算对应位置的高程异常值, 并输出到height_anomaly_arr中
 	funcrst write_height_anomaly_image(int height, int width, double gt[], float* height_anomaly_arr);
 
-	/// 单点计算高程异常值
-	funcrst calcluate_height_anomaly_single_point(double lon, double lat);
 
+	
 public:
 	
-	size_t width;		/// 有效宽, 180 -> 0 -> -180, 长度没有考虑两端的0, 实际计算偏移量时, 要考虑到每一行都存在的两个0
+	size_t width;		/// 有效宽, 0 -> 360, 长度没有考虑两端的0, 实际计算偏移量时, 要考虑到每一行都存在的两个0
 	size_t height;		/// 高, 90 -> -90
 	double spacing;		/// 分辨率, 由于标准EGM文件, 这两个分辨率应该相同, 所以值留了一个spacing
 	size_t zero_number;	/// 统计二进制文件中, 0的格式, 如果是标准数据的话, zero_number / 2 == height
 	float* arr = nullptr;			/// 去除0之后的二进制数组
-
+	double egm_gt[6];
 };
 
 
