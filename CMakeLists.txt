@@ -78,3 +78,7 @@ target_include_directories(	_read_egm2008
 target_link_libraries(_read_egm2008 PRIVATE GDAL::GDAL)
 target_link_libraries(_read_egm2008 PRIVATE spdlog::spdlog spdlog::spdlog_header_only)
 target_link_libraries(_read_egm2008 PRIVATE fmt::fmt)
+
+add_executable(_vrt_io vrt_test.cpp)
+target_link_libraries(_vrt_io PRIVATE GDAL::GDAL)
+target_link_libraries(_vrt_io PRIVATE spdlog::spdlog spdlog::spdlog_header_only)
