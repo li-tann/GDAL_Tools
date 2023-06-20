@@ -106,22 +106,9 @@ int main(int argc, char* argv[])
         ofs.close();
         delete[] arr;
 
-        // GDALDriver* driver_mem = GetGDALDriverManager()->GetDriverByName("MEM");
-        // GDALDriver* driver_vrt = GetGDALDriverManager()->GetDriverByName("VRT");
 
-        // GDALDataset* ds_mem = driver_mem->Create("",1000,1000,1,GDT_Float32,nullptr);
-        // if(!ds_mem){
-        //     return return_msg(-2,"ds_mem is nullptr");
-        // }
-        // ds_mem->GetRasterBand(1)->RasterIO(GF_Write,0,0,1000,1000,arr,1000,1000,GDT_Float32,0,0);
-        // delete[] arr;
 
-        // GDALDataset* ds_out = driver_vrt->CreateCopy(argv[2],ds_mem,FALSE,NULL,NULL,NULL);
-        // if(!ds_out){
-        //     return return_msg(-2,"ds_out is nullptr");
-        // }
-        // GDALClose((GDALDatasetH) ds_out);
-        // GDALClose((GDALDatasetH) ds_mem);
+
 
         GDALDriver* driver_vrt = GetGDALDriverManager()->GetDriverByName("VRT");
         GDALDataset* ds_out = driver_vrt->Create(vrt_path.c_str(), width, height, 0,GDT_Float32,NULL);
