@@ -82,3 +82,8 @@ target_link_libraries(_read_egm2008 PRIVATE fmt::fmt)
 add_executable(_vrt_io vrt_test.cpp)
 target_link_libraries(_vrt_io PRIVATE GDAL::GDAL)
 target_link_libraries(_vrt_io PRIVATE spdlog::spdlog spdlog::spdlog_header_only)
+
+add_executable(_vrt_trans vrt_trans.cpp)
+target_link_libraries(_vrt_trans PRIVATE GDAL::GDAL)
+target_link_libraries(_vrt_trans PRIVATE spdlog::spdlog spdlog::spdlog_header_only)
+
