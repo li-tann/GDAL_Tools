@@ -87,3 +87,6 @@ add_executable(_vrt_trans vrt_trans.cpp)
 target_link_libraries(_vrt_trans PRIVATE GDAL::GDAL)
 target_link_libraries(_vrt_trans PRIVATE spdlog::spdlog spdlog::spdlog_header_only)
 
+add_executable(_fcpx_filter fcpx_filter.cpp datatype.h)
+target_link_libraries(_fcpx_filter PRIVATE GDAL::GDAL)
+target_link_libraries(_fcpx_filter PRIVATE spdlog::spdlog spdlog::spdlog_header_only)

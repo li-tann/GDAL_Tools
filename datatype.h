@@ -160,6 +160,19 @@ public:
 	double egm_gt[6];
 };
 
-
+template<typename type>
+inline type swap(type src)
+{
+	type dst;
+	size_t src_size = sizeof(type);
+	/*unsigned char* src_uc = static_cast<unsigned char*>(&src);
+	unsigned char* dst_uc = static_cast<unsigned char*>(&dst);*/
+	unsigned char* src_uc = (unsigned char*)(&src);
+	unsigned char* dst_uc = (unsigned char*)(&dst);
+	for (size_t i = 0; i < src_size; i++) {
+		dst_uc[i] = src_uc[src_size - 1 - i];
+	}
+	return dst;
+}
 #endif
 

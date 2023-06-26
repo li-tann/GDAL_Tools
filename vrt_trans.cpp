@@ -10,6 +10,8 @@
 
 #include <gdal_priv.h>
 
+#include "datatype.h"
+
 #define EXE_NAME "_vrt_trans"
 
 using namespace std;
@@ -44,7 +46,7 @@ int main(int argc, char* argv[])
                 " argv[0]: " EXE_NAME ",\n"
                 " argv[1]: method , v2t or t2v.\n"
                 " argv[2]: input  , vrt or tif filepath.\n"
-                " argv[3]: output , tif or vrt filepath.";
+                " argv[3]: output , tif or bin filepath.";
         return return_msg(-1,msg);
     }
 
@@ -59,18 +61,19 @@ int main(int argc, char* argv[])
         msg = "method is not both 'v2t' & 't2v'";
         return return_msg(-1,msg);
     }
-
-    std::string input_filepath = argv[2];
-    fs::path path_input(input_filepath);
-    std::string binary_name = path_input.filename().string();
-    std::string binary_path = input_filepath;
-    std::string vrt_path = binary_path + ".vrt";
  
     GDALAllRegister();
 
     if(b_v2t){
 
         /// vrt 2 tif
+
+        std::string input_filepath = argv[2];
+        fs::path path_input(input_filepath);
+        std::string binary_name = path_input.filename().string();
+        std::string binary_path = input_filepath;
+        std::string vrt_path = binary_path + ".vrt";
+        
         GDALDataset* ds_in = (GDALDataset*)GDALOpen(argv[2],GA_ReadOnly);
         if(!ds_in){
             return return_msg(-2,"ds_in is nullptr");
@@ -111,30 +114,62 @@ int main(int argc, char* argv[])
         GDALClose(ds_out);
     }
     else{  
-        return return_msg(-3,"t2v is incomplete.");
-
 
         /// tif 2 vrt
-        int width = 1024;
-        int height = 512;
-        float* arr = new float[height*width];
 
-        std::ofstream ofs(binary_path,ios::binary);
+        fs::path path_bin(argv[3]);
+        std::string binary_name = path_bin.filename().string();
+        std::string vrt_path = path_bin.string() + ".vrt";
+
+        GDALDataset* ds_in = (GDALDataset*)GDALOpen(argv[2],GA_ReadOnly);
+        if(!ds_in){
+            return return_msg(-2,"ds_in is nullptr");
+        }
+        GDALRasterBand* rb_in = ds_in->GetRasterBand(1);
+
+        int width = ds_in->GetRasterXSize();
+        int height = ds_in->GetRasterYSize();
+        GDALDataType datatype = rb_in->GetRasterDataType();
+
+
+        std::ofstream ofs(argv[3],ios::binary);
         if(!ofs.is_open()){
             return return_msg(-3,"ofs open failed.");
         }
 
-        for(int i=0; i<height*width;i++){
-            int row = i / width;
-            int col = i % width;
-            arr[i] = float(row + col);
+
+        int PixelOffset = 0;
+        int LineOffset = 0;
+        switch (datatype)
+        {
+        case GDT_CFloat32:{
+            PixelOffset = 8;
+            LineOffset = PixelOffset * width;
+            std::complex<float>* arr = new complex<float>[width];
+            int percentage = 0;
+            std::cout<<"percent: ";
+            for(int i=0; i<height; i++){
+                if(i * 100 / height > percentage){
+                    percentage = i * 100 / height;
+                    std::cout<<"\rpercent: "<<percentage+1 <<"%("<<i<<"/"<<height<<")";
+                }
+                rb_in->RasterIO(GF_Read, 0, i, width, 1, arr, width,1,GDT_CFloat32,0,0);
+                float* arr_flt = (float*)(arr);
+                for (int i = 0; i < 2 * width; i++) {
+                    float val = swap(arr_flt[i]);
+                    ofs.write((char*)(&val), sizeof(val));
+                }
+            }
+            std::cout<<std::endl;
+            delete[] arr;
+        }break;
+
+        default:{
+
         }
-        ofs.write((const char*)arr,height*width*4);
+        }
+
         ofs.close();
-        delete[] arr;
-
-
-
 
 
         GDALDriver* driver_vrt = GetGDALDriverManager()->GetDriverByName("VRT");
@@ -146,11 +181,11 @@ int main(int argc, char* argv[])
         papszOptions = CSLAddNameValue(papszOptions, "subclass", "VRTRawRasterBand"); // if not specified, default to VRTRasterBand
         papszOptions = CSLAddNameValue(papszOptions, "SourceFilename", binary_name.c_str()); // mandatory
         papszOptions = CSLAddNameValue(papszOptions, "ImageOffset", "0"); // optional. default = 0
-        papszOptions = CSLAddNameValue(papszOptions, "PixelOffset", "4"); // optional. default = size of band type
-        papszOptions = CSLAddNameValue(papszOptions, "LineOffset", to_string(width*4).c_str()); // optional. default = size of band type * width
-        papszOptions = CSLAddNameValue(papszOptions, "ByteOrder", "LSB"); // optional. default = machine order
+        papszOptions = CSLAddNameValue(papszOptions, "PixelOffset", to_string(PixelOffset).c_str()); // optional. default = size of band type
+        papszOptions = CSLAddNameValue(papszOptions, "LineOffset", to_string(LineOffset).c_str()); // optional. default = size of band type * width
+        papszOptions = CSLAddNameValue(papszOptions, "ByteOrder", "MSB"); // optional. default = machine order
         papszOptions = CSLAddNameValue(papszOptions, "relativeToVRT", "true"); // optional. default = false
-        ds_out->AddBand(GDT_Float32, papszOptions);
+        ds_out->AddBand(datatype, papszOptions);
         CSLDestroy(papszOptions);
 
         delete ds_out;
