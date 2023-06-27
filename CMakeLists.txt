@@ -90,3 +90,7 @@ target_link_libraries(_vrt_trans PRIVATE spdlog::spdlog spdlog::spdlog_header_on
 add_executable(_fcpx_filter fcpx_filter.cpp datatype.h)
 target_link_libraries(_fcpx_filter PRIVATE GDAL::GDAL)
 target_link_libraries(_fcpx_filter PRIVATE spdlog::spdlog spdlog::spdlog_header_only)
+
+add_executable(_over_resample over_resample.cpp datatype.h)
+target_link_libraries(_over_resample PRIVATE GDAL::GDAL)
+target_link_libraries(_over_resample PRIVATE spdlog::spdlog spdlog::spdlog_header_only)
