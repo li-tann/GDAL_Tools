@@ -7,3 +7,6 @@
 
 vcruntime140d.dll
 vcruntime140_1d.dll
+
+/CMakeFiles
+/Testing

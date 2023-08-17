@@ -94,3 +94,10 @@ target_link_libraries(_fcpx_filter PRIVATE spdlog::spdlog spdlog::spdlog_header_
 add_executable(_over_resample over_resample.cpp datatype.h)
 target_link_libraries(_over_resample PRIVATE GDAL::GDAL)
 target_link_libraries(_over_resample PRIVATE spdlog::spdlog spdlog::spdlog_header_only)
+
+add_executable(_transmit_geoinformation transmit_geoinformation.cpp)
+target_link_libraries(_transmit_geoinformation PRIVATE GDAL::GDAL)
+target_link_libraries(_transmit_geoinformation PRIVATE spdlog::spdlog spdlog::spdlog_header_only)
+
+install(TARGETS _transmit_geoinformation
+		RUNTIME DESTINATION exes_bin)
