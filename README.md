@@ -41,3 +41,23 @@ tif图转换为二进制文件
 ## print_sar_image
 
 打印sar影像(支持复数格式), 设置转换格式phase / power(仅复数数据有效), 最值筛选方式 auto / manual, 颜色表, 并输出到指定地址下
+
+## egm2008
+
+通过egm2008，输出单点经纬度，或经纬度文件，或带地理坐标的DEM文件，输入小端存储（*_SE）的EGM2008文件,输出对应点或范围的高程异常值
+
+## vrt_test
+
+读或写一个vrt文件
+
+## vrt_trans
+
+vrt格式的数据转换为tif格式，或tif格式的数据转换为vrt格式
+
+## over_resample
+
+基于GDAL的Warp，对影像进行重采样, 并以tif格式输出
+
+## transmit_geoinformation
+
+把影像A的GeoTransform和ProjectRef写到影像B内
