@@ -104,9 +104,24 @@ int main(int argc, char* argv[])
             std::cout<<std::endl;
             delete[] arr;
         }break;
-
+        case GDT_Float32:{
+            float* arr = new float[width];
+            int percentage = 0;
+            std::cout<<"percent: ";
+            for(int i=0; i<height; i++){
+                if(i * 100 / height > percentage){
+                    percentage = i * 100 / height;
+                    std::cout<<"\rpercent: "<<percentage+1 <<"%("<<i<<"/"<<height<<")";
+                }
+                rb_in->RasterIO(GF_Read, 0, i, width, 1, arr, width,1,GDT_Float32,0,0);
+                rb_out->RasterIO(GF_Write, 0, i, width, 1, arr, width, 1, GDT_Float32, 0, 0);
+            }
+            std::cout<<std::endl;
+            delete[] arr;
+        }break;
         default:{
-
+            std::cout<<"unknown datatype.\n";
+            return 1;
         }
         }
 
@@ -163,9 +178,28 @@ int main(int argc, char* argv[])
             std::cout<<std::endl;
             delete[] arr;
         }break;
-
+        case GDT_Float32:{
+            PixelOffset = 4;
+            LineOffset = PixelOffset * width;
+            float* arr = new float[width];
+            int percentage = 0;
+            std::cout<<"percent: ";
+            for(int i=0; i<height; i++){
+                if(i * 100 / height > percentage){
+                    percentage = i * 100 / height;
+                    std::cout<<"\rpercent: "<<percentage+1 <<"%("<<i<<"/"<<height<<")";
+                }
+                rb_in->RasterIO(GF_Read, 0, i, width, 1, arr, width,1,GDT_Float32,0,0);
+                for (int i = 0; i < width; i++) {
+                    float val = swap(arr[i]);
+                    ofs.write((char*)(&val), sizeof(val));
+                }
+            }
+            std::cout<<std::endl;
+            delete[] arr;
+        }break;
         default:{
-
+            return return_msg(-3,"unsupport datatype");
         }
         }
 
