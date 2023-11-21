@@ -41,16 +41,16 @@ int main(int argc, char* argv[])
 {
     // return regex_test();
 
-    argc = 6;
-    argv = new char*[6];
-    for(int i=0; i<6; i++){
-        argv[i] = new char[256];
-    }
-    strcpy(argv[1], "D:\\1_Data\\shp_test\\TanDEM_DEM");
-    strcpy(argv[2], "D:\\1_Data\\shp_test\\poly_1.shp");
-    strcpy(argv[3], "0");
-    strcpy(argv[4], ".*DEM.tif");
-    strcpy(argv[5], "D:\\1_Data\\shp_test\\poly_1.dem.tif");
+    // argc = 6;
+    // argv = new char*[6];
+    // for(int i=0; i<6; i++){
+    //     argv[i] = new char[256];
+    // }
+    // strcpy(argv[1], "D:\\1_Data\\shp_test\\TanDEM_DEM");
+    // strcpy(argv[2], "D:\\1_Data\\shp_test\\poly_1.shp");
+    // strcpy(argv[3], "0");
+    // strcpy(argv[4], ".*DEM.tif");
+    // strcpy(argv[5], "D:\\1_Data\\shp_test\\poly_1.dem.tif");
 
     GDALAllRegister();
     CPLSetConfigOption("GDAL_FILENAME_IS_UTF8", "NO");
