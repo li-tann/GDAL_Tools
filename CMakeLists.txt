@@ -103,5 +103,12 @@ add_executable(_unified_geoimage_merging unified_GeoImage_merging.cpp)
 target_link_libraries(_unified_geoimage_merging PRIVATE GDAL::GDAL)
 target_link_libraries(_unified_geoimage_merging PRIVATE spdlog::spdlog spdlog::spdlog_header_only)
 
+add_executable(_create_shapfile create_shapfile.cpp datatype.h datatype.cpp)
+target_link_libraries(_create_shapfile PRIVATE GDAL::GDAL)
+target_link_libraries(_create_shapfile PRIVATE spdlog::spdlog spdlog::spdlog_header_only)
+
+message(STATUS "cmake build type: " ${CMAKE_BUILD_TYPE})
+file(COPY_FILE ${CMAKE_CURRENT_LIST_DIR}/proj.db ${CMAKE_CURRENT_LIST_DIR}/build/${CMAKE_BUILD_TYPE}/proj.db ONLY_IF_DIFFERENT)
+
 install(TARGETS _transmit_geoinformation
 		RUNTIME DESTINATION exes_bin)
