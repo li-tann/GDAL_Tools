@@ -12,6 +12,8 @@
 #include <gdal_priv.h>
 #include <ogrsf_frmts.h>
 
+#include "datatype.h"
+
 #define EXE_NAME "_unified_geoimage_merging"
 
 using namespace std;
@@ -41,16 +43,16 @@ int main(int argc, char* argv[])
 {
     // return regex_test();
 
-    // argc = 6;
-    // argv = new char*[6];
-    // for(int i=0; i<6; i++){
-    //     argv[i] = new char[256];
-    // }
-    // strcpy(argv[1], "D:\\1_Data\\shp_test\\TanDEM_DEM");
-    // strcpy(argv[2], "D:\\1_Data\\shp_test\\poly_1.shp");
-    // strcpy(argv[3], "0");
-    // strcpy(argv[4], ".*DEM.tif");
-    // strcpy(argv[5], "D:\\1_Data\\shp_test\\poly_1.dem.tif");
+    argc = 6;
+    argv = new char*[6];
+    for(int i=0; i<6; i++){
+        argv[i] = new char[256];
+    }
+    strcpy(argv[1], "D:\\1_Data\\shp_test\\TanDEM_DEM");
+    strcpy(argv[2], "D:\\1_Data\\shp_test\\poly_1.shp");
+    strcpy(argv[3], "0");
+    strcpy(argv[4], ".*DEM.tif");
+    strcpy(argv[5], "D:\\1_Data\\shp_test\\poly_1.dem.tif");
 
     GDALAllRegister();
     CPLSetConfigOption("GDAL_FILENAME_IS_UTF8", "NO");
@@ -134,7 +136,8 @@ int main(int argc, char* argv[])
 
     /// 1.2. 任选其一获取基本信息（分辨率、坐标系统、数据类型）, 用于创建输出文件
     double spacing = 0.;
-    const char* projectionRef;
+    OGRSpatialReference* osr;
+	
     GDALDataType datatype;
     int datasize = 0;
     {
@@ -147,7 +150,14 @@ int main(int argc, char* argv[])
         double gt[6];
         temp_dataset->GetGeoTransform(gt);
         spacing = gt[1];
-        projectionRef = temp_dataset->GetProjectionRef();
+        auto temp_osr = temp_dataset->GetSpatialRef();
+        
+        osr = temp_osr->CloneGeogCS();
+
+        // auto epsg = temp_osr->GetAttrValue("AUTHORITY",1);
+        // cout<<"AUTHORITY,1:" << epsg<<endl;
+        // osr.importFromEPSG(atoi(epsg));
+        
         datatype = rb->GetRasterDataType();
         GDALClose(temp_dataset);
 
@@ -169,6 +179,7 @@ int main(int argc, char* argv[])
     }
     cout<<"datatype is: "<<GDALGetDataTypeName(datatype)<<endl;
     cout<<"datasize is: "<<datasize<<endl;
+    cout<<"osr.name is: "<<osr->GetName()<<endl;
 
     // system("pause");
 
@@ -299,7 +310,9 @@ int main(int argc, char* argv[])
     }
     GDALRasterBand* op_rb = op_dataset->GetRasterBand(1);
     op_dataset->SetGeoTransform(op_gt);
-    op_dataset->SetProjection(projectionRef);
+    if(op_dataset->SetSpatialRef(osr) != CE_None){
+        cout<<"op_dataset->SetSpatialRef(osr) failed."<<endl;
+    }
 
     /// 赋初始值
     switch (datatype)

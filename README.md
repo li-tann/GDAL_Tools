@@ -61,3 +61,78 @@ vrt格式的数据转换为tif格式，或tif格式的数据转换为vrt格式
 ## transmit_geoinformation
 
 把影像A的GeoTransform和ProjectRef写到影像B内
+
+## unified_GeoImage_merging
+
+统一坐标系统的影像的拼接，例如全球分块的DEM文件。
+
+以DEM为例，输入所有DEM文件所在的<**根目录**>（允许多层级迭代），再输入一个目标区域的<**shp文件**>，选择拼接方法
+
+拼接方法有两种，
+
+minimum表示只提取与shp有交集的DEM数据进行拼接，当shp文件不规则时可能会出现拼接结果边角缺少数据的情况；
+
+maximum表示提取所有在shp文件四至范围内的DEM数据进行拼接，所以拼接结果将会是一个完整的矩形（除非缺少DEM数据）但也会失去shp的形状特点；
+
+程序默认<**根目录**>内所有DEM都在统一坐标系统内，并且分辨率完全相同，即没有进行重采样等操作，而是直接计算每个待拼接DEM在拼接后DEM的起始位置，直接将所有像素值“平移”过去。
+
+当<**根目录**>内存在两种及以上坐标系统的影像且均被用于拼接，或与shp文件坐标系统不相同时，可能会出现输出影像尺寸离谱、无法正确判断相交情况等各种奇奇怪怪的异常问题。
+
+考虑到<**根目录**>中可能存在除DEM之外的无效数据，程序内也提供了基于文件名称的正则表达式筛选条件（可选），仅将通过了正则筛选的数据作为拼接待选数据。
+
+TDM1_DEM的文件结构为：
+
+```powershell
+D:.
+│  demProduct.xsd
+│  generalHeader.xsd
+│  TDM1_DEM__30_N39E112.xml
+│  types_inc.xsd
+│
+├─AUXFILES
+│      TDM1_DEM__30_N39E112_AM2.tif
+│      TDM1_DEM__30_N39E112_AMP.tif
+│      TDM1_DEM__30_N39E112_COM.tif
+│      TDM1_DEM__30_N39E112_COV.tif
+│      TDM1_DEM__30_N39E112_HEM.tif
+│      TDM1_DEM__30_N39E112_LSM.tif
+│      TDM1_DEM__30_N39E112_WAM.tif
+│
+├─DEM
+│      TDM1_DEM__30_N39E112_DEM.tif
+│
+└─PREVIEW
+        TDM1_DEM__30_N39E112.kml
+        TDM1_DEM__30_N39E112_AM2.kml
+        TDM1_DEM__30_N39E112_AM2_QL.tif
+        TDM1_DEM__30_N39E112_AMP.kml
+        TDM1_DEM__30_N39E112_AMP_QL.tif
+        TDM1_DEM__30_N39E112_COM.kml
+        TDM1_DEM__30_N39E112_COM_LEGEND_QL.png
+        TDM1_DEM__30_N39E112_COM_QL.tif
+        TDM1_DEM__30_N39E112_COV.kml
+        TDM1_DEM__30_N39E112_COV_LEGEND_QL.png
+        TDM1_DEM__30_N39E112_COV_QL.tif
+        TDM1_DEM__30_N39E112_DEM.kml
+        TDM1_DEM__30_N39E112_DEM_ABS_QL.tif
+        TDM1_DEM__30_N39E112_DEM_LEGEND_QL.png
+        TDM1_DEM__30_N39E112_DEM_QL.tif
+        TDM1_DEM__30_N39E112_DEM_THUMB_QL.png
+        TDM1_DEM__30_N39E112_DEM_WAM_ABS_QL.tif
+        TDM1_DEM__30_N39E112_DEM_WAM_QL.tif
+        TDM1_DEM__30_N39E112_HEM.kml
+        TDM1_DEM__30_N39E112_HEM_LEGEND_QL.png
+        TDM1_DEM__30_N39E112_HEM_QL.tif
+        TDM1_DEM__30_N39E112_LSM.kml
+        TDM1_DEM__30_N39E112_LSM_LEGEND_QL.png
+        TDM1_DEM__30_N39E112_LSM_QL.tif
+        TDM1_DEM__30_N39E112_WAM.kml
+        TDM1_DEM__30_N39E112_WAM_LEGEND_QL.png
+        TDM1_DEM__30_N39E112_WAM_QL.tif
+```
+
+TDM_DEM文件中有很多tif数据，但只有DEM数据的后缀名称是“xxxx_DEM.tif”，所以使用正则表达式`.*DEM.tif$`可以从中筛选出DEM数据。
+
+## create_shapfile
+
+输入一个记录经纬度信息的

@@ -99,7 +99,7 @@ add_executable(_transmit_geoinformation transmit_geoinformation.cpp)
 target_link_libraries(_transmit_geoinformation PRIVATE GDAL::GDAL)
 target_link_libraries(_transmit_geoinformation PRIVATE spdlog::spdlog spdlog::spdlog_header_only)
 
-add_executable(_unified_geoimage_merging unified_GeoImage_merging.cpp)
+add_executable(_unified_geoimage_merging unified_GeoImage_merging.cpp datatype.h datatype.cpp)
 target_link_libraries(_unified_geoimage_merging PRIVATE GDAL::GDAL)
 target_link_libraries(_unified_geoimage_merging PRIVATE spdlog::spdlog spdlog::spdlog_header_only)
 

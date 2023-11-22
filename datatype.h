@@ -32,6 +32,7 @@ struct funcrst{
 
 void strSplit(std::string input, std::vector<std::string>& output, std::string split, bool clearVector = true);
 double spend_time(decltype (std::chrono::system_clock::now()) start);
+void strTrim(string &s);
 
 
 template<typename _Ty>
@@ -174,5 +175,8 @@ inline type swap(type src)
 	}
 	return dst;
 }
+
+
+
 #endif
 

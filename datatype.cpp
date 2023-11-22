@@ -35,6 +35,19 @@ double spend_time(decltype (std::chrono::system_clock::now()) start)
     return second;
 }
 
+
+void strTrim(string &s)
+{
+	int index = 0;
+	if(!s.empty())
+	{
+		while( (index = s.find(' ',index)) != string::npos)
+		{
+			s.erase(index,1);
+		}
+	}
+}
+
 color_map_v2::color_map_v2(const char* color_map_filepath)
 {
     fs::path p(color_map_filepath);
