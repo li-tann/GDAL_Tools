@@ -20,6 +20,7 @@
 #define EXE_NAME "_unified_geoimage_merging"
 
 // #define PRINT_DETAILS
+// #define SYSTEM_PAUSE
 
 using namespace std;
 namespace fs = std::filesystem;
@@ -50,17 +51,17 @@ int main(int argc, char* argv[])
     // return regex_test();
     // return extract_geometry_memory_test();
 
-    argc = 6;
-    argv = new char*[6];
-    for(int i=0; i<6; i++){
-        argv[i] = new char[256];
-    }
-    strcpy(argv[1], "E:\\DEM");
-    // strcpy(argv[1], "D:\\1_Data\\shp_test\\TanDEM_DEM");
-    strcpy(argv[2], "D:\\1_Data\\china_shp\\bou1_4p.shp");
-    strcpy(argv[3], "0");
-    strcpy(argv[4], ".*DEM.tif");
-    strcpy(argv[5], "D:\\Copernicus_China_DEM_minimum.tif");
+    // argc = 6;
+    // argv = new char*[6];
+    // for(int i=0; i<6; i++){
+    //     argv[i] = new char[256];
+    // }
+    // strcpy(argv[1], "E:\\DEM");
+    // // strcpy(argv[1], "D:\\1_Data\\shp_test\\TanDEM_DEM");
+    // strcpy(argv[2], "D:\\1_Data\\china_shp\\bou1_4p.shp");
+    // strcpy(argv[3], "0");
+    // strcpy(argv[4], ".*DEM.tif");
+    // strcpy(argv[5], "D:\\Copernicus_China_DEM_minimum.tif");
 
     GDALAllRegister();
     CPLSetConfigOption("GDAL_FILENAME_IS_UTF8", "NO");
@@ -99,7 +100,7 @@ int main(int argc, char* argv[])
         op_filepath = argv[5];
     }
 
-    mergingMethod merging_method = mergingMethod::minimum;
+    mergingMethod merging_method = mergingMethod::minimum;  // 图像挑选策略
     {
         int temp = stoi(argv[3]);
         if(temp == 0)
@@ -108,11 +109,12 @@ int main(int argc, char* argv[])
             merging_method = mergingMethod::maximum;
     }
 
-    std::mutex mtx;
+    std::mutex mtx; // 多线程并行锁
 
 
 
     /// 1.读取影像文件夹内所有影像信息待用, 并从中任选一个数据提取分辨率、坐标系统和数据类型信息。
+    spdlog::info(" #1. Read all the image information in the DEM Folder for use. (it may take a long time for the first time)");
 
     fs::path root_path(argv[1]);
     if(!fs::exists(root_path)){
@@ -132,6 +134,7 @@ int main(int argc, char* argv[])
     fs::path path_imgs_info(root_path.string() + "/IMGS_INFO_FOR_MERGING.txt");
     if(fs::exists(path_imgs_info))
     {
+        /// 如果IMGS_INFO_FOR_MERGING.txt文件已存在, 就直接读取文件内的DEM地址以及DEM对应的四至范围
         spdlog::info("IMGS_INFO_FOR_MERGING.txt is existed");
         std::ifstream ifs(path_imgs_info.string());
         if(!ifs.is_open()){
@@ -164,6 +167,7 @@ int main(int argc, char* argv[])
     }
     else{
 write:
+        /// 如果找不到IMGS_INFO_FOR_MERGING.txt文件, 就逐个读取并存储
         spdlog::info("there is no IMGS_INFO_FOR_MERGING.txt file, let's create it.(which will spend a little of times.)");
         std::ofstream ofs(path_imgs_info.string());
         if(ofs.is_open()){
@@ -200,7 +204,7 @@ write:
             valid_imgpaths.push_back(iter.path().string());
             valid_ll_ranges.push_back(t);
             valid_num++;
-            cout<<fmt::format("\rnumber of validimage: {}",valid_num);
+            spdlog::info(fmt::format("\rnumber of validimage: {}",valid_num));
 
             if(ofs.is_open()){
                 ofs<<fmt::format("{},{},{},{},{}",iter.path().string(),lon_min,lon_max,lat_min,lat_max)<<endl;
@@ -219,36 +223,41 @@ write:
         
     }
 
-    spdlog::info(fmt::format("number of valid_file: {}\n",valid_imgpaths.size()));
+    spdlog::info(fmt::format("number of valid_file: {}",valid_imgpaths.size()));
     if(valid_imgpaths.size() == 0){
         return return_msg(-5, "there is no valid file in argv[1].");
     }
 #ifdef PRINT_DETAILS
     print_imgpaths("valid_imgpaths",valid_imgpaths);
 #endif
-    system("pause");
 
+#ifdef SYSTEM_PAUSE
+    system("pause");
+#endif
+    
 
     /// 1.2. 任选其一获取基本信息（分辨率、坐标系统、数据类型）, 用于创建输出文件
-    double spacing = 0.;
-    OGRSpatialReference* osr;
-	
-    GDALDataType datatype;
-    int datasize = 0;
+    spdlog::info(" ##1.2. Read anyone image, extract 'resolution', 'coordinate system', and 'data type' as the basic information for outputt data.");
+    
+    double spacing = 0.;        /// 输出tif的分辨率
+    OGRSpatialReference* osr;   /// 输出tif的坐标系统
+    GDALDataType datatype;      /// 输出tif的数据类型
+    int datasize = 0;           /// 输出tif的数据类型对应的字节类型
     {
         GDALDataset* temp_dataset;
         int i = 0;
         do{
-            cout<<fmt::format("\r searching a valid dataset: id[{}], path:[{}]",i,valid_imgpaths[i]);
             temp_dataset = (GDALDataset*)GDALOpen(valid_imgpaths[i++].c_str(),GA_ReadOnly);
-        }while(!temp_dataset || i > valid_imgpaths.size());
+        }while(!temp_dataset || i >= valid_imgpaths.size());
+
+        if(i >= valid_imgpaths.size())
+            return_msg(-1,"there is no image can open by GDAL in valid_imgpaths.");
 
         GDALRasterBand* rb = temp_dataset->GetRasterBand(1);
         double gt[6];
         temp_dataset->GetGeoTransform(gt);
         spacing = gt[1];
         auto temp_osr = temp_dataset->GetSpatialRef();
-        
         osr = temp_osr->CloneGeogCS();
 
         // auto epsg = temp_osr->GetAttrValue("AUTHORITY",1);
@@ -274,14 +283,17 @@ write:
             break;
         }
     }
-    cout<<"datatype is: "<<GDALGetDataTypeName(datatype)<<endl;
-    cout<<"datasize is: "<<datasize<<endl;
-    cout<<"osr.name is: "<<osr->GetName()<<endl;
+    spdlog::info(fmt::format("datatype is {}",GDALGetDataTypeName(datatype)));
+    spdlog::info(fmt::format("datasize is {}",datasize));
+    spdlog::info(fmt::format("osr.name is {}",osr->GetName()));
 
+#ifdef SYSTEM_PAUSE
     system("pause");
+#endif
 
 
     /// 2. 从所有有效的影像文件中筛选出与shp有交集（根据相应的筛选策略min or max）的文件，并统计经纬度覆盖范围
+    spdlog::info(" #2. Read the shp file, get range of the shp, and extract all the 'geometry' into memory to prevent repeated extraction from increasing time consumption (swapping memory for time) when comparing with DEM one by one in the future.");
 
     GDALDataset* shp_dataset = (GDALDataset*)GDALOpenEx(argv[2], GDAL_OF_VECTOR, NULL, NULL, NULL);
     if(!shp_dataset){
@@ -297,8 +309,8 @@ write:
     double shp_lon_min, shp_lon_max, shp_lat_min, shp_lat_max;
     if(layer->GetExtent(&envelope_total) == OGRERR_NONE){
         // success
-        std::cout<<fmt::format("layer.range:left:{:.4f}, top:{:.4f}, right:{:.4f}, down:{:.4f}.\n",
-                envelope_total.MinX, envelope_total.MaxY, envelope_total.MaxX, envelope_total.MinY);
+        spdlog::info(fmt::format("layer.range:left:{:.4f}, top:{:.4f}, right:{:.4f}, down:{:.4f}.",
+                envelope_total.MinX, envelope_total.MaxY, envelope_total.MaxX, envelope_total.MinY));
         shp_lon_min = envelope_total.MinX;
         shp_lon_max = envelope_total.MaxX;
         shp_lat_max = envelope_total.MaxY;
@@ -335,13 +347,17 @@ write:
         OGRFeature::DestroyFeature(f);
     } while (1);
 
-    // spdlog::info("number of geometry in shp is: {}",shp_geometry_vec.size());
-    // if(shp_geometry_vec.size() < 1){
-    //     return return_msg(-3, "number of geometry in shp < 1");
-    // }
+    spdlog::info("number of geometry in shp is: {}",shp_geometry_vec.size());
+    if(shp_geometry_vec.size() < 1){
+        return return_msg(-3, "number of geometry in shp < 1");
+    }
 
 
+#ifdef SYSTEM_PAUSE
     system("pause");
+#endif
+
+    spdlog::info(" #3. Compare the topological between each DEM's range and the shp file one by one, extract the files that intersect with the shp file, and use them for subsequent concatenation.");
 
     double contains_lon_max = shp_lon_min, contains_lon_min = shp_lon_max;
     double contains_lat_max = shp_lat_min, contains_lat_min = shp_lat_max;
@@ -362,7 +378,7 @@ write:
         int current_percentage = idx * 1000 / valid_imgpaths.size();
         if(current_percentage > last_percentage){
             last_percentage = current_percentage;
-            std::cout<<fmt::format("\r extract percentage {:.1f}%({}/{}): ",last_percentage/10., idx, valid_imgpaths.size());
+            std::cout<<fmt::format("\r  preparing percentage {:.1f}%({}/{}): ",last_percentage/10., idx, valid_imgpaths.size());
         }
         idx++;
 
@@ -374,23 +390,6 @@ write:
         double img_lat_max = range.lat_max;
         double img_lat_min = range.lat_min;
 
-        // GDALDataset* ds = (GDALDataset*)GDALOpen(imgpath.c_str(), GA_ReadOnly);
-        // if(!ds){
-        //     invalid_imgpath_num++;
-        //     continue;
-        // }
-
-        // double* gt = new double[6];
-        // ds->GetGeoTransform(gt);
-        // int width = ds->GetRasterXSize();
-        // int height= ds->GetRasterYSize();
-
-        // GDALClose(ds);
-
-        // double img_lon_min = gt[0], img_lon_max = gt[0] +  width * gt[1];
-        // double img_lat_max = gt[3], img_lat_min = gt[3] + height * gt[5];
-
-        // delete[] gt;
 #ifdef PRINT_DETAILS
         std::cout<<fmt::format("img range, left:{:.4f}, top:{:.4f}, right:{:.4f}, down:{:.4f}.",
                     img_lon_min, img_lat_max, img_lon_max, img_lat_min);
@@ -407,52 +406,6 @@ write:
                 }
             }
             OGRGeometryFactory::destroyGeometry(img_geometry);
-
-            // mtx.lock();
-            // OGRGeometry* img_geometry = range_to_ogrgeometry(img_lon_min, img_lon_max, img_lat_min, img_lat_max);
-            // // img_geometry->closeRings();
-            // layer->ResetReading();
-            
-            // bool feature_loop = false;
-            // do
-            // {
-            //     // cout<<xxx++<<endl;
-            //     auto f = layer->GetNextFeature();
-            //     if(f != NULL){
-            //         auto g = f->GetGeometryRef();
-            //         if (!g){
-            //             ///Contains, Overlaps, Intersects
-            //             if (g->Intersects(img_geometry)){
-            //                 b_contains = true;
-            //                 OGRGeometryFactory::destroyGeometry(g);
-            //                 OGRFeature::DestroyFeature(f);
-            //                 break;
-            //             }
-            //         }
-            //         OGRGeometryFactory::destroyGeometry(g);
-            //     }
-            //     else{
-            //         break;
-            //     }
-            //     OGRFeature::DestroyFeature(f);
-            // } while (1);
-            // mtx.unlock();
-
-            // // while ((feature = layer->GetNextFeature()) != NULL){
-            // //     geometry = feature->GetGeometryRef();
-            //     // if (!geometry){
-            //     //     ///Contains, Overlaps, Intersects
-            //     //     if (geometry->Intersects(img_geometry)){
-            //     //         b_contains = true;
-            //     //         OGRGeometryFactory::destroyGeometry(geometry);
-            //     //         break;
-            //     //     }
-            //     // }
-            //     // OGRGeometryFactory::destroyGeometry(geometry);
-            // // }
-            // // OGRFeature::DestroyFeature(feature);
-            // OGRGeometryFactory::destroyGeometry(img_geometry);
-            
         }
         else{
             if(img_lon_min > shp_lon_max || img_lon_max < shp_lon_min || img_lat_max < shp_lat_min || img_lat_min > shp_lat_max){
@@ -483,7 +436,7 @@ write:
     valid_imgpaths.clear();
     destrory_geometrys();
 
-    spdlog::info(fmt::format("contains range, left:{:.4f}, top:{:.4f}, right:{:.4f}, down:{:.4f}.\n",
+    spdlog::info(fmt::format("contains range, left:{:.4f}, top:{:.4f}, right:{:.4f}, down:{:.4f}.",
                     contains_lon_min, contains_lat_max, contains_lon_max, contains_lat_min));
 
     spdlog::info(fmt::format("number of contains_image: {}",contains_num));
@@ -496,9 +449,12 @@ write:
         return return_msg(-6, "contains_imgpath.size() < 1, there is no contained image.");
     }
 
+#ifdef SYSTEM_PAUSE
     system("pause");
+#endif
 
     /// 3. 读取影像文件, 将满足条件的所有影像（contains）写到同一个tif里
+    spdlog::info(" #4. Generate output images and assign initial values (short/int: -32767; float: NAN). If the file exists and the size and six parameters are the same, skip the initialization process directly.");
 
     int width  = ceil((contains_lon_max - contains_lon_min) / spacing);
     int height = ceil((contains_lat_max - contains_lat_min) / spacing);
@@ -508,91 +464,121 @@ write:
     spdlog::info(fmt::format("output_geotranform: {},{},{},{},{},{}",
                     op_gt[0],op_gt[1],op_gt[2],op_gt[3],op_gt[4],op_gt[5]));
 
-    GDALDriver* driver_tif = GetGDALDriverManager()->GetDriverByName("GTiff");
-    GDALDataset* op_dataset = driver_tif->Create(op_filepath.c_str(), width, height, 1, datatype, NULL);
-    if(!op_dataset){
-        return return_msg(-6, "output filepath is invalid.");
-    }
-    GDALRasterBand* op_rb = op_dataset->GetRasterBand(1);
-    op_dataset->SetGeoTransform(op_gt);
-    if(op_dataset->SetSpatialRef(osr) != CE_None){
-        spdlog::warn("op_dataset->SetSpatialRef(osr) failed.");
-    }
+    GDALDataset* op_ds;
+    GDALRasterBand* op_rb;
+    fs::path path_output(op_filepath);
+    if(fs::exists(path_output)){
+        op_ds = (GDALDataset*)GDALOpen(op_filepath.c_str(),GA_Update);
+        if(!op_ds){
+            fs::remove(path_output);
+            spdlog::warn("output file existed, but open failed, let's remove, create and init it.");
+            goto init;
+        }
+        int temp_width = op_ds->GetRasterXSize();
+        int temp_height= op_ds->GetRasterYSize();
+        op_rb = op_ds->GetRasterBand(1);
+        GDALDataType temp_datatype = op_rb->GetRasterDataType();
+        double temp_gt[6];
+        op_ds->GetGeoTransform(temp_gt);
+        spdlog::info(fmt::format("output file.info, width:{}, height{}, datatype:{}, geotransform: {},{},{},{},{},{}.",
+                            temp_width, temp_height,
+                            GDALGetDataTypeName(temp_datatype),
+                            temp_gt[0],temp_gt[1],temp_gt[2],temp_gt[3],temp_gt[4],temp_gt[5]));
 
-    /// 3.1 输出影像的赋初始值
-    spdlog::info(fmt::format("output_rasterband init...",width, height));
-    idx = 0;
-    last_percentage = -1;
-    switch (datatype)
-    {
-    case GDT_Int16:
-        {
-            short* arr = new short[width];
-            for(int i=0; i< width; i++) arr[i] = -32767;
-            for(int i = 0; i< height; i++){
-                int current_percentage = idx * 1000 / height;
-                if(current_percentage > last_percentage){
-                    last_percentage = current_percentage;
-                    std::cout<<fmt::format("\r extract percentage {:.1f}%({}/{}): ",last_percentage/10., idx, height);
-                }
-                idx++;
-                op_rb->RasterIO(GF_Write, 0, i, width, 1, arr, width, 1, datatype, 0, 0);
-            }
-            delete[] arr;
-            op_rb->SetNoDataValue(-32767);
+        if(temp_width != width || temp_height != height || temp_datatype != datatype){
+            GDALClose(op_ds);
+            fs::remove(path_output);
+            spdlog::warn(fmt::format("output file is diff with target, let's remove, create and init it."));
+            goto init;
         }
-        break;
-    case GDT_Int32:
-        {
-            int* arr = new int[width];
-            for(int i=0; i< width; i++) arr[i] = -32767;
-            for(int i = 0; i< height; i++){
-                int current_percentage = idx * 1000 / height;
-                if(current_percentage > last_percentage){
-                    last_percentage = current_percentage;
-                    std::cout<<fmt::format("\r extract percentage {:.1f}%({}/{}): ",last_percentage/10., idx, height);
-                }
-                idx++;
-                op_rb->RasterIO(GF_Write, 0, i, width, 1, arr, width, 1, datatype, 0, 0);
-            }
-            delete[] arr;
-            op_rb->SetNoDataValue(-32767);
-        }
-        break;
-    case GDT_Float32:
-        {
-            float* arr = new float[width];
-            for(int i=0; i< width; i++) arr[i] = NAN;
-            for(int i = 0; i< height; i++){
-                int current_percentage = idx * 1000 / height;
-                if(current_percentage > last_percentage){
-                    last_percentage = current_percentage;
-                    std::cout<<fmt::format("\r extract percentage {:.1f}%({}/{}): ",last_percentage/10., idx, height);
-                }
-                idx++;
-                op_rb->RasterIO(GF_Write, 0, i, width, 1, arr, width, 1, datatype, 0, 0);
-            }
-            delete[] arr;
-            op_rb->SetNoDataValue(NAN);
-        }
-        break;
+        spdlog::info("the existed output file is same with target, so there is no need to init this file.");
     }
+    else{
+init:
+        spdlog::warn(" ##4.1. output file is unexisted, let's create and init it (which will spend a little of time).");
+        GDALDriver* driver_tif = GetGDALDriverManager()->GetDriverByName("GTiff");
 
-    system("pause");
+        char **papszOptions = NULL;
+        papszOptions = CSLSetNameValue(papszOptions, "BIGTIFF", "IF_NEEDED");
+        op_ds = driver_tif->Create(op_filepath.c_str(), width, height, 1, datatype, papszOptions);
+        op_rb = op_ds->GetRasterBand(1);
+        op_ds->SetGeoTransform(op_gt);
+        if(op_ds->SetSpatialRef(osr) != CE_None){
+            spdlog::warn("op_ds->SetSpatialRef(osr) failed.");
+        }
+        spdlog::info(fmt::format("output_rasterband init...",width, height));
+        last_percentage = 0;
+        auto init_starttime = chrono::system_clock::now();
+
+        switch (datatype)
+        {
+        case GDT_Int16:
+            {
+                short* arr = new short[width];
+                for(int i=0; i< width; i++) arr[i] = -32767;
+                for(int i = 0; i< height; i++){
+                    int current_percentage = i * 1000 / height;
+                    if(current_percentage > last_percentage){
+                        last_percentage = current_percentage;
+                        auto spend = spend_time(init_starttime);
+                        size_t remain_sceond = spend / last_percentage * (1000  - last_percentage);
+                        std::cout<<fmt::format("\r  init percentage {:.1f}%({}/{}), remain_time:{}s...            ",last_percentage/10., i, height,remain_sceond);
+                    }
+                    op_rb->RasterIO(GF_Write, 0, i, width, 1, arr, width, 1, datatype, 0, 0);
+                }
+                delete[] arr;
+                op_rb->SetNoDataValue(-32767);
+            }
+            break;
+        case GDT_Int32:
+            {
+                int* arr = new int[width];
+                for(int i=0; i< width; i++) arr[i] = -32767;
+                for(int i = 0; i< height; i++){
+                    int current_percentage = i * 1000 / height;
+                    if(current_percentage > last_percentage){
+                        last_percentage = current_percentage;
+                        auto spend = spend_time(init_starttime);
+                        size_t remain_sceond = spend / last_percentage * (1000  - last_percentage);
+                        std::cout<<fmt::format("\r  init percentage {:.1f}%({}/{}), remain_time:{}s...            ",last_percentage/10., i, height,remain_sceond);
+                    }
+                    op_rb->RasterIO(GF_Write, 0, i, width, 1, arr, width, 1, datatype, 0, 0);
+                }
+                delete[] arr;
+                op_rb->SetNoDataValue(-32767);
+            }
+            break;
+        case GDT_Float32:
+            {
+                float* arr = new float[width];
+                for(int k=0; k< width; k++) arr[k] = NAN;
+                for(int i = 0; i< height; i++){
+                    int current_percentage = i * 1000 / height;
+                    if(current_percentage > last_percentage){
+                        last_percentage = current_percentage;
+                        auto spend = spend_time(init_starttime);
+                        size_t remain_sceond = spend / last_percentage * (1000  - last_percentage);
+                        std::cout<<fmt::format("\r  init percentage {:.1f}%({}/{}), remain_time:{}s...            ",last_percentage/10., i, height,remain_sceond);
+                    }
+                    op_rb->RasterIO(GF_Write, 0, i, width, 1, arr, width, 1, datatype, 0, 0);
+                }
+                delete[] arr;
+                op_rb->SetNoDataValue(NAN);
+            }
+            break;
+        }
+        std::cout<<"\n";
+
+    }
 
     /// 3.2 拼接
-    idx = 0;
-    last_percentage = -1;
-#pragma omp parallel for
+    spdlog::info(" #5. DEM merging.");
+    auto merging_starttime= chrono::system_clock::now();
+// #pragma omp parallel for
     for(int i = 0; i< contains_imgpath.size(); i++)
     // for(auto& imgpath : contains_imgpath)
     {
-        int current_percentage = idx * 1000 / contains_num;
-        if(current_percentage > last_percentage){
-            last_percentage = current_percentage;
-            std::cout<<fmt::format("\r merging percentage {:.1f}%({}/{}): ",last_percentage/10., idx, contains_num);
-        }
-        idx++;
+        auto t1= chrono::system_clock::now();
 
         string imgpath = contains_imgpath[i];
         GDALDataset* ds = (GDALDataset*)GDALOpen(imgpath.c_str(), GA_ReadOnly);
@@ -609,26 +595,58 @@ write:
         int start_x = round((tmp_gt[0] - op_gt[0]) / op_gt[1]);
         int start_y = round((tmp_gt[3] - op_gt[3]) / op_gt[5]);
 #ifdef PRINT_DETAILS
-        std::cout<<fmt::format("img in root: start({},{}), size:({},{}), end:({},{})\n\tpath:[{}]",
+        std::cout<<fmt::format("img in root: start({},{}), size:({},{}), end:({},{})",
                         start_x,start_y,
                         tmp_width, tmp_height,
                         start_x + tmp_width - 1,
-                        start_y + tmp_height - 1,
-                        imgpath);
+                        start_y + tmp_height - 1);
 #endif
+
+#if 1
+        auto t2= chrono::system_clock::now();
         void* arr = malloc(tmp_width * tmp_height * datasize);
         
+        auto t3= chrono::system_clock::now();
         rb->RasterIO(GF_Read, 0, 0, tmp_width, tmp_height, arr, tmp_width, tmp_height, datatype, 0, 0);
-        mtx.lock();
-        op_rb->RasterIO(GF_Write, start_x, start_y, tmp_width, tmp_height, arr, tmp_width, tmp_height, datatype, 0, 0);
-        mtx.unlock();
 
+        auto t4= chrono::system_clock::now();
+        op_rb->RasterIO(GF_Write, start_x, start_y, tmp_width, tmp_height, arr, tmp_width, tmp_height, datatype, 0, 0);
+        
+        auto t5= chrono::system_clock::now();
+#else
+        auto t2= chrono::system_clock::now();
+        void* arr = malloc(tmp_width * datasize);
+
+        for(int ii = 0; ii < tmp_height; ii++)
+        {
+            rb->RasterIO(GF_Read, 0, ii, tmp_width, 1, arr, tmp_width, 1, datatype, 0, 0);
+            op_rb->RasterIO(GF_Write, start_x, start_y + ii, tmp_width, 1, arr, tmp_width, 1, datatype, 0, 0);
+        }
+        
+        auto t3= chrono::system_clock::now();
+        auto t4= chrono::system_clock::now();
+        auto t5= chrono::system_clock::now();
+#endif
         free(arr);
         GDALClose(ds);
+
+        auto t6= chrono::system_clock::now();
+        if( i != 0){
+            auto spend = spend_time(merging_starttime);
+            size_t remain_sceond = spend / i * (contains_num  - i);
+            std::cout<<fmt::format("\r  merging percentage {:.1f}%({}/{}), t1-2:{}s, t2-3:{}s, t3-4:{}s, t4-5:{}s, t5-6:{}s, remain_time:{}s...            ",
+            i*100./contains_num, i, contains_num,
+            spend_time(t1,t2), spend_time(t2,t3), spend_time(t3,t4), spend_time(t4,t5), spend_time(t5,t6), 
+            remain_sceond);
+        }
+        // std::cout<<fmt::format("\r  merging percentage {:.1f}%({}/{}), remain_time:{}s...            ",
+        // i*100./height, i, height,
+        // remain_sceond);
     }
     std::cout<<"\n";
 
-    GDALClose(op_dataset);
+    GDALClose(op_ds);
+    
     
     return return_msg(1, EXE_NAME " end.");
 }

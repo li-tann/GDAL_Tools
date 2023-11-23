@@ -35,6 +35,13 @@ double spend_time(decltype (std::chrono::system_clock::now()) start)
     return second;
 }
 
+double spend_time(decltype (std::chrono::system_clock::now()) start, decltype (std::chrono::system_clock::now()) end)
+{
+    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+    double second = double(duration.count()) * std::chrono::microseconds::period::num / std::chrono::microseconds::period::den;
+    return second;
+}
+
 
 void strTrim(string &s)
 {
