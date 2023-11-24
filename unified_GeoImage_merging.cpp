@@ -256,7 +256,7 @@ write:
         GDALRasterBand* rb = temp_dataset->GetRasterBand(1);
         double gt[6];
         temp_dataset->GetGeoTransform(gt);
-        spacing = gt[1];
+        spacing = abs(gt[5]);   /// 为了防止高纬度地区经度分辨率大于纬度分辨率的情况, 选用纬度分辨率的绝对值作为输出影像的分辨率
         auto temp_osr = temp_dataset->GetSpatialRef();
         osr = temp_osr->CloneGeogCS();
 
@@ -603,18 +603,29 @@ init:
 #endif
 
 #if 1
-        auto t2= chrono::system_clock::now();
-        void* arr = malloc(tmp_width * tmp_height * datasize);
-        
-        auto t3= chrono::system_clock::now();
-        rb->RasterIO(GF_Read, 0, 0, tmp_width, tmp_height, arr, tmp_width, tmp_height, datatype, 0, 0);
+        /// 对于高纬度的地区, 
+        int target_width = tmp_width;
+        int target_height= tmp_height;
 
-        auto t4= chrono::system_clock::now();
-        op_rb->RasterIO(GF_Write, start_x, start_y, tmp_width, tmp_height, arr, tmp_width, tmp_height, datatype, 0, 0);
+        bool b_height_larger_than_width = false;
+        GDALRasterIOExtraArg ex_arg;
+        INIT_RASTERIO_EXTRA_ARG(ex_arg);
+        if(tmp_height > tmp_width){
+            b_height_larger_than_width = true;
+            target_width = target_height;
+            ex_arg.eResampleAlg = GDALRIOResampleAlg::GRIORA_Bilinear;
+        }
+
+        // void* arr = malloc(tmp_width * tmp_height * datasize);
+        void* arr = malloc(target_width * target_height * datasize);
+
         
-        auto t5= chrono::system_clock::now();
+        rb->RasterIO(GF_Read, 0, 0, tmp_width, tmp_height, arr, target_width, target_height, datatype, 0, 0, b_height_larger_than_width ? &ex_arg : NULL);
+        // rb->RasterIO(GF_Read, 0, 0, tmp_width, tmp_height, arr, tmp_width, tmp_height, datatype, 0, 0);
+
+        op_rb->RasterIO(GF_Write, start_x, start_y, target_width, target_height, arr, target_width, target_height, datatype, 0, 0);
+        
 #else
-        auto t2= chrono::system_clock::now();
         void* arr = malloc(tmp_width * datasize);
 
         for(int ii = 0; ii < tmp_height; ii++)
@@ -622,26 +633,21 @@ init:
             rb->RasterIO(GF_Read, 0, ii, tmp_width, 1, arr, tmp_width, 1, datatype, 0, 0);
             op_rb->RasterIO(GF_Write, start_x, start_y + ii, tmp_width, 1, arr, tmp_width, 1, datatype, 0, 0);
         }
-        
-        auto t3= chrono::system_clock::now();
-        auto t4= chrono::system_clock::now();
-        auto t5= chrono::system_clock::now();
+
 #endif
         free(arr);
         GDALClose(ds);
 
-        auto t6= chrono::system_clock::now();
+
+        auto t2= chrono::system_clock::now();
         if( i != 0){
             auto spend = spend_time(merging_starttime);
             size_t remain_sceond = spend / i * (contains_num  - i);
-            std::cout<<fmt::format("\r  merging percentage {:.1f}%({}/{}), t1-2:{}s, t2-3:{}s, t3-4:{}s, t4-5:{}s, t5-6:{}s, remain_time:{}s...            ",
+            std::cout<<fmt::format("\r  merging percentage {:.1f}%({}/{}), time of parent rasterio spend:{}s, remain_time:{}s...            ",
             i*100./contains_num, i, contains_num,
-            spend_time(t1,t2), spend_time(t2,t3), spend_time(t3,t4), spend_time(t4,t5), spend_time(t5,t6), 
+            spend_time(t1,t2), 
             remain_sceond);
         }
-        // std::cout<<fmt::format("\r  merging percentage {:.1f}%({}/{}), remain_time:{}s...            ",
-        // i*100./height, i, height,
-        // remain_sceond);
     }
     std::cout<<"\n";
 
