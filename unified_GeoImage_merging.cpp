@@ -38,7 +38,8 @@ struct ll_range{
     double lon_min, lon_max, lat_min, lat_max;
 };
 
-enum class mergingMethod{minimum, maximum};
+// enum class mergingMethod{minimum, maximum};
+enum class mergingMethod{rectangle, intersect_rectangle, irregular};
 
 /// 该测试案例可成功通过 可用".*DEM.tif"来搜索后缀是DEM.tif的文件
 int regex_test(); 
@@ -51,17 +52,18 @@ int main(int argc, char* argv[])
     // return regex_test();
     // return extract_geometry_memory_test();
 
-    // argc = 6;
-    // argv = new char*[6];
-    // for(int i=0; i<6; i++){
+    // argc = 7;
+    // argv = new char*[7];
+    // for(int i=0; i<7; i++){
     //     argv[i] = new char[256];
     // }
     // strcpy(argv[1], "E:\\DEM");
     // // strcpy(argv[1], "D:\\1_Data\\shp_test\\TanDEM_DEM");
     // strcpy(argv[2], "D:\\1_Data\\china_shp\\bou1_4p.shp");
     // strcpy(argv[3], "0");
-    // strcpy(argv[4], ".*DEM.tif");
-    // strcpy(argv[5], "D:\\Copernicus_China_DEM_minimum.tif");
+    // strcpy(argv[4], "0.1");
+    // strcpy(argv[5], ".*DEM.tif");
+    // strcpy(argv[6], "D:\\Copernicus_China_DEM_minimum.tif");
 
     GDALAllRegister();
     CPLSetConfigOption("GDAL_FILENAME_IS_UTF8", "NO");
@@ -83,9 +85,10 @@ int main(int argc, char* argv[])
                 " argv[0]: " EXE_NAME ",\n"
                 " argv[1]: input, dem_folder.\n"
                 " argv[2]: input, target shp.\n"
-                " argv[3]: input, merging method, 0:minimum, 1:maximum.\n"
-                " argv[4]: input, optional, regex string.\n"
-                " argv[5]: output, merged dem tif.\n";
+                " argv[3]: input, merging method, 0:rectangle, 1:intersect-rectangle, 2:irregular.\n"
+                " argv[4]: input, shp buffer dist, ref: 0.01 (if unit is degree) or 1000 (if unit is meter)...\n"
+                " argv[5]: input, optional, regex string.\n"
+                " argv[6]: output, merged dem tif.\n";
         return return_msg(-1,msg);
     }
 
@@ -93,21 +96,25 @@ int main(int argc, char* argv[])
 
     bool b_regex = false;
     string regex_regular = "";
-    string op_filepath = argv[4];
+    string op_filepath = argv[5];
     if(argc > 5){
         b_regex = true;
-        regex_regular = argv[4];
-        op_filepath = argv[5];
+        regex_regular = argv[5];
+        op_filepath = argv[6];
     }
 
-    mergingMethod merging_method = mergingMethod::minimum;  // 图像挑选策略
+    mergingMethod merging_method = mergingMethod::intersect_rectangle;  // 图像挑选策略
     {
         int temp = stoi(argv[3]);
         if(temp == 0)
-            merging_method = mergingMethod::minimum;
+            merging_method = mergingMethod::rectangle;
+        else if(temp == 1)
+            merging_method = mergingMethod::intersect_rectangle;
         else
-            merging_method = mergingMethod::maximum;
+            merging_method = mergingMethod::irregular;
     }
+
+    double buffer_dist = stod(argv[4]);
 
     std::mutex mtx; // 多线程并行锁
 
@@ -322,18 +329,20 @@ write:
 
     
     /// 2.1 将所有shp里的geometry写到内存里, 方便后面频繁的提取
+    
     vector<OGRGeometry*> shp_geometry_vec;
     auto destrory_geometrys = [&shp_geometry_vec](){
         for(auto& g: shp_geometry_vec){
             OGRGeometryFactory::destroyGeometry(g);
         }
     };
+
     bool feature_loop = false;
     layer->ResetReading();
     do{
         auto f = layer->GetNextFeature();
         if(f != NULL){
-            auto g = f->GetGeometryRef();
+            auto g = f->GetGeometryRef()->Buffer(buffer_dist);
             if (g){
                 auto g2 = g->clone();
                 shp_geometry_vec.push_back(g2);
@@ -367,7 +376,6 @@ write:
     vector<string> contains_imgpath;
     
     // OGRGeometry* geometry;
-    spdlog::info(fmt::format("merging method: {}", merging_method == mergingMethod::minimum ? "minimum" : "maximum"));
 
     int idx = 0;
     int last_percentage = -1;
@@ -375,7 +383,7 @@ write:
     for(int i=0; i<valid_imgpaths.size(); i++)
     // for(auto& imgpath : valid_imgpaths)
     {
-        int current_percentage = idx * 1000 / valid_imgpaths.size();
+        int current_percentage = int(idx * 1000 / valid_imgpaths.size());
         if(current_percentage > last_percentage){
             last_percentage = current_percentage;
             std::cout<<fmt::format("\r  preparing percentage {:.1f}%({}/{}): ",last_percentage/10., idx, valid_imgpaths.size());
@@ -394,9 +402,9 @@ write:
         std::cout<<fmt::format("img range, left:{:.4f}, top:{:.4f}, right:{:.4f}, down:{:.4f}.",
                     img_lon_min, img_lat_max, img_lon_max, img_lat_min);
 #endif
-        /// 判断该影像与shp是否相交(广义上的相交，包含minimum和maximum两种相交方法)
+        /// 判断该影像与shp是否相交(广义上的相交，包含计算四至范围(rectangle)和求相交矩形(intersect-rectangle, irregular)两种方法)
         bool b_contains = false;
-        if(merging_method == mergingMethod::minimum)
+        if(merging_method == mergingMethod::intersect_rectangle || merging_method == mergingMethod::irregular)
         {
             OGRGeometry* img_geometry = range_to_ogrgeometry(img_lon_min, img_lon_max, img_lat_min, img_lat_max);
             for(int g_idx = 0; g_idx < shp_geometry_vec.size(); g_idx++){
@@ -434,7 +442,8 @@ write:
     cout<<"\n";
     GDALClose(shp_dataset);
     valid_imgpaths.clear();
-    destrory_geometrys();
+
+
 
     spdlog::info(fmt::format("contains range, left:{:.4f}, top:{:.4f}, right:{:.4f}, down:{:.4f}.",
                     contains_lon_min, contains_lat_max, contains_lon_max, contains_lat_min));
@@ -456,8 +465,8 @@ write:
     /// 3. 读取影像文件, 将满足条件的所有影像（contains）写到同一个tif里
     spdlog::info(" #4. Generate output images and assign initial values (short/int: -32767; float: NAN). If the file exists and the size and six parameters are the same, skip the initialization process directly.");
 
-    int width  = ceil((contains_lon_max - contains_lon_min) / spacing);
-    int height = ceil((contains_lat_max - contains_lat_min) / spacing);
+    int width  = (int)ceil((contains_lon_max - contains_lon_min) / spacing);
+    int height = (int)ceil((contains_lat_max - contains_lat_min) / spacing);
     double op_gt[6] = {contains_lon_min, spacing, 0, contains_lat_max, 0, -spacing};
 
     spdlog::info(fmt::format("output_size: width:{}, height:{}",width, height));
@@ -521,7 +530,7 @@ init:
                     if(current_percentage > last_percentage){
                         last_percentage = current_percentage;
                         auto spend = spend_time(init_starttime);
-                        size_t remain_sceond = spend / last_percentage * (1000  - last_percentage);
+                        size_t remain_sceond = static_cast<size_t>(spend / last_percentage * (1000  - last_percentage));
                         std::cout<<fmt::format("\r  init percentage {:.1f}%({}/{}), remain_time:{}s...            ",last_percentage/10., i, height,remain_sceond);
                     }
                     op_rb->RasterIO(GF_Write, 0, i, width, 1, arr, width, 1, datatype, 0, 0);
@@ -539,7 +548,7 @@ init:
                     if(current_percentage > last_percentage){
                         last_percentage = current_percentage;
                         auto spend = spend_time(init_starttime);
-                        size_t remain_sceond = spend / last_percentage * (1000  - last_percentage);
+                        size_t remain_sceond = static_cast<size_t>(spend / last_percentage * (1000  - last_percentage));
                         std::cout<<fmt::format("\r  init percentage {:.1f}%({}/{}), remain_time:{}s...            ",last_percentage/10., i, height,remain_sceond);
                     }
                     op_rb->RasterIO(GF_Write, 0, i, width, 1, arr, width, 1, datatype, 0, 0);
@@ -557,7 +566,7 @@ init:
                     if(current_percentage > last_percentage){
                         last_percentage = current_percentage;
                         auto spend = spend_time(init_starttime);
-                        size_t remain_sceond = spend / last_percentage * (1000  - last_percentage);
+                        size_t remain_sceond = static_cast<size_t>(spend / last_percentage * (1000  - last_percentage));
                         std::cout<<fmt::format("\r  init percentage {:.1f}%({}/{}), remain_time:{}s...            ",last_percentage/10., i, height,remain_sceond);
                     }
                     op_rb->RasterIO(GF_Write, 0, i, width, 1, arr, width, 1, datatype, 0, 0);
@@ -592,8 +601,8 @@ init:
         double tmp_gt[6];
         ds->GetGeoTransform(tmp_gt);
 
-        int start_x = round((tmp_gt[0] - op_gt[0]) / op_gt[1]);
-        int start_y = round((tmp_gt[3] - op_gt[3]) / op_gt[5]);
+        int start_x = (int)round((tmp_gt[0] - op_gt[0]) / op_gt[1]);
+        int start_y = (int)round((tmp_gt[3] - op_gt[3]) / op_gt[5]);
 #ifdef PRINT_DETAILS
         std::cout<<fmt::format("img in root: start({},{}), size:({},{}), end:({},{})",
                         start_x,start_y,
@@ -616,12 +625,83 @@ init:
             ex_arg.eResampleAlg = GDALRIOResampleAlg::GRIORA_Bilinear;
         }
 
+        /// 如果使用irrugular方法, 为了不增加太多耗时, 需要实现计算该数据中每个降采样像素快与shp的相交情况
+        int step = 100;
+        int un_intersect_num = 0;
+        int b_target_height= target_height / step;
+        int b_target_width = target_width  / step;
+        bool* b_arr_intersect = nullptr;
+        
+        if(merging_method == mergingMethod::irregular)
+        {
+            b_arr_intersect = new bool[b_target_height * b_target_width];
+            /// 如果拼接方式选择irregular, 就需要计算降采样后的像素与shp的相交关系
+            for(int row = 0; row < b_target_height; row++){
+                for(int col = 0; col < b_target_width; col++){
+                    double lon_min = op_gt[0] + (start_x + col * step) * op_gt[1];
+                    double lon_max = op_gt[0] + (start_x + (col+1) * step) * op_gt[1];
+                    double lat_max = op_gt[3] + (start_y + row * step) * op_gt[5];
+                    double lat_min = op_gt[3] + (start_y + (row+1) * step) * op_gt[5];
+                    bool b = false;
+                    OGRGeometry* img_geometry = range_to_ogrgeometry(lon_min, lon_max, lat_min, lat_max);
+                    for(auto& geometry : shp_geometry_vec){
+                        b = b || geometry->Intersects(img_geometry);
+                    }
+                    OGRGeometryFactory::destroyGeometry(img_geometry);
+
+                    b_arr_intersect[row * b_target_width + col] = b;
+                    if(!b) un_intersect_num++;
+                }
+            }
+        }
+
         // void* arr = malloc(tmp_width * tmp_height * datasize);
         void* arr = malloc(target_width * target_height * datasize);
 
         
         rb->RasterIO(GF_Read, 0, 0, tmp_width, tmp_height, arr, target_width, target_height, datatype, 0, 0, b_height_larger_than_width ? &ex_arg : NULL);
         // rb->RasterIO(GF_Read, 0, 0, tmp_width, tmp_height, arr, tmp_width, tmp_height, datatype, 0, 0);
+
+        if(merging_method == mergingMethod::irregular)
+        {
+            switch (datatype)
+            {
+            case GDT_Int16:{
+                short* p_arr = (short*)arr;
+                for(int row = 0; row < target_height; row++){
+                    for(int col = 0; col < target_width; col++){
+                        int b_arr_index = row / step * b_target_width + col/step;
+                        if(!b_arr_intersect[b_arr_index]){
+                            p_arr[row * target_width + col] = -32767;
+                        }
+                    }
+                }
+                }break;
+            case GDT_Int32:{
+                int* p_arr = (int*)arr;
+                for(int row = 0; row < target_height; row++){
+                    for(int col = 0; col < target_width; col++){
+                        int b_arr_index = row / step * b_target_width + col/step;
+                        if(!b_arr_intersect[b_arr_index]){
+                            p_arr[row * target_width + col] = -32767;
+                        }
+                    }
+                }
+                }break;
+            case GDT_Float32:{
+                float* p_arr = (float*)arr;
+                for(int row = 0; row < target_height; row++){
+                    for(int col = 0; col < target_width; col++){
+                        int b_arr_index = row / step * b_target_width + col/step;
+                        if(!b_arr_intersect[b_arr_index]){
+                            p_arr[row * target_width + col] = NAN;
+                        }
+                    }
+                }
+                }break;
+            }
+            delete[] b_arr_intersect;
+        }
 
         op_rb->RasterIO(GF_Write, start_x, start_y, target_width, target_height, arr, target_width, target_height, datatype, 0, 0);
         
@@ -642,7 +722,7 @@ init:
         auto t2= chrono::system_clock::now();
         if( i != 0){
             auto spend = spend_time(merging_starttime);
-            size_t remain_sceond = spend / i * (contains_num  - i);
+            size_t remain_sceond = size_t(spend / i * (contains_num  - i));
             std::cout<<fmt::format("\r  merging percentage {:.1f}%({}/{}), time of parent rasterio spend:{}s, remain_time:{}s...            ",
             i*100./contains_num, i, contains_num,
             spend_time(t1,t2), 
@@ -652,6 +732,8 @@ init:
     std::cout<<"\n";
 
     GDALClose(op_ds);
+    
+    destrory_geometrys();
     
     
     return return_msg(1, EXE_NAME " end.");
