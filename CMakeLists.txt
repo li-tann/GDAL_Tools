@@ -56,6 +56,7 @@ target_link_libraries(_create_delaunay PRIVATE spdlog::spdlog spdlog::spdlog_hea
 add_executable(_determine_topological_relationship DetermineTopologicalRelationship.cpp)
 target_link_libraries(_determine_topological_relationship PRIVATE GDAL::GDAL)
 target_link_libraries(_determine_topological_relationship PRIVATE spdlog::spdlog spdlog::spdlog_header_only)
+target_link_libraries(_determine_topological_relationship PRIVATE fmt::fmt)
 
 # 打印sar影像
 add_executable(_print_sar_image print_sar_image.cpp template_sarImage_process.h datatype.cpp)
