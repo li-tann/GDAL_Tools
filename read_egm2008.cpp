@@ -9,7 +9,7 @@
 
 #include "datatype.h"
 
-#define EXE_NAME "_read_EGM2008"
+#define EXE_NAME "read_EGM2008"
 
 using namespace std;
 namespace fs = std::filesystem;

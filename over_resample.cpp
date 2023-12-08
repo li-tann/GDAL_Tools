@@ -15,7 +15,7 @@
 
 #include "datatype.h"
 
-#define EXE_NAME "_over_resample"
+#define EXE_NAME "over_resample"
 
 using namespace std;
 namespace fs = std::filesystem;

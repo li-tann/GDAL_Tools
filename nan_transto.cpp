@@ -11,7 +11,7 @@
 
 #include "template_nan_convert_to.h"
 
-#define EXE_NAME "_nan_TransTo"
+#define EXE_NAME "nan_TransTo"
 
 using namespace std;
 namespace fs = std::filesystem;

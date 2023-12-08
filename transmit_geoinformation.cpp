@@ -10,7 +10,7 @@
 #include <spdlog/sinks/basic_file_sink.h>
 
 
-#define EXE_NAME "_transmit_geoinformation"
+#define EXE_NAME "transmit_geoinformation"
 
 using namespace std;
 namespace fs = std::filesystem;

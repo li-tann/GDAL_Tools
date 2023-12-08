@@ -6,7 +6,7 @@
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/basic_file_sink.h>
 
-#define EXE_NAME "_Create_Delaunay"
+#define EXE_NAME "create_Delaunay"
 #define HISTOGRAM_SIZE 256
 
 using namespace std;

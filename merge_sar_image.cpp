@@ -10,7 +10,7 @@
 
 #include "datatype.h"
 
-#define EXE_NAME "_merge_sar_image"
+#define EXE_NAME "merge_sar_image"
 
 using namespace std;
 namespace fs = std::filesystem;

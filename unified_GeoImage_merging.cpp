@@ -17,7 +17,7 @@
 
 #include "datatype.h"
 
-#define EXE_NAME "_unified_geoimage_merging"
+#define EXE_NAME "unified_geoimage_merging"
 
 // #define PRINT_DETAILS
 // #define SYSTEM_PAUSE

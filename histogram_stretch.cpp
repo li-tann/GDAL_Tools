@@ -12,7 +12,7 @@
 
 #include "template_stretch.h"
 
-#define EXE_NAME "_histogram_stretch"
+#define EXE_NAME "histogram_stretch"
 #define HISTOGRAM_SIZE 256
 
 using namespace std;

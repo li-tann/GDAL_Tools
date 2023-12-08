@@ -15,7 +15,7 @@
 
 #include "datatype.h"
 
-#define EXE_NAME "_copy_geoimage_paste"
+#define EXE_NAME "geoimage_copy_ref_paste_to_target"
 
 #define DEBUG
 

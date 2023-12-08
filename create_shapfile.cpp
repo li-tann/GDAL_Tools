@@ -14,7 +14,7 @@
 
 #include "datatype.h"
 
-#define EXE_NAME "_create_shapfile"
+#define EXE_NAME "create_shapfile"
 
 using namespace std;
 namespace fs = std::filesystem;

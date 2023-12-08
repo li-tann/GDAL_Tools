@@ -12,7 +12,7 @@
 
 #include "template_binary_img_io.h"
 
-#define EXE_NAME "_tif_to_binary"
+#define EXE_NAME "tif_to_binary"
 
 using namespace std;
 namespace fs = std::filesystem;

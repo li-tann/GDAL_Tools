@@ -11,7 +11,7 @@
 #include "datatype.h"
 #include "template_sarImage_process.h"
 
-#define EXE_NAME "_print_sar_image"
+#define EXE_NAME "print_sar_image"
 
 using namespace std;
 namespace fs = std::filesystem;

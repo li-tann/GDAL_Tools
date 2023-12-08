@@ -9,7 +9,7 @@
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/basic_file_sink.h>
 
-#define EXE_NAME "_statistics"
+#define EXE_NAME "statistics"
 
 using namespace std;
 namespace fs = std::filesystem;

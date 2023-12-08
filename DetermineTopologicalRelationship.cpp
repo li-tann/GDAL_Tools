@@ -10,7 +10,7 @@
 #include <spdlog/sinks/basic_file_sink.h>
 #include <fmt/color.h>
 
-#define EXE_NAME "_determine_topological_relationship"
+#define EXE_NAME "determine_topological_relationship"
 
 using namespace std;
 namespace fs = std::filesystem;

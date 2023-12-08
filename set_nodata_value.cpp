@@ -8,7 +8,7 @@
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/basic_file_sink.h>
 
-#define EXE_NAME "_set_NoData_Value"
+#define EXE_NAME "set_NoData_Value"
 
 using namespace std;
 namespace fs = std::filesystem;
