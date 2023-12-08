@@ -57,9 +57,10 @@ int main(int argc, char* argv[])
         return rtn;
     };
 
+    /// 获取目标数据(target)的范围(start.x/y & width,height), 从参考数据(ref)中提取对应信息, 并更新到目标数据(target)上
     if(argc < 7){
         msg =   EXE_PLUS_FILENAME("exe\n");
-        msg +=  " manual: " EXE_NAME " [dem folder] [target shp] [merging method] (regex str) [output tif]\n" 
+        msg +=  " manual: " EXE_NAME " [target filepath] [ref filepath] [target start x] [target start y] [target width] [target height]\n" 
                 " argv[0]: " EXE_NAME ",\n"
                 " argv[1]: input/output, target filepath.\n"
                 " argv[2]: input, reference filepath.\n"

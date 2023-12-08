@@ -81,26 +81,37 @@ target_link_libraries(_read_egm2008 PRIVATE GDAL::GDAL)
 target_link_libraries(_read_egm2008 PRIVATE spdlog::spdlog spdlog::spdlog_header_only)
 target_link_libraries(_read_egm2008 PRIVATE fmt::fmt)
 
+# vrt数据的读写(测试)
 add_executable(_vrt_io vrt_test.cpp)
 target_link_libraries(_vrt_io PRIVATE GDAL::GDAL)
 target_link_libraries(_vrt_io PRIVATE spdlog::spdlog spdlog::spdlog_header_only)
 
+# vrt与tif格式相互转换
 add_executable(_vrt_trans vrt_trans.cpp)
 target_link_libraries(_vrt_trans PRIVATE GDAL::GDAL)
 target_link_libraries(_vrt_trans PRIVATE spdlog::spdlog spdlog::spdlog_header_only)
 
+# 复数二维数组滤波
 add_executable(_fcpx_filter fcpx_filter.cpp datatype.h)
 target_link_libraries(_fcpx_filter PRIVATE GDAL::GDAL)
 target_link_libraries(_fcpx_filter PRIVATE spdlog::spdlog spdlog::spdlog_header_only)
+if(OpenMP_FOUND)
+    target_link_libraries(_fcpx_filter PRIVATE OpenMP::OpenMP_CXX)
+else()
+    message(FATAL_ERROR "openmp not found!")
+endif()
 
+# 过采样
 add_executable(_over_resample over_resample.cpp datatype.h)
 target_link_libraries(_over_resample PRIVATE GDAL::GDAL)
 target_link_libraries(_over_resample PRIVATE spdlog::spdlog spdlog::spdlog_header_only)
+
 
 add_executable(_transmit_geoinformation transmit_geoinformation.cpp)
 target_link_libraries(_transmit_geoinformation PRIVATE GDAL::GDAL)
 target_link_libraries(_transmit_geoinformation PRIVATE spdlog::spdlog spdlog::spdlog_header_only)
 
+# 同一坐标系统的分块数据拼接
 add_executable(_unified_geoimage_merging unified_GeoImage_merging.cpp datatype.h datatype.cpp)
 target_link_libraries(_unified_geoimage_merging PRIVATE GDAL::GDAL)
 target_link_libraries(_unified_geoimage_merging PRIVATE spdlog::spdlog spdlog::spdlog_header_only)
@@ -110,10 +121,12 @@ else()
     message(FATAL_ERROR "openmp not found!")
 endif()
 
+# 创建shp文件
 add_executable(_create_shapfile create_shapfile.cpp datatype.h datatype.cpp)
 target_link_libraries(_create_shapfile PRIVATE GDAL::GDAL)
 target_link_libraries(_create_shapfile PRIVATE spdlog::spdlog spdlog::spdlog_header_only)
 
+# 从数据B中复制一块区域填充到A数据中(几何关系一致)
 add_executable(_copy_geoimage_paste copy_Geoimage_paste.cpp datatype.h datatype.cpp)
 target_link_libraries(_copy_geoimage_paste PRIVATE GDAL::GDAL)
 target_link_libraries(_copy_geoimage_paste PRIVATE spdlog::spdlog spdlog::spdlog_header_only)
