@@ -138,11 +138,27 @@ add_executable(rolling_guidance_filter rolling_guidance.cpp datatype.h datatype.
 target_link_libraries(rolling_guidance_filter PRIVATE GDAL::GDAL)
 target_link_libraries(rolling_guidance_filter PRIVATE spdlog::spdlog spdlog::spdlog_header_only)
 target_link_libraries(rolling_guidance_filter PRIVATE fmt::fmt)
+if(OpenMP_FOUND)
+    target_link_libraries(rolling_guidance_filter PRIVATE OpenMP::OpenMP_CXX)
+else()
+    message(FATAL_ERROR "openmp not found!")
+endif()
 
+#复数影像格式转换
+add_executable(complex_transto complex_transto.cpp datatype.h datatype.cpp)
+target_link_libraries(complex_transto PRIVATE GDAL::GDAL)
+target_link_libraries(complex_transto PRIVATE spdlog::spdlog spdlog::spdlog_header_only)
+target_link_libraries(complex_transto PRIVATE fmt::fmt)
 
+#基于像素的影像裁剪
+add_executable(image_cut_pixel image_cut_pixel.cpp datatype.h datatype.cpp)
+target_link_libraries(image_cut_pixel PRIVATE GDAL::GDAL)
+target_link_libraries(image_cut_pixel PRIVATE spdlog::spdlog spdlog::spdlog_header_only)
+target_link_libraries(image_cut_pixel PRIVATE fmt::fmt)
 
-
+# add "cmake.configureSettings": {"CMAKE_BUILD_TYPE":"${buildType}"} in setting.json, when ${CMAKE_BUILD_TYPE} is ""
 message(STATUS "cmake build type: " ${CMAKE_BUILD_TYPE})
+file(MAKE_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/build/${CMAKE_BUILD_TYPE})
 file(COPY_FILE ${CMAKE_CURRENT_LIST_DIR}/proj.db ${CMAKE_CURRENT_LIST_DIR}/build/${CMAKE_BUILD_TYPE}/proj.db ONLY_IF_DIFFERENT)
 
 install(TARGETS transmit_geoinformation
