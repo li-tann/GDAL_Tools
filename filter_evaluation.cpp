@@ -23,7 +23,7 @@ string EXE_PLUS_FILENAME(string extention){
     return string(EXE_NAME)+"."+ extention;
 }
 
-float equivalent_number_of_looks(float* arr);
+float equivalent_number_of_looks(float* arr, float& _mean, float& _std);
 float edge_preserving_index(float* arr, float* arr0, int height, int width);
 int residue_point_number(float* arr, int height, int width);
 
@@ -41,7 +41,7 @@ int main(int argc, char* argv[])
         return rtn;
     };
 
-    if(argc < 5){
+    if(argc < 4){
         msg =   EXE_PLUS_FILENAME("exe\n");
         msg +=  " manual: " EXE_NAME " [input] [params] [output]\n" 
                 " argv[0]: " EXE_NAME ",\n"
@@ -90,9 +90,10 @@ int main(int argc, char* argv[])
         return_msg(1, fmt::format("method {}:",method));
         if(method == "enl" && !enl_used){
             enl_used = true;
-            float enl_val = equivalent_number_of_looks(arr);
+            float mean, std;
+            float enl_val = equivalent_number_of_looks(arr, mean, std);
 
-            return_msg(4, fmt::format("enl value is : {}",enl_val));
+            return_msg(4, fmt::format("enl value is : {}(mean:{}, std:{})",enl_val, mean, std));
         }
         else if(method == "epi" && !epi_used){
             epi_used = true;
@@ -138,7 +139,7 @@ int main(int argc, char* argv[])
     return return_msg(1, EXE_NAME " end.");
 }
 
-float equivalent_number_of_looks(float* arr)
+float equivalent_number_of_looks(float* arr, float& _mean, float& _std)
 {
     size_t arr_size = dynamic_array_size(arr);
     float mean = 0, std = 0;
@@ -156,6 +157,8 @@ float equivalent_number_of_looks(float* arr)
     mean /= valid_num;
     std = sqrtf(std / (valid_num-1) - valid_num / (valid_num-1) * mean * mean);
 
+    _mean = mean;
+    _std = std;
     return mean * mean / std / std;
 }
 
@@ -172,7 +175,7 @@ float edge_preserving_index(float* arr, float* arr0, int height, int width)
 
     float sum_arr = 0, sum_arr0 = 0;
     for(int i=0; i< height - 1; i++){
-        for(int j=0; i< width - 1; j++){
+        for(int j=0; j< width - 1; j++){
             float arr_phase_origin = arr[i * width + j];
             float arr_phase_right = phase_jump(arr[i * width + j+1], arr_phase_origin);
             float arr_phase_down = phase_jump(arr[(i+1) * width + j], arr_phase_origin);
@@ -185,7 +188,9 @@ float edge_preserving_index(float* arr, float* arr0, int height, int width)
             sum_arr0 += abs(arr0_phase_right - arr0_phase_origin) + abs(arr0_phase_down - arr0_phase_origin);
         }
     }
-
+    if(sum_arr0 == 0)
+        return NAN;
+    
     return sum_arr / sum_arr0;
 }
 
@@ -201,17 +206,31 @@ int residue_point_number(float* arr, int height, int width)
         return phase_0 + delta;
     };
 
+    auto phase_delta = [](float phase_1, float phase_0){
+        float delta = phase_1 - phase_0;
+        if(delta >= M_PI)
+            delta -= float(2*M_PI);
+        else if(delta < -M_PI)
+            delta += float(2*M_PI);
+        return delta;
+    };
+
     int num_total = 0, num_valid = 0;
     for(int i=0; i< height - 1; i++){
-        for(int j=0; i< width - 1; j++){
+        for(int j=0; j< width - 1; j++){
             float tl = arr[i * width + j];
-            float tr = tl + phase_jump(arr[i * width + j+1], tl);
-            float dr = tr + phase_jump(arr[(i+1) * width + j+1], tr);
-            float dl = dr + phase_jump(arr[(i+1) * width + j], dr);
-            float tl2 = dl + phase_jump(arr[(i+1) * width + j], dl);
+            float tr = arr[i * width + j+1];
+            float dr = arr[(i+1) * width + j+1];
+            float dl = arr[(i+1) * width + j];
+
+            float delta_top = phase_delta(tr, tl);
+            float delta_right = phase_delta(dr,tr);
+            float delta_down = phase_delta(dl,dr);
+            float delta_left = phase_delta(tl,dl);
+            float delta_sum = delta_top + delta_right + delta_down +delta_left;
             
             num_total++;
-            if(tl2 == tl){
+            if(abs(delta_sum) < 0.0001){
                 num_valid++;
             }
         }
