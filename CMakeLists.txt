@@ -156,11 +156,17 @@ target_link_libraries(image_cut_pixel PRIVATE GDAL::GDAL)
 target_link_libraries(image_cut_pixel PRIVATE spdlog::spdlog spdlog::spdlog_header_only)
 target_link_libraries(image_cut_pixel PRIVATE fmt::fmt)
 
-#基于像素的影像裁剪
+#滤波评价
 add_executable(filter_evaluation filter_evaluation.cpp datatype.h datatype.cpp)
 target_link_libraries(filter_evaluation PRIVATE GDAL::GDAL)
 target_link_libraries(filter_evaluation PRIVATE spdlog::spdlog spdlog::spdlog_header_only)
 target_link_libraries(filter_evaluation PRIVATE fmt::fmt)
+
+#获取图像在某条直线上的值
+add_executable(get_image_value_in_line get_image_value_in_line.cpp datatype.h datatype.cpp)
+target_link_libraries(get_image_value_in_line PRIVATE GDAL::GDAL)
+target_link_libraries(get_image_value_in_line PRIVATE spdlog::spdlog spdlog::spdlog_header_only)
+target_link_libraries(get_image_value_in_line PRIVATE fmt::fmt)
 
 # add "cmake.configureSettings": {"CMAKE_BUILD_TYPE":"${buildType}"} in setting.json, when ${CMAKE_BUILD_TYPE} is ""
 message(STATUS "cmake build type: " ${CMAKE_BUILD_TYPE})
