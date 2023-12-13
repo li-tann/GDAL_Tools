@@ -17,6 +17,9 @@ set(CPACK_PROJECT_NAME ${PROJECT_NAME})
 set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})
 include(CPack)
 
+#debug config 测试
+add_executable(debug_config_test debug_config_test.cpp)
+
 # 空值转换为指定数值
 add_executable(nan_TransTo nan_transto.cpp template_nan_convert_to.h)
 target_link_libraries(nan_TransTo PRIVATE GDAL::GDAL)
