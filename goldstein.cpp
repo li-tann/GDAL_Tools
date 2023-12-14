@@ -29,6 +29,7 @@ string EXE_PLUS_FILENAME(string extention){
 
 funcrst goldstein(std::complex<float>* arr_in, int height, int width, float alpha, std::complex<float>* arr_out);
 funcrst goldstein_single(std::complex<float>* arr_in, int height, int width, float alpha, std::complex<float>* arr_out);
+funcrst goldstein_multi_v2(std::complex<float>* arr_in, int height, int width, float alpha, std::complex<float>* arr_out);
 
 int main(int argc, char* argv[])
 {
@@ -44,19 +45,24 @@ int main(int argc, char* argv[])
         return rtn;
     };
 
-    if(argc < 4){
+    if(argc < 5){
         msg =   EXE_PLUS_FILENAME("exe\n");
         msg +=  " manual: " EXE_NAME " [input] [params] [output]\n" 
                 " argv[0]: " EXE_NAME ",\n"
                 " argv[1]: input, flt/fcpx filepath.\n"
                 " argv[2]: input, parameter about alpha.\n"
-                " argv[3]: output, flt/fcpx filepath.";
+				" argv[3]: input, method, single or omp"
+                " argv[4]: output, flt/fcpx filepath.";
         return return_msg(-1,msg);
     }
 
     return_msg(0,EXE_NAME " start.");
 
 	float alpha = (float)atof(argv[2]);
+
+	if(string(argv[3]) != "omp" && string(argv[3]) != "single"){
+		return return_msg(-1,"unknown filter method, neithor 'single' or 'omp'");
+	}
 
 	GDALAllRegister();
     CPLSetConfigOption("GDAL_FILENAME_IS_UTF8", "NO");
@@ -78,17 +84,25 @@ int main(int argc, char* argv[])
 	std::complex<float>* arr = new std::complex<float>[width * height];
 	std::complex<float>* arr_out = new std::complex<float>[width * height];
 	rb->RasterIO(GF_Read, 0, 0, width, height, arr, width, height, datatype, 0, 0);
-	goldstein_single(arr, height, width, alpha, arr_out);
-    // goldstein(arr, height, width, alpha, arr_out);
 
-    cout<<"before :"<<arr[40000]<<endl;
-    cout<<"after  :"<<arr_out[40000]<<endl;
+	funcrst rst;
+	if(string(argv[3]) == "omp"){
+		rst = goldstein(arr, height, width, alpha, arr_out);
+	}
+	else if(string(argv[3]) == "single"){
+		rst = goldstein_single(arr, height, width, alpha, arr_out);
+	}
+	else{
+		return return_msg(-1,"unknown filter method, neithor 'single' or 'omp'");
+	}
+	
+    return_msg(1,rst.explain); 
 
     delete[] arr;
 	GDALClose(ds);
 
 	GDALDriver* dv = GetGDALDriverManager()->GetDriverByName("GTiff");
-    GDALDataset* ds_out = dv->Create(argv[3], width, height, 1, datatype, NULL);
+    GDALDataset* ds_out = dv->Create(argv[4], width, height, 1, datatype, NULL);
     if(!ds_out){
 		delete[] arr_out;
         return return_msg(-3, "ds_out create failed.");
@@ -158,21 +172,6 @@ funcrst goldstein(std::complex<float>* arr_in, int height, int width, float alph
 	int overlap = 24;
 	int step = size - overlap;
 
-	int max_threads = omp_get_max_threads();
-    cout<<"max_threads: "<<max_threads<<endl;
-
-	/// 避免多线程时多线程同时调用一个plan出现异常
-	fftwf_plan* fftw_plans = new fftwf_plan[max_threads];
-	fftwf_plan* ifftw_plans = new fftwf_plan[max_threads];
-	fftwf_complex** spatial_arrs  = new fftwf_complex*[max_threads];
-	fftwf_complex** frequency_arrs = new fftwf_complex*[max_threads];
-	for(int i=0; i<max_threads; i++){
-		spatial_arrs[i]  = fftwf_alloc_complex(size*size);
-		frequency_arrs[i] = fftwf_alloc_complex(size*size);
-		fftw_plans[i]  = fftwf_plan_dft_2d(size, size, spatial_arrs[i], frequency_arrs[i], FFTW_FORWARD, FFTW_ESTIMATE);
-		ifftw_plans[i] = fftwf_plan_dft_2d(size, size, frequency_arrs[i], spatial_arrs[i], FFTW_BACKWARD, FFTW_ESTIMATE);
-	}
-
 	if(arr_out == nullptr){
 		arr_out = new std::complex<float>[height * width];
 	}
@@ -181,16 +180,19 @@ funcrst goldstein(std::complex<float>* arr_in, int height, int width, float alph
 		arr_out = new std::complex<float>[height * width];
 	}
 
-	/// smooth
-	float* smooth_spatial = fftwf_alloc_real(25);
-	// float* smooth_frequency = fftwf_alloc_real(25);
-	for(int i=0;i<25;i++) 
-        smooth_spatial[i] = 0.04;
-	// fftwf_plan smooth_fft_plan = fftwf_plan_r2r_2d( 5, 5, smooth_spatial, smooth_frequency, FFTW_R2HC, FFTW_R2HC, FFTW_MEASURE);
-	// fftwf_execute(smooth_fft_plan);
-	// fftwf_destroy_plan(smooth_fft_plan);
-	// delete[] smooth_spatial;
+	int max_threads = omp_get_max_threads();
 
+	fftwf_complex** spatial_arrs =  new fftwf_complex*[max_threads];
+	fftwf_complex** frequency_arrs =  new fftwf_complex*[max_threads];
+	fftwf_plan* forward_plans = new fftwf_plan[max_threads];
+	fftwf_plan* backward_plans = new fftwf_plan[max_threads];
+	for(int i=0; i < max_threads; i++){
+		spatial_arrs[i] = fftwf_alloc_complex(size*size);
+		frequency_arrs[i] = fftwf_alloc_complex(size*size);
+		forward_plans[i] = fftwf_plan_dft_2d(size, size, spatial_arrs[i], frequency_arrs[i], FFTW_FORWARD, FFTW_ESTIMATE);
+		backward_plans[i] = fftwf_plan_dft_2d(size, size, frequency_arrs[i], spatial_arrs[i], FFTW_BACKWARD, FFTW_ESTIMATE);
+	}
+	
 #pragma omp parallel for
 	for(int i=0; i < height; i+=step)
 	{
@@ -207,7 +209,8 @@ funcrst goldstein(std::complex<float>* arr_in, int height, int width, float alph
 		}
 		
 		int thread_idx = omp_get_thread_num();
-        cout<<"current thread idx: "<<thread_idx<<endl;
+
+
 		for(int j=0; j < width; j+=step)
 		{
 			/// out_j_start, out_j_end, 控制block数组内需要赋值到arr_out的列数, 保证输出数据没有"黑框"
@@ -222,8 +225,8 @@ funcrst goldstein(std::complex<float>* arr_in, int height, int width, float alph
 				out_j_start = overlap / 2; out_j_end = size - overlap / 2 - 1;
 			}
 
-			/// spatial_arrs init
-			for(size_t k = 0; k< size*size; k++){
+			/// spatial_arr init
+			for(int k = 0; k< size*size; k++){
 				int block_i = k / size + i;
 				int block_j = k % size + j;
 				if(block_j > width - 1 || block_i > height - 1){
@@ -238,7 +241,8 @@ funcrst goldstein(std::complex<float>* arr_in, int height, int width, float alph
 			}
 
 			///  fft
-			fftwf_execute(fftw_plans[thread_idx]);
+			fftwf_execute(forward_plans[thread_idx]);
+
 
 			/// abs
 			float* block_abs = new float[size*size];
@@ -247,44 +251,55 @@ funcrst goldstein(std::complex<float>* arr_in, int height, int width, float alph
 			}
 
 			/// smooth
+			float* smooth_spatial = new float[25];
+			for(int k = 0; k<25; k++)
+				smooth_spatial[k] = 0.04;
 			float* block_smooth = new float[size*size];
 			// conv_2d(block_abs, size, size, block_smooth, smooth_frequency, 5);
-            conv_2d(block_abs, size, size, block_smooth, smooth_spatial, 5);
-			delete[] block_abs;
+            auto rst = conv_2d(block_abs, size, size, block_smooth, smooth_spatial, 5);
 
-			/// *alpha * spatial_arrs -> frequency_arrs
+			delete[] block_abs;
+			delete[] smooth_spatial;
+
+
+			/// block_smooth^alpha * spatial_arrs -> frequency_arrs
 			for(int k=0; k< size*size; k++){
-				frequency_arrs[thread_idx][k][0] = block_smooth[k] * alpha * spatial_arrs[thread_idx][k][0];
-				frequency_arrs[thread_idx][k][1] = block_smooth[k] * alpha * spatial_arrs[thread_idx][k][1];
+				frequency_arrs[thread_idx][k][0] = block_smooth[k] * alpha * frequency_arrs[thread_idx][k][0];
+				frequency_arrs[thread_idx][k][1] = block_smooth[k] * alpha * frequency_arrs[thread_idx][k][1];
 			}
 
+			delete[] block_smooth;
+
+
 			/// ifft
-			fftwf_execute(ifftw_plans[thread_idx]);
+			fftwf_execute(backward_plans[thread_idx]);
+
 
 			/// 赋值
 			for(int m = out_i_start; m <= out_i_end; m++){
 				for(int n = out_j_start; n <= out_j_end; n++){
                     if(i + m < 0 || i + m > height - 1 || j + n < 0 || j + n > width - 1)
                         continue;
-					arr_out[(i+m)*width+(j+n)].real(frequency_arrs[thread_idx][m*size+n][0]);
-					arr_out[(i+m)*width+(j+n)].imag(frequency_arrs[thread_idx][m*size+n][1]);
+					arr_out[(i+m)*width+(j+n)].real(spatial_arrs[thread_idx][m*size+n][0] / size / size);
+					arr_out[(i+m)*width+(j+n)].imag(spatial_arrs[thread_idx][m*size+n][1] / size / size);
 				}
 			}
 
 
 		}
+		
 	}
 
-
-	for(int i=0; i<max_threads; i++){
-		fftwf_destroy_plan(fftw_plans[i]);
-        fftwf_destroy_plan(ifftw_plans[i]);
-        fftwf_free(spatial_arrs[i]);
-        fftwf_free(frequency_arrs[i]);
+	for(int i=0; i< max_threads; i++){
+		fftwf_destroy_plan(forward_plans[i]);
+		fftwf_destroy_plan(backward_plans[i]);
+		fftwf_free(spatial_arrs[i]);
+		fftwf_free(frequency_arrs[i]);
 	}
+	
 
     double spend_sec = spend_time(start_time);
-    cout<<"glodstein spend_time: "<<spend_sec<<endl;
+    cout<<"glodstein_single spend_time: "<<spend_sec<<endl;
 
 	return funcrst(true, "filter::goldstein finished.");
 }
@@ -449,7 +464,3 @@ funcrst goldstein_single(std::complex<float>* arr_in, int height, int width, flo
 
 	return funcrst(true, "filter::goldstein finished.");
 }
-
-
-
-/// TODO: 写第二版goldstein滤波函数, 并行版, 每一行里创建fftw_plan等fftw需要使用的数据, 该行结束时销毁
