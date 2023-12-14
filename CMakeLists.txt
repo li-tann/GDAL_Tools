@@ -12,6 +12,7 @@ find_package(GDAL CONFIG REQUIRED)
 find_package(spdlog CONFIG REQUIRED)
 find_package(fmt CONFIG REQUIRED)
 find_package(OpenMP REQUIRED)
+find_package(FFTW3f CONFIG REQUIRED)
 
 set(CPACK_PROJECT_NAME ${PROJECT_NAME})
 set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})
@@ -170,6 +171,15 @@ add_executable(get_image_value_in_line get_image_value_in_line.cpp datatype.h da
 target_link_libraries(get_image_value_in_line PRIVATE GDAL::GDAL)
 target_link_libraries(get_image_value_in_line PRIVATE spdlog::spdlog spdlog::spdlog_header_only)
 target_link_libraries(get_image_value_in_line PRIVATE fmt::fmt)
+
+#goldstein滤波
+add_executable(goldstein goldstein.cpp datatype.h datatype.cpp)
+target_link_libraries(goldstein PRIVATE GDAL::GDAL)
+target_link_libraries(goldstein PRIVATE spdlog::spdlog spdlog::spdlog_header_only)
+target_link_libraries(goldstein PRIVATE fmt::fmt)
+target_link_libraries(goldstein PRIVATE FFTW3::fftw3f)
+
+
 
 # add "cmake.configureSettings": {"CMAKE_BUILD_TYPE":"${buildType}"} in setting.json, when ${CMAKE_BUILD_TYPE} is ""
 message(STATUS "cmake build type: " ${CMAKE_BUILD_TYPE})
