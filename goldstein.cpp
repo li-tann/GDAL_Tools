@@ -81,7 +81,8 @@ int main(int argc, char* argv[])
 	goldstein_single(arr, height, width, alpha, arr_out);
     // goldstein(arr, height, width, alpha, arr_out);
 
-    cout<<arr_out[40000]<<endl;
+    cout<<"before :"<<arr[40000]<<endl;
+    cout<<"after  :"<<arr_out[40000]<<endl;
 
     delete[] arr;
 	GDALClose(ds);
@@ -158,6 +159,7 @@ funcrst goldstein(std::complex<float>* arr_in, int height, int width, float alph
 	int step = size - overlap;
 
 	int max_threads = omp_get_max_threads();
+    cout<<"max_threads: "<<max_threads<<endl;
 
 	/// 避免多线程时多线程同时调用一个plan出现异常
 	fftwf_plan* fftw_plans = new fftwf_plan[max_threads];
@@ -205,6 +207,7 @@ funcrst goldstein(std::complex<float>* arr_in, int height, int width, float alph
 		}
 		
 		int thread_idx = omp_get_thread_num();
+        cout<<"current thread idx: "<<thread_idx<<endl;
 		for(int j=0; j < width; j+=step)
 		{
 			/// out_j_start, out_j_end, 控制block数组内需要赋值到arr_out的列数, 保证输出数据没有"黑框"
@@ -446,3 +449,7 @@ funcrst goldstein_single(std::complex<float>* arr_in, int height, int width, flo
 
 	return funcrst(true, "filter::goldstein finished.");
 }
+
+
+
+/// TODO: 写第二版goldstein滤波函数, 并行版, 每一行里创建fftw_plan等fftw需要使用的数据, 该行结束时销毁
