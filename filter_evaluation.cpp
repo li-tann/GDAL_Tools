@@ -41,13 +41,14 @@ int main(int argc, char* argv[])
         return rtn;
     };
 
-    if(argc < 4){
+    if(argc < 5){
         msg =   EXE_PLUS_FILENAME("exe\n");
         msg +=  " manual: " EXE_NAME " [input] [params] [output]\n" 
                 " argv[0]: " EXE_NAME ",\n"
                 " argv[1]: input, filtered filepah.\n"
                 " argv[2]: input, origin filepath, only epi needed, please print '-' if the method you selected don't need it.\n"
                 " argv[3]: method, enl, epi, rpn, ... (single or multi, splited by ',')\n"
+                " argv[4]: range, col_start, row_start, width, height (int)\n"
                 "          the result will print in cmd and logfile";
         return return_msg(-1,msg);
     }
@@ -61,6 +62,17 @@ int main(int argc, char* argv[])
 		return return_msg(-2,"there is no method has chosen.");
 	}
 
+    int input_x, input_y, input_width, input_height;
+    vector<string> splited_vec;
+    strSplit(string(argv[4]), splited_vec, ",");
+    if(splited_vec.size() < 4){
+		return return_msg(-2,"the size of splited argv[4] is less than 4.");
+	}
+    input_x = stoi(splited_vec[0]);
+    input_y = stoi(splited_vec[1]);
+    input_width = stoi(splited_vec[2]);
+    input_height = stoi(splited_vec[3]);
+
     GDALAllRegister();
     CPLSetConfigOption("GDAL_FILENAME_IS_UTF8", "NO");
 
@@ -70,18 +82,24 @@ int main(int argc, char* argv[])
     }
     GDALRasterBand* rb = ds->GetRasterBand(1);
 
-    int width = ds->GetRasterXSize();
-    int height= ds->GetRasterYSize();
+    int ds_width = ds->GetRasterXSize();
+    int ds_height= ds->GetRasterYSize();
     GDALDataType datatype = rb->GetRasterDataType();
 
     if(datatype != GDT_Float32){
         return return_msg(-3, "ds.dataype != float.");
     }
 
+    int height = input_height;
+    int width  = input_width;
     float* arr = new float[height * width];
-    rb->RasterIO(GF_Read, 0, 0, width, height, arr, width, height, datatype, 0, 0);
+    auto cplerr = rb->RasterIO(GF_Read, input_x, input_y, width, height, arr, width, height, datatype, 0, 0);
+    if(cplerr != CE_None){
+        return return_msg(-3, "input range error to rasterio.");
+        GDALClose(ds);  
+    }
 
-    GDALClose(ds);
+    GDALClose(ds);  
 
 
     bool enl_used = false, epi_used = false, rpn_used = false;
