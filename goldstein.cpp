@@ -51,7 +51,7 @@ int main(int argc, char* argv[])
                 " argv[0]: " EXE_NAME ",\n"
                 " argv[1]: input, flt/fcpx filepath.\n"
                 " argv[2]: input, parameter about alpha.\n"
-				" argv[3]: input, method, single or omp"
+				" argv[3]: input, method, single or omp\n"
                 " argv[4]: output, flt/fcpx filepath.";
         return return_msg(-1,msg);
     }
