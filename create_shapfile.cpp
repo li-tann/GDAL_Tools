@@ -112,9 +112,15 @@ int main(int argc, char* argv[])
         return funcrst(false, "layer is nullptr.");
     }
 
+    /// layer中新建一个名为“name”的字段, 类型是string（在属性表中显示）
+    OGRFieldDefn * fieldDefn = new OGRFieldDefn("name", OFTString);
+    layer->CreateField(fieldDefn);
+
     OGRFeatureDefn* featureDefn = layer->GetLayerDefn();
     OGRFeature* feature = OGRFeature::CreateFeature(featureDefn);
     OGRErr err = feature->SetGeometry((OGRGeometry*)polygen);
+    feature->SetField("name","temp");
+    
     if (err != OGRERR_NONE) {
         if (err == OGRERR_UNSUPPORTED_GEOMETRY_TYPE) {
             return funcrst(false, "unsupported geometry type.");
