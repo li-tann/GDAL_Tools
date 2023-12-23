@@ -32,6 +32,10 @@ float warp(float src)
     return src;
 }
 
+float norm(complex<float> src){
+    return sqrtf(powf(src.real(),2)+powf(src.imag(),2));
+}
+
 int main(int argc, char* argv[])
 {
 
@@ -47,13 +51,13 @@ int main(int argc, char* argv[])
         return rtn;
     };
 
-    if(argc < 5){
+    if(argc < 4){
         msg =   EXE_PLUS_FILENAME("exe\n");
         msg +=  " manual: " EXE_NAME " [input] [params] [output]\n" 
                 " argv[0]: " EXE_NAME ",\n"
-                " argv[1]: input, flt/fcpx filepath.\n"
+                " argv[1]: input, fcpx filepath.\n"
                 " argv[2]: input, win_size, like 3,5,7,... .\n"
-                " argv[4]: output, pesudo correlation filepath(flt).";
+                " argv[3]: output, pesudo correlation filepath(flt).";
         return return_msg(-1,msg);
     }
 
@@ -66,11 +70,6 @@ int main(int argc, char* argv[])
         size = size_new;
     }
     
-
-	if(string(argv[3]) != "omp" && string(argv[3]) != "single"){
-		return return_msg(-1,"unknown filter method, neithor 'single' or 'omp'");
-	}
-
 	GDALAllRegister();
     CPLSetConfigOption("GDAL_FILENAME_IS_UTF8", "NO");
 
@@ -84,29 +83,13 @@ int main(int argc, char* argv[])
     int height= ds->GetRasterYSize();
     GDALDataType datatype = rb->GetRasterDataType();
 
-	if(datatype != GDT_CFloat32 && datatype != GDT_Float32){
-		return return_msg(-2, "datatype is diff with float or fcomplex.");
+	if(datatype != GDT_CFloat32){
+		return return_msg(-2, "datatype is diff with fcomplex.");
 	}
 
     /// got warped phase
-	float* arr = new float[width * height];
-    if(datatype == GDT_CFloat32){
-        std::complex<float>* temp_arr = new std::complex<float>[width * height];
-        rb->RasterIO(GF_Read, 0, 0, width, height, temp_arr, width, height, datatype, 0, 0);
-        for(size_t i=0; i< width*height;i++){
-            arr[i] = atan2f(temp_arr[i].imag(), temp_arr[i].real());
-        }
-        delete[] temp_arr;
-    }
-    else if(datatype == GDT_Float32){
-        rb->RasterIO(GF_Read, 0, 0, width, height, arr, width, height, datatype, 0, 0);
-        for(size_t i=0; i< width*height;i++){
-            arr[i] = warp(arr[i]);
-        }
-    }
-    else{
-        return return_msg(-2, "impossible error.");
-    }
+	complex<float>* arr = new complex<float>[width * height];
+    rb->RasterIO(GF_Read, 0, 0, width, height, arr, width, height, datatype, 0, 0);
     GDALClose(ds);
 	
 
@@ -114,14 +97,17 @@ int main(int argc, char* argv[])
 	float* arr_out = new float[width * height];
 
     /// 为了避免
+    int num = 0;
 #pragma omp parallel for
     for(int i=0; i<height; i++)
     {
+        cout<<"\r              \r"<<num++;
         int start_row = MAX(0,i-size/2);
         int end_row = MIN(i+size/2,height-1);
         int win_height= end_row - start_row + 1;
-        /// sum 即总和, abs_sum即绝对值的总和, left即最左侧一列的总和, abs_left即最左侧一列绝对值的总和, right与abs_right同理
-        float sum=0, abs_sum=0, left=0, abs_left=0, right=0, abs_right=0;
+        /// sum 即总和, abs_sum即模长的总和, left即最左侧一列的总和, abs_left即最左侧一列绝对值的总和, right与abs_right同理
+        complex<float> sum(0,0), left(0,0), right(0,0);
+        float abs_sum=0,abs_left=0, abs_right=0;
 
         /// j=0
         for(int k = start_row; k<= end_row; k++)
@@ -131,7 +117,7 @@ int main(int argc, char* argv[])
                 abs_sum += abs(arr[k * width + j]);
             }
         }
-        arr_out[i*width + 0] = abs_sum == 0 ? 0 : abs(sum)/abs_sum;
+        arr_out[i*width + 0] = (abs_sum == 0) ? 0 : abs(sum)/abs_sum;
 
         /// j=1~size/2
         for(int j=1; j<=size/2; j++)
@@ -185,11 +171,13 @@ int main(int argc, char* argv[])
         }
     }
     delete[] arr;
+
+    cout<<"\nover\n";
 	
 
     /// write arr_out
 	GDALDriver* dv = GetGDALDriverManager()->GetDriverByName("GTiff");
-    GDALDataset* ds_out = dv->Create(argv[4], width, height, 1, GDT_Float32, NULL);
+    GDALDataset* ds_out = dv->Create(argv[3], width, height, 1, GDT_Float32, NULL);
     if(!ds_out){
 		delete[] arr_out;
         return return_msg(-3, "ds_out create failed.");
