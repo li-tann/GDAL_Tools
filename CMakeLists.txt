@@ -184,6 +184,18 @@ else()
     message(FATAL_ERROR "openmp not found!")
 endif()
 
+#pseudo-coherence 伪相干性计算
+add_executable(pseudo_correlation pseudo_correlation.cpp datatype.h datatype.cpp)
+target_link_libraries(pseudo_correlation PRIVATE GDAL::GDAL)
+target_link_libraries(pseudo_correlation PRIVATE spdlog::spdlog spdlog::spdlog_header_only)
+target_link_libraries(pseudo_correlation PRIVATE fmt::fmt)
+if(OpenMP_FOUND)
+    target_link_libraries(pseudo_correlation PRIVATE OpenMP::OpenMP_CXX)
+else()
+    message(FATAL_ERROR "openmp not found!")
+endif()
+
+
 
 # add "cmake.configureSettings": {"CMAKE_BUILD_TYPE":"${buildType}"} in setting.json, when ${CMAKE_BUILD_TYPE} is ""
 message(STATUS "cmake build type: " ${CMAKE_BUILD_TYPE})
