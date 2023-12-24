@@ -64,7 +64,7 @@ int main(int argc, char* argv[])
     return_msg(0,EXE_NAME " start.");
 
 	int size = (float)atof(argv[2]);
-    int size_new = size/2+1;
+    int size_new = size/2*2+1;
     if(size_new != size){
         return_msg(1,fmt::format("valid size is {}(origin input is {})",size_new, size));
         size = size_new;
@@ -101,7 +101,7 @@ int main(int argc, char* argv[])
 #pragma omp parallel for
     for(int i=0; i<height; i++)
     {
-        cout<<"\r              \r"<<num++;
+        cout<<fmt::format("\rpercentage: {}/{}...",num++,height);
         int start_row = MAX(0,i-size/2);
         int end_row = MIN(i+size/2,height-1);
         int win_height= end_row - start_row + 1;
@@ -172,7 +172,7 @@ int main(int argc, char* argv[])
     }
     delete[] arr;
 
-    cout<<"\nover\n";
+    cout<<"\n";
 	
 
     /// write arr_out
@@ -189,5 +189,7 @@ int main(int argc, char* argv[])
 	delete[] arr_out;
 	GDALClose(ds_out);
     
+    double spend_sec = spend_time(chrono::system_clock::now());
+    cout<<"spend_time: "<<spend_sec<<"s\n";
     return return_msg(1, EXE_NAME " end.");
 }
