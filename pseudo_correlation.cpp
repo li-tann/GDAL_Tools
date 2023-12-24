@@ -36,10 +36,12 @@ float norm(complex<float> src){
     return sqrtf(powf(src.real(),2)+powf(src.imag(),2));
 }
 
+/// 测试一下传统计算相干性的耗时, 仅用于对比测试
+double class_pseudo_correlation(complex<float>* arr, float* arr_out, int height, int width, int size);
+double my_pseudo_correlation(complex<float>* arr, float* arr_out, int height, int width, int size);
+
 int main(int argc, char* argv[])
 {
-
-    auto start = chrono::system_clock::now();
     string msg;
     std::mutex mtx;
 
@@ -96,8 +98,149 @@ int main(int argc, char* argv[])
     /// cal pseudo correlation
 	float* arr_out = new float[width * height];
 
-    /// 为了避免
-    int num = 0;
+    double cpc_spent_sec = class_pseudo_correlation(arr, arr_out, height, width, size);
+    cout<<"cpc_spent_sec: "<<cpc_spent_sec<<"s\n";
+
+    double mpc_spent_sec = my_pseudo_correlation(arr, arr_out, height, width, size);
+    cout<<"mpc_spent_sec: "<<mpc_spent_sec<<"s\n";
+
+//     auto start = chrono::system_clock::now();
+//     /// 为了避免
+//     int num = 0;
+// #pragma omp parallel for
+//     for(int i=0; i<height; i++)
+//     {
+//         cout<<fmt::format("\rpercentage: {}/{}...",num++,height);
+//         int start_row = MAX(0,i-size/2);
+//         int end_row = MIN(i+size/2,height-1);
+//         int win_height= end_row - start_row + 1;
+//         /// sum 即总和, abs_sum即模长的总和, left即最左侧一列的总和, abs_left即最左侧一列绝对值的总和, right与abs_right同理
+//         complex<float> sum(0,0), left(0,0), right(0,0);
+//         float abs_sum=0,abs_left=0, abs_right=0;
+
+//         /// j=0
+//         for(int k = start_row; k<= end_row; k++)
+//         {
+//             for(int j=0; j<size/2+1; j++){
+//                 sum += arr[k * width + j];
+//                 abs_sum += abs(arr[k * width + j]);
+//             }
+//         }
+//         arr_out[i*width + 0] = (abs_sum == 0) ? 0 : abs(sum)/abs_sum;
+
+//         /// j=1~size/2
+//         for(int j=1; j<=size/2; j++)
+//         {
+//             right=0;
+//             abs_right=0;
+//             int j_r=j + size / 2;
+//             for(int k = start_row; k<= end_row; k++){
+//                 right += arr[k * width + j_r];
+//                 abs_right += abs(arr[k * width + j_r]);
+//             }
+//             sum += right;
+//             abs_sum += abs_right;
+//             arr_out[i*width + j] = abs_sum == 0 ? 0 : abs(sum)/abs_sum;
+//         }
+
+//         /// j=size/2~width-size/2
+//         for(int j=size/2+1; j<width-size/2; j++)
+//         {
+//             right=0;
+//             abs_right=0;
+//             left=0;
+//             abs_left=0;
+//             int j_r=j + size / 2;
+//             int j_l=j - size / 2 - 1;
+//             for(int k = start_row; k<= end_row; k++)
+//             {
+//                 right += arr[k * width + j_r];
+//                 abs_right += abs(arr[k * width + j_r]);
+//                 left += arr[k * width + j_l];
+//                 abs_left += abs(arr[k * width + j_l]);
+//             }
+//             sum += right - left;
+//             abs_sum += abs_right - abs_left;
+//             arr_out[i*width + j] = abs_sum == 0 ? 0 : abs(sum)/abs_sum;
+//         }
+
+//         /// j=width-size/2 ~ width-1
+//         for(int j=width-size/2; j<width; j++){
+//             left=0;
+//             abs_left=0;
+//             int j_l=j - size / 2 - 1;
+//             for(int k = start_row; k<= end_row; k++)
+//             {
+//                 left += arr[k * width + j_l];
+//                 abs_left += abs(arr[k * width + j_l]);
+//             }
+//             sum -= left;
+//             abs_sum -= abs_left;
+//             arr_out[i*width + j] = abs_sum == 0 ? 0 : abs(sum)/abs_sum;
+//         }
+//     }
+//     delete[] arr;
+
+//     cout<<"\n";
+// 	cout<<"spend_time: "<<spend_time(start)<<"s\n";
+
+    /// write arr_out
+	GDALDriver* dv = GetGDALDriverManager()->GetDriverByName("GTiff");
+    GDALDataset* ds_out = dv->Create(argv[3], width, height, 1, GDT_Float32, NULL);
+    if(!ds_out){
+		delete[] arr_out;
+        return return_msg(-3, "ds_out create failed.");
+    }
+    GDALRasterBand* rb_out = ds_out->GetRasterBand(1);
+
+	rb_out->RasterIO(GF_Write, 0, 0, width, height, arr_out, width, height, GDT_Float32, 0, 0);
+
+	delete[] arr_out;
+	GDALClose(ds_out);
+
+    return return_msg(1, EXE_NAME " end.");
+}
+
+/// 测试一下传统计算相干性的耗时
+double class_pseudo_correlation(complex<float>* arr, float* arr_out, int height, int width, int size)
+{
+    auto st = chrono::system_clock::now();
+    int num=0;
+#pragma omp parallel for
+    for(int i=0; i<height; i++)
+    {
+        cout<<fmt::format("\rpercentage: {}/{}...",num++,height);
+        int start_row = MAX(0,i-size/2);
+        int end_row = MIN(i+size/2,height-1);
+        int win_height= end_row - start_row + 1;
+        /// sum 即总和, abs_sum即模长的总和, left即最左侧一列的总和, abs_left即最左侧一列绝对值的总和, right与abs_right同理
+        
+        for(int j=0; j<width; j++)
+        {
+            int start_col = MAX(0,j-size/2);
+            int end_col = MIN(j+size/2,width-1);
+            complex<float> sum(0,0);
+            float abs_sum=0;
+            for(int ii = start_row; ii < end_row; ii++)
+            {
+                for(int jj = start_col; jj < end_col; jj++)
+                {
+                    sum += arr[ii * width + jj];
+                    abs_sum += abs(arr[ii * width + jj]);
+                }
+            }
+            arr_out[i*width + 0] = (abs_sum == 0) ? 0 : abs(sum)/abs_sum;
+        }
+    }
+    cout<<endl;
+
+    return spend_time(st);
+}
+
+double my_pseudo_correlation(complex<float>* arr, float* arr_out, int height, int width, int size)
+{
+    auto st = chrono::system_clock::now();
+    int num=0;
 #pragma omp parallel for
     for(int i=0; i<height; i++)
     {
@@ -170,26 +313,7 @@ int main(int argc, char* argv[])
             arr_out[i*width + j] = abs_sum == 0 ? 0 : abs(sum)/abs_sum;
         }
     }
-    delete[] arr;
+    cout<<endl;
 
-    cout<<"\n";
-	
-
-    /// write arr_out
-	GDALDriver* dv = GetGDALDriverManager()->GetDriverByName("GTiff");
-    GDALDataset* ds_out = dv->Create(argv[3], width, height, 1, GDT_Float32, NULL);
-    if(!ds_out){
-		delete[] arr_out;
-        return return_msg(-3, "ds_out create failed.");
-    }
-    GDALRasterBand* rb_out = ds_out->GetRasterBand(1);
-
-	rb_out->RasterIO(GF_Write, 0, 0, width, height, arr_out, width, height, GDT_Float32, 0, 0);
-
-	delete[] arr_out;
-	GDALClose(ds_out);
-    
-    double spend_sec = spend_time(chrono::system_clock::now());
-    cout<<"spend_time: "<<spend_sec<<"s\n";
-    return return_msg(1, EXE_NAME " end.");
+    return spend_time(st);
 }
