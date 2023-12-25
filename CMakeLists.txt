@@ -195,6 +195,17 @@ else()
     message(FATAL_ERROR "openmp not found!")
 endif()
 
+#goldstein滤波
+add_executable(goldstein_plus goldstein_plus.cpp datatype.h datatype.cpp)
+target_link_libraries(goldstein_plus PRIVATE GDAL::GDAL)
+target_link_libraries(goldstein_plus PRIVATE spdlog::spdlog spdlog::spdlog_header_only)
+target_link_libraries(goldstein_plus PRIVATE fmt::fmt)
+target_link_libraries(goldstein_plus PRIVATE FFTW3::fftw3f)
+if(OpenMP_FOUND)
+    target_link_libraries(goldstein_plus PRIVATE OpenMP::OpenMP_CXX)
+else()
+    message(FATAL_ERROR "openmp not found!")
+endif()
 
 
 # add "cmake.configureSettings": {"CMAKE_BUILD_TYPE":"${buildType}"} in setting.json, when ${CMAKE_BUILD_TYPE} is ""
