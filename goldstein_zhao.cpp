@@ -1,7 +1,3 @@
-/// TODO:
-/// baran & zhao filter base on goldstein
-/// diff point with goldstein is input a correlation map (baran is coherence map, zhao is pseudo coherence map)
-/// and it will change to the zhao filter automatically is the input of correlation map is unexisted.
 #include <iostream>
 #include <fstream>
 #include <chrono>
@@ -20,7 +16,7 @@
 
 #include "datatype.h"
 
-#define EXE_NAME "goldstein_plus"
+#define EXE_NAME "zhao"
 
 // #define DEBUG
 
@@ -31,9 +27,8 @@ string EXE_PLUS_FILENAME(string extention){
     return string(EXE_NAME)+"."+ extention;
 }
 
-/// TODO: goldstein_plus (more para than goldstein, about float* arr_cor)
 double pseudo_correlation(complex<float>* interf, float* pseudo_cor, int height, int width, int size);
-funcrst goldstein_plus(std::complex<float>* arr_in, float* cor, int height, int width, std::complex<float>* arr_out);
+funcrst zhao(std::complex<float>* arr_in, int height, int width, std::complex<float>* arr_out, float* arr_alpha_out );
 
 int main(int argc, char* argv[])
 {
@@ -53,9 +48,9 @@ int main(int argc, char* argv[])
         msg =   EXE_PLUS_FILENAME("exe\n");
         msg +=  " manual: " EXE_NAME " [input] [params] [output]\n" 
                 " argv[0]: " EXE_NAME ",\n"
-                " argv[1]: input, flt/fcpx filepath.\n"
-                " argv[2]: input, flt, correlation filepath( which will be replaced with pseudo correlation, if the data doesn't exist).\n"
-                " argv[3]: output, flt/fcpx filepath.";
+                " argv[1]: input, fcpx interf filepath.\n"
+                " argv[2]: output, fcpx filtered interf filepath.\n"
+				" argv[3]: output, flt alpha filepath.";
         return return_msg(-1,msg);
     }
 
@@ -82,53 +77,25 @@ int main(int argc, char* argv[])
 
 	std::complex<float>* arr = new std::complex<float>[width * height];
 	std::complex<float>* arr_out = new std::complex<float>[width * height];
+	float* arr_alpha = new float[width * height];
 	rb->RasterIO(GF_Read, 0, 0, width, height, arr, width, height, datatype, 0, 0);
 
 
-    /// TODO: load correlation map
+    /// cal pseudo correlation map
 	float* arr_cor = new float[width * height];
-	if(fs::exists(fs::path(argv[2]))){
-		GDALDataset* ds_cor = (GDALDataset*)GDALOpen(argv[2], GA_ReadOnly);
-		if(!ds_cor){
-			GDALClose(ds);
-			return return_msg(-2, "ds_cor is nullptr.");
-		}
-		GDALRasterBand* rb_cor = ds_cor->GetRasterBand(1);
-
-		if(ds_cor->GetRasterXSize() != width){
-			GDALClose(ds);
-			GDALClose(ds_cor);
-			return return_msg(-2, fmt::format("ds_cor.width({}) is diff with ds.width({}).",ds_cor->GetRasterXSize(), width));
-		}
-
-		if(ds_cor->GetRasterYSize() != height){
-			GDALClose(ds);
-			GDALClose(ds_cor);
-			return return_msg(-2, fmt::format("ds_cor.height({}) is diff with ds.height({}).",ds_cor->GetRasterYSize(), height));
-		}
-		if(rb->GetRasterDataType() != GDT_Float32){
-			GDALClose(ds);
-			GDALClose(ds_cor);
-			return return_msg(-2, "datatype is not float.");
-		}
-		rb->RasterIO(GF_Read, 0, 0, width, height, arr_cor, width, height, GDT_Float32, 0, 0);
-		GDALClose(ds_cor);
-	}
-	else{
-		double spend_sec = pseudo_correlation(arr, arr_cor, height, width, 5);
-		return_msg(1,fmt::format("pseudo_correlation spend time: {}s.",spend_sec));
-	}
+	double spend_sec = pseudo_correlation(arr, arr_cor, height, width, 5);
+	return_msg(1,fmt::format("pseudo_correlation spend time: {}s.",spend_sec));
 
     /// TODO: goldstein_plus
-
-	auto rst = goldstein_plus(arr, arr_cor, height, width, arr_out);
+	auto rst = zhao(arr, height, width, arr_out, arr_alpha);
     return_msg(1,rst.explain); 
 
     delete[] arr;
+	delete[] arr_cor;
 	GDALClose(ds);
 
 	GDALDriver* dv = GetGDALDriverManager()->GetDriverByName("GTiff");
-    GDALDataset* ds_out = dv->Create(argv[4], width, height, 1, datatype, NULL);
+    GDALDataset* ds_out = dv->Create(argv[2], width, height, 1, datatype, NULL);
     if(!ds_out){
 		delete[] arr_out;
         return return_msg(-3, "ds_out create failed.");
@@ -139,6 +106,18 @@ int main(int argc, char* argv[])
 
 	delete[] arr_out;
 	GDALClose(ds_out);
+
+	GDALDataset* ds_alpha_out = dv->Create(argv[3], width, height, 1, GDT_Float32, NULL);
+    if(!ds_out){
+		delete[] arr_alpha;
+        return return_msg(-3, "ds_alpha_out create failed.");
+    }
+    GDALRasterBand* rb_alpha_out = ds_alpha_out->GetRasterBand(1);
+
+	rb_alpha_out->RasterIO(GF_Write, 0, 0, width, height, arr_alpha, width, height, GDT_Float32, 0, 0);
+
+	delete[] arr_alpha;
+	GDALClose(ds_alpha_out);
     
     return return_msg(1, EXE_NAME " end.");
 }
@@ -269,7 +248,7 @@ double pseudo_correlation(complex<float>* interf, float* pseudo_cor, int height,
     return spend_time(st);
 }
 
-funcrst goldstein_plus(std::complex<float>* arr_in, float* cor, int height, int width, std::complex<float>* arr_out)
+funcrst zhao(std::complex<float>* arr_in, int height, int width, std::complex<float>* arr_out, float* arr_alpha_out)
 {
 	auto start_time = std::chrono::system_clock::now();
 
@@ -330,22 +309,11 @@ funcrst goldstein_plus(std::complex<float>* arr_in, float* cor, int height, int 
 				out_j_start = overlap / 2; out_j_end = size - overlap / 2 - 1;
 			}
 
+			
+			complex<float> sum(0,0);
+			float norm_sum=0;
+			/// spatial_arr init &
 			/// calculate average correlation of overlap area to replace alpha in goldstein
-			int num = 0;
-			float alpha = 0;
-			for(int m = out_i_start; m <= out_i_end; m++){
-				for(int n = out_j_start; n <= out_j_end; n++){
-                    if(i + m < 0 || i + m > height - 1 || j + n < 0 || j + n > width - 1)
-                        continue;
-					alpha += cor[(i+m)*width+(j+n)];
-					num++;
-				}
-			}
-			alpha = (num==0 ? 0 : alpha / num);
-			alpha = alpha > 1 ? 1 : (alpha < 0 ? 0 : alpha);
-			alpha = 1 - alpha;
-
-			/// spatial_arr init
 			for(int k = 0; k< size*size; k++){
 				int block_i = k / size + i;
 				int block_j = k % size + j;
@@ -357,6 +325,17 @@ funcrst goldstein_plus(std::complex<float>* arr_in, float* cor, int height, int 
 				else{
 					spatial_arrs[thread_idx][k][0]=arr_in[block_i * width + block_j].real();
 					spatial_arrs[thread_idx][k][1]=arr_in[block_i * width + block_j].imag();
+					sum += arr_in[block_i * width + block_j];
+					norm_sum += abs(arr_in[block_i * width + block_j]);
+				}
+			}
+			float pseudo_correlation = norm_sum == 0 ? 0 : abs(sum) / norm_sum;
+			float alpha = 1 -( pseudo_correlation > 1 ? 1 : pseudo_correlation);
+			for(int m = out_i_start; m <= out_i_end; m++){
+				for(int n = out_j_start; n <= out_j_end; n++){
+                    if(i + m < 0 || i + m > height - 1 || j + n < 0 || j + n > width - 1)
+                        continue;
+					arr_alpha_out[(i+m)*width+(j+n)] = alpha;
 				}
 			}
 
@@ -384,8 +363,8 @@ funcrst goldstein_plus(std::complex<float>* arr_in, float* cor, int height, int 
 
 			/// block_smooth^alpha * spatial_arrs -> frequency_arrs
 			for(int k=0; k< size*size; k++){
-				frequency_arrs[thread_idx][k][0] = block_smooth[k] * alpha * frequency_arrs[thread_idx][k][0];
-				frequency_arrs[thread_idx][k][1] = block_smooth[k] * alpha * frequency_arrs[thread_idx][k][1];
+				frequency_arrs[thread_idx][k][0] = pow(block_smooth[k],alpha) * frequency_arrs[thread_idx][k][0];
+				frequency_arrs[thread_idx][k][1] = pow(block_smooth[k],alpha) * frequency_arrs[thread_idx][k][1];
 			}
 
 			delete[] block_smooth;
