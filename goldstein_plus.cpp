@@ -31,9 +31,9 @@ string EXE_PLUS_FILENAME(string extention){
     return string(EXE_NAME)+"."+ extention;
 }
 
-funcrst goldstein(std::complex<float>* arr_in, int height, int width, float alpha, std::complex<float>* arr_out);
-
 /// TODO: goldstein_plus (more para than goldstein, about float* arr_cor)
+double pseudo_correlation(complex<float>* interf, float* pseudo_cor, int height, int width, int size);
+funcrst goldstein_plus(std::complex<float>* arr_in, float* cor, int height, int width, std::complex<float>* arr_out);
 
 int main(int argc, char* argv[])
 {
@@ -86,14 +86,42 @@ int main(int argc, char* argv[])
 
 
     /// TODO: load correlation map
+	float* arr_cor = new float[width * height];
+	if(fs::exists(fs::path(argv[2]))){
+		GDALDataset* ds_cor = (GDALDataset*)GDALOpen(argv[2], GA_ReadOnly);
+		if(!ds_cor){
+			GDALClose(ds);
+			return return_msg(-2, "ds_cor is nullptr.");
+		}
+		GDALRasterBand* rb_cor = ds_cor->GetRasterBand(1);
 
+		if(ds_cor->GetRasterXSize() != width){
+			GDALClose(ds);
+			GDALClose(ds_cor);
+			return return_msg(-2, fmt::format("ds_cor.width({}) is diff with ds.width({}).",ds_cor->GetRasterXSize(), width));
+		}
+
+		if(ds_cor->GetRasterYSize() != height){
+			GDALClose(ds);
+			GDALClose(ds_cor);
+			return return_msg(-2, fmt::format("ds_cor.height({}) is diff with ds.height({}).",ds_cor->GetRasterYSize(), height));
+		}
+		if(rb->GetRasterDataType() != GDT_Float32){
+			GDALClose(ds);
+			GDALClose(ds_cor);
+			return return_msg(-2, "datatype is not float.");
+		}
+		rb->RasterIO(GF_Read, 0, 0, width, height, arr_cor, width, height, GDT_Float32, 0, 0);
+		GDALClose(ds_cor);
+	}
+	else{
+		double spend_sec = pseudo_correlation(arr, arr_cor, height, width, 5);
+		return_msg(1,fmt::format("pseudo_correlation spend time: {}s.",spend_sec));
+	}
 
     /// TODO: goldstein_plus
 
-
-
-
-	funcrst rst = goldstein(arr, height, width, alpha, arr_out);
+	auto rst = goldstein_plus(arr, arr_cor, height, width, arr_out);
     return_msg(1,rst.explain); 
 
     delete[] arr;
@@ -160,11 +188,90 @@ funcrst conv_2d(float* arr_in, int width, int height, float* arr_out, float* ker
 	return funcrst(true, "filter::conv_2d finished.");
 }
 
-
-funcrst goldstein(std::complex<float>* arr_in, int height, int width, float alpha, std::complex<float>* arr_out)
+double pseudo_correlation(complex<float>* interf, float* pseudo_cor, int height, int width, int size)
 {
+	auto st = chrono::system_clock::now();
+    int num=0;
+#pragma omp parallel for
+    for(int i=0; i<height; i++)
+    {
+        cout<<fmt::format("\rpercentage: {}/{}...",num++,height);
+        int start_row = MAX(0,i-size/2);
+        int end_row = MIN(i+size/2,height-1);
+        int win_height= end_row - start_row + 1;
+        /// sum 即总和, abs_sum即模长的总和, left即最左侧一列的总和, abs_left即最左侧一列绝对值的总和, right与abs_right同理
+        complex<float> sum(0,0), left(0,0), right(0,0);
+        float abs_sum=0,abs_left=0, abs_right=0;
 
-    auto start_time = std::chrono::system_clock::now();
+        /// j=0
+        for(int k = start_row; k<= end_row; k++)
+        {
+            for(int j=0; j<size/2+1; j++){
+                sum += interf[k * width + j];
+                abs_sum += abs(interf[k * width + j]);
+            }
+        }
+        pseudo_cor[i*width + 0] = (abs_sum == 0) ? 0 : abs(sum)/abs_sum;
+
+        /// j=1~size/2
+        for(int j=1; j<=size/2; j++)
+        {
+            right=0;
+            abs_right=0;
+            int j_r=j + size / 2;
+            for(int k = start_row; k<= end_row; k++){
+                right += interf[k * width + j_r];
+                abs_right += abs(interf[k * width + j_r]);
+            }
+            sum += right;
+            abs_sum += abs_right;
+            pseudo_cor[i*width + j] = abs_sum == 0 ? 0 : abs(sum)/abs_sum;
+        }
+
+        /// j=size/2~width-size/2
+        for(int j=size/2+1; j<width-size/2; j++)
+        {
+            right=0;
+            abs_right=0;
+            left=0;
+            abs_left=0;
+            int j_r=j + size / 2;
+            int j_l=j - size / 2 - 1;
+            for(int k = start_row; k<= end_row; k++)
+            {
+                right += interf[k * width + j_r];
+                abs_right += abs(interf[k * width + j_r]);
+                left += interf[k * width + j_l];
+                abs_left += abs(interf[k * width + j_l]);
+            }
+            sum += right - left;
+            abs_sum += abs_right - abs_left;
+            pseudo_cor[i*width + j] = abs_sum == 0 ? 0 : abs(sum)/abs_sum;
+        }
+
+        /// j=width-size/2 ~ width-1
+        for(int j=width-size/2; j<width; j++){
+            left=0;
+            abs_left=0;
+            int j_l=j - size / 2 - 1;
+            for(int k = start_row; k<= end_row; k++)
+            {
+                left += interf[k * width + j_l];
+                abs_left += abs(interf[k * width + j_l]);
+            }
+            sum -= left;
+            abs_sum -= abs_left;
+            pseudo_cor[i*width + j] = abs_sum == 0 ? 0 : abs(sum)/abs_sum;
+        }
+    }
+    cout<<endl;
+
+    return spend_time(st);
+}
+
+funcrst goldstein_plus(std::complex<float>* arr_in, float* cor, int height, int width, std::complex<float>* arr_out)
+{
+	auto start_time = std::chrono::system_clock::now();
 
 	int size = 32;
 	int overlap = 24;
@@ -222,6 +329,21 @@ funcrst goldstein(std::complex<float>* arr_in, int height, int width, float alph
 			else{
 				out_j_start = overlap / 2; out_j_end = size - overlap / 2 - 1;
 			}
+
+			/// calculate average correlation of overlap area to replace alpha in goldstein
+			int num = 0;
+			float alpha = 0;
+			for(int m = out_i_start; m <= out_i_end; m++){
+				for(int n = out_j_start; n <= out_j_end; n++){
+                    if(i + m < 0 || i + m > height - 1 || j + n < 0 || j + n > width - 1)
+                        continue;
+					alpha += cor[(i+m)*width+(j+n)];
+					num++;
+				}
+			}
+			alpha = (num==0 ? 0 : alpha / num);
+			alpha = alpha > 1 ? 1 : (alpha < 0 ? 0 : alpha);
+			alpha = 1 - alpha;
 
 			/// spatial_arr init
 			for(int k = 0; k< size*size; k++){
