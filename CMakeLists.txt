@@ -219,6 +219,18 @@ else()
     message(FATAL_ERROR "openmp not found!")
 endif()
 
+#interf_spectrum_filter滤波
+add_executable(interf_spectrum_filter interf_spectrum_filter.cpp datatype.h datatype.cpp)
+target_link_libraries(interf_spectrum_filter PRIVATE GDAL::GDAL)
+target_link_libraries(interf_spectrum_filter PRIVATE spdlog::spdlog spdlog::spdlog_header_only)
+target_link_libraries(interf_spectrum_filter PRIVATE fmt::fmt)
+target_link_libraries(interf_spectrum_filter PRIVATE FFTW3::fftw3f)
+if(OpenMP_FOUND)
+    target_link_libraries(interf_spectrum_filter PRIVATE OpenMP::OpenMP_CXX)
+else()
+    message(FATAL_ERROR "openmp not found!")
+endif()
+
 
 # add "cmake.configureSettings": {"CMAKE_BUILD_TYPE":"${buildType}"} in setting.json, when ${CMAKE_BUILD_TYPE} is ""
 message(STATUS "cmake build type: " ${CMAKE_BUILD_TYPE})
