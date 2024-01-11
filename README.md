@@ -1,4 +1,4 @@
-# execs_dependent_on_gdal
+# GDAL_Tools
 
 Collection of executable, which dependent on GDAL (and spdlog)
 
@@ -37,10 +37,6 @@ tif图转换为二进制文件
 ## statistics
 
 对影像的某个波段(RasterBand, 波段, 图层, 通道,...)进行数值统计，输出该波段数据的最值、均值和方差
-
-## print_sar_image
-
-打印sar影像(支持复数格式), 设置转换格式phase / power(仅复数数据有效), 最值筛选方式 auto / manual, 颜色表, 并输出到指定地址下
 
 ## egm2008
 
@@ -135,4 +131,4 @@ TDM_DEM文件中有很多tif数据，但只有DEM数据的后缀名称是“xxxx
 
 ## create_shapfile
 
-输入一个记录经纬度信息的
+输入一个记录经纬度信息的shapfile文件
