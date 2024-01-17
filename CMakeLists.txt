@@ -118,6 +118,12 @@ target_link_libraries(get_image_value_in_line PRIVATE GDAL::GDAL)
 target_link_libraries(get_image_value_in_line PRIVATE spdlog::spdlog spdlog::spdlog_header_only)
 target_link_libraries(get_image_value_in_line PRIVATE fmt::fmt)
 
+#GDAL虚拟文件系统测试
+add_executable(virtual_files_system_test virtual_files_system_test.cpp datatype.h datatype.cpp)
+target_link_libraries(virtual_files_system_test PRIVATE GDAL::GDAL)
+target_link_libraries(virtual_files_system_test PRIVATE spdlog::spdlog spdlog::spdlog_header_only)
+target_link_libraries(virtual_files_system_test PRIVATE fmt::fmt)
+
 
 # add "cmake.configureSettings": {"CMAKE_BUILD_TYPE":"${buildType}"} in setting.json, when ${CMAKE_BUILD_TYPE} is ""
 message(STATUS "cmake build type: " ${CMAKE_BUILD_TYPE})
