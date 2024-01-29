@@ -167,5 +167,9 @@ file(GLOB DLLS "${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE}/*.dll") # 假设DLLs在�
 install(FILES ${DLLS} DESTINATION binary CONFIGURATIONS Release)
 # message("DLLS: ${DLLS}")
 
-install(FILES ${CMAKE_CURRENT_LIST_DIR}/proj.db DESTINATION binary)
-install(FILES ${CMAKE_CURRENT_LIST_DIR}/vcruntime140d.dll ${CMAKE_CURRENT_LIST_DIR}/vcruntime140_1d.dll DESTINATION binary/vc)
+install(FILES ${CMAKE_CURRENT_LIST_DIR}/proj.db DESTINATION binary CONFIGURATIONS Release)
+install(FILES ${CMAKE_CURRENT_LIST_DIR}/vcruntime140d.dll ${CMAKE_CURRENT_LIST_DIR}/vcruntime140_1d.dll DESTINATION binary/vc CONFIGURATIONS Release)
+
+file(GLOB scripts "scripts/*.ps1" "scripts/*.bat") # 假设DLLs在构建目录中
+install(FILES ${scripts} DESTINATION binary CONFIGURATIONS Release)
+# message("scripts: ${scripts}")
