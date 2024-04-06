@@ -72,6 +72,13 @@ target_link_libraries(determine_topological_relationship PRIVATE spdlog::spdlog 
 target_link_libraries(determine_topological_relationship PRIVATE fmt::fmt)
 set(EXE_LIST ${EXE_LIST} determine_topological_relationship)
 
+#打印相交矢量的名称
+add_executable(intersect_with_target_shapefile IntersectWithTargetShapefile.cpp)
+target_link_libraries(intersect_with_target_shapefile PRIVATE GDAL::GDAL)
+target_link_libraries(intersect_with_target_shapefile PRIVATE spdlog::spdlog spdlog::spdlog_header_only)
+target_link_libraries(intersect_with_target_shapefile PRIVATE fmt::fmt)
+set(EXE_LIST ${EXE_LIST} intersect_with_target_shapefile)
+
 # duqu EGM2008文件, 并写出
 add_executable(read_egm2008 read_egm2008.cpp datatype.cpp)
 target_include_directories( read_egm2008 
