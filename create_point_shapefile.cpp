@@ -14,7 +14,7 @@
 
 #include "datatype.h"
 
-#define EXE_NAME "create_shapfile"
+#define EXE_NAME "create_point_shapefile"
 
 using namespace std;
 namespace fs = std::filesystem;
@@ -74,73 +74,54 @@ int main(int argc, char* argv[])
         }
     }
 
-
-    if(points.size() < 3){
-        return return_msg(-3, fmt::format("valid points.size({}) < 3",points.size()));
+    std::cout<<"points.size:"<<points.size()<<std::endl;
+    if(points.size() < 1){
+        return return_msg(-3, fmt::format("valid points.size({}) < 1",points.size()));
     }
-
-    OGRPolygon* polygen = (OGRPolygon*)OGRGeometryFactory::createGeometry(wkbPolygon);
-    OGRLinearRing* ring = (OGRLinearRing*)OGRGeometryFactory::createGeometry(wkbLinearRing);
-    OGRPoint point;
-
-    for(auto& iter : points)
-    {
-        point.setX(iter.x); point.setY(iter.y);
-        ring->addPoint(&point);
-    }
-    point.setX(points[0].x); point.setY(points[0].y);
-    ring->addPoint(&point);
-    ring->closeRings();
-    polygen->addRing(ring);
-
 
     GDALDriver* shp_driver = GetGDALDriverManager()->GetDriverByName("ESRI Shapefile");
     if (shp_driver == nullptr) {
         return funcrst(false, "shp driver is nullptr.");
     }
 
+    cout<<"default projection is WGS84\n";
+    OGRSpatialReference spatialRef;
+    spatialRef.SetWellKnownGeogCS("WGS84");
+
     GDALDataset* ds = shp_driver->Create(shp_file.c_str(), 0, 0, 0, GDT_Unknown, NULL);
     if (ds == nullptr) {
         return funcrst(false, "ds is nullptr.");
     }
-
-    cout<<"default projection is WGS84\n";
-    OGRSpatialReference spatialRef;
-    spatialRef.SetWellKnownGeogCS("WGS84");
-    OGRLayer* layer = ds->CreateLayer("layer", &spatialRef, wkbPolygon, NULL);
+    
+    OGRLayer* layer = ds->CreateLayer("points", &spatialRef, wkbPoint, NULL);
     if (layer == nullptr) {
         return funcrst(false, "layer is nullptr.");
     }
 
-    /// layer中新建一个名为“name”的字段, 类型是string（在属性表中显示）
-    OGRFieldDefn * fieldDefn = new OGRFieldDefn("name", OFTString);
+    /// layer中新建一个名为“id”的字段, 类型是int（在属性表中显示）
+    OGRFieldDefn * fieldDefn = new OGRFieldDefn("ID", OFTInteger);
+    fieldDefn->SetWidth(5);
     layer->CreateField(fieldDefn);
 
-    OGRFeatureDefn* featureDefn = layer->GetLayerDefn();
-    OGRFeature* feature = OGRFeature::CreateFeature(featureDefn);
-    OGRErr err = feature->SetGeometry((OGRGeometry*)polygen);
-    feature->SetField("name","temp");
+
+    OGRPoint point;
     
-    if (err != OGRERR_NONE) {
-        if (err == OGRERR_UNSUPPORTED_GEOMETRY_TYPE) {
-            return funcrst(false, "unsupported geometry type.");
+    int i=0;
+    for (auto& p : points) {
+        OGRFeature* poFeature = OGRFeature::CreateFeature(layer->GetLayerDefn());
+        // std::cout<<fmt::format("[{}]:{},{}",i,p.x,p.y)<<std::endl;
+        point.setX(p.x);
+        point.setY(p.y);
+        poFeature->SetField("ID", i++);
+        poFeature->SetGeometry(&point);
+        if (layer->CreateFeature(poFeature) != OGRERR_NONE) {
+            std::cout<<"create feature in shapefile failed."<<std::endl;
+           return funcrst(false, "create feature in shapefile failed.");
         }
-        else{
-            return funcrst(false, "unknown setGeometry error.");
-        }
+        OGRFeature::DestroyFeature(poFeature);
     }
-
-
-    if (layer->CreateFeature(feature) != OGRERR_NONE) {
-        return funcrst(false, "create feature in shapefile failed.");
-    }
-
-
-    OGRFeature::DestroyFeature(feature);
     GDALClose(ds);
 
 
-
-    
     return return_msg(1, EXE_NAME " end.");
 }

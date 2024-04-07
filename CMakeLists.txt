@@ -124,11 +124,17 @@ else()
 endif()
 set(EXE_LIST ${EXE_LIST} unified_geoimage_merging)
 
-# 创建shp文件
-add_executable(create_shapfile create_shapfile.cpp datatype.h datatype.cpp)
-target_link_libraries(create_shapfile PRIVATE GDAL::GDAL)
-target_link_libraries(create_shapfile PRIVATE spdlog::spdlog spdlog::spdlog_header_only)
-set(EXE_LIST ${EXE_LIST} create_shapfile)
+# 创建多边形shp文件
+add_executable(create_polygon_shapefile create_polygon_shapefile.cpp datatype.h datatype.cpp)
+target_link_libraries(create_polygon_shapefile PRIVATE GDAL::GDAL)
+target_link_libraries(create_polygon_shapefile PRIVATE spdlog::spdlog spdlog::spdlog_header_only)
+set(EXE_LIST ${EXE_LIST} create_polygon_shapefile)
+
+# 创建点shp文件
+add_executable(create_point_shapefile create_point_shapefile.cpp datatype.h datatype.cpp)
+target_link_libraries(create_point_shapefile PRIVATE GDAL::GDAL)
+target_link_libraries(create_point_shapefile PRIVATE spdlog::spdlog spdlog::spdlog_header_only)
+set(EXE_LIST ${EXE_LIST} create_point_shapefile)
 
 #基于像素的影像裁剪
 add_executable(image_cut_pixel image_cut_pixel.cpp datatype.h datatype.cpp)
