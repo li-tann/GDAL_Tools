@@ -136,6 +136,12 @@ target_link_libraries(create_point_shapefile PRIVATE GDAL::GDAL)
 target_link_libraries(create_point_shapefile PRIVATE spdlog::spdlog spdlog::spdlog_header_only)
 set(EXE_LIST ${EXE_LIST} create_point_shapefile)
 
+# 创建3维点shp文件
+add_executable(create_3dpoint_shapefile create_3dpoint_shapefile.cpp datatype.h datatype.cpp)
+target_link_libraries(create_3dpoint_shapefile PRIVATE GDAL::GDAL)
+target_link_libraries(create_3dpoint_shapefile PRIVATE spdlog::spdlog spdlog::spdlog_header_only)
+set(EXE_LIST ${EXE_LIST} create_3dpoint_shapefile)
+
 #基于像素的影像裁剪
 add_executable(image_cut_pixel image_cut_pixel.cpp datatype.h datatype.cpp)
 target_link_libraries(image_cut_pixel PRIVATE GDAL::GDAL)
@@ -156,6 +162,13 @@ target_link_libraries(virtual_files_system_test PRIVATE GDAL::GDAL)
 target_link_libraries(virtual_files_system_test PRIVATE spdlog::spdlog spdlog::spdlog_header_only)
 target_link_libraries(virtual_files_system_test PRIVATE fmt::fmt)
 set(EXE_LIST ${EXE_LIST} virtual_files_system_test)
+
+
+
+#LandSAR 将存储PS点的tif转换为栅格图tif
+add_executable(landsar_ps_points_transto_tif landsar_ps_points_transto_tif.cpp)
+target_link_libraries(landsar_ps_points_transto_tif PRIVATE GDAL::GDAL)
+set(EXE_LIST ${EXE_LIST} landsar_ps_points_transto_tif)
 
 
 # add "cmake.configureSettings": {"CMAKE_BUILD_TYPE":"${buildType}"} in setting.json, when ${CMAKE_BUILD_TYPE} is ""

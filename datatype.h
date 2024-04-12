@@ -118,6 +118,15 @@ struct xy{
 	double x, y;
 };
 
+struct xyz{
+	xyz():x(0),y(0),z(0){}
+	xyz(double x_, double y_, double z_):x(x_),y(y_),z(z_){}
+	string to_str(){
+		return "(" + std::to_string(x) + "," + std::to_string(y) + "," + std::to_string(z) + ")";
+	}
+	double x, y, z;
+};
+
 
 ///  10′*10′的EGM文件, 有1081(180*6+1)行和2160(360*6)列   (这里的列数不计算每行起止处的两个0)
 ///  以此类推, 1′*1′的EGM文件, 有10801(180*60+1)行21600(360*60)列

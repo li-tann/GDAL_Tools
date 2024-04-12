@@ -205,4 +205,6 @@ bool write_all_egm2008(const char* in_path, const char* out_path)
 
     ifs.close();
     ofs.close();
+
+    return true;
 }
