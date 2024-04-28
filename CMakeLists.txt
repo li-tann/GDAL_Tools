@@ -11,6 +11,7 @@ enable_testing()
 find_package(GDAL CONFIG REQUIRED)
 find_package(spdlog CONFIG REQUIRED)
 find_package(fmt CONFIG REQUIRED)
+find_package(argparse CONFIG REQUIRED)
 find_package(OpenMP REQUIRED)
 find_package(FFTW3f CONFIG REQUIRED)
 
@@ -27,6 +28,7 @@ add_executable(debug_config_test debug_config_test.cpp)
 add_executable(nan_TransTo nan_transto.cpp template_nan_convert_to.h)
 target_link_libraries(nan_TransTo PRIVATE GDAL::GDAL)
 target_link_libraries(nan_TransTo PRIVATE spdlog::spdlog spdlog::spdlog_header_only)
+target_link_libraries(nan_TransTo PRIVATE argparse::argparse)
 set(EXE_LIST ${EXE_LIST} nan_TransTo)
 
 # setNoDataValue 去黑边

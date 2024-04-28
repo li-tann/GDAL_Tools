@@ -6,26 +6,48 @@
 #include <stdlib.h>
 #include <filesystem>
 
+#include <argparse/argparse.hpp>
+
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/basic_file_sink.h>
 
 #include "template_nan_convert_to.h"
 
-#define EXE_NAME "nan_TransTo"
-
 using namespace std;
 namespace fs = std::filesystem;
 
-string EXE_PLUS_FILENAME(string extention){
-    return string(EXE_NAME)+"."+ extention;
-}
-
 int main(int argc, char* argv[])
 {
-    GDALAllRegister();
-    string msg;
 
-    auto my_logger = spdlog::basic_logger_mt(EXE_NAME, EXE_PLUS_FILENAME("txt"));
+    /// argparse
+    argparse::ArgumentParser program("nan_TransTo","1.0", argparse::default_arguments::help);
+    program.add_description("translate the NaN from in_img to out_img.");
+
+    program.add_argument("input_image")
+        .help("input imgpath, support datatype list: short, int, float, double");
+
+    program.add_argument("output_image")
+        .help("output imgpath (tiff)");
+
+    program.add_argument("value")
+        .help("input, which is NAN convert to")
+        .scan<'g',double>();
+    
+    try {
+        program.parse_args(argc, argv);
+    }
+    catch (const std::exception& err) {
+        std::cerr << err.what() << std::endl<<std::endl;
+        std::cerr << program;
+        return 1;
+    }
+    
+    /// log
+    char* pgmptr = 0;
+    _get_pgmptr(&pgmptr);
+    fs::path exe_root(fs::path(pgmptr).parent_path());
+    fs::path log_path = exe_root / "LOG_nan_TransTo.log";
+    auto my_logger = spdlog::basic_logger_mt("nan_TransTo", log_path.string());
 
     auto return_msg = [my_logger](int rtn, string msg){
         my_logger->info(msg);
@@ -33,36 +55,33 @@ int main(int argc, char* argv[])
         return rtn;
     };
 
-    if(argc < 4){
-        msg =   EXE_PLUS_FILENAME("exe\n");
-        msg +=  " manual:\n" 
-                " argv[0]: " EXE_NAME ",\n"
-                " argv[1]: input imgpath, support datatype list: short, int, float, double\n"
-                " argv[2]: output imgpath,\n"
-                " argv[3]: value, which is NAN convert to.";
-        return return_msg(-1,msg);
-    }
 
-    msg = string(EXE_NAME) + " start.";
-    return_msg(0,msg);
+    GDALAllRegister();
+    string msg;
 
-    double val = atof(argv[3]);
+    return_msg(0,"\nnan_TransTo start");
+
+    
+    double val = program.get<double>("value");
+
+    string input = program.get<string>("input_image");
+    string output= program.get<string>("output_image");
 
     /// 如果
-    if(string(argv[1])!= string(argv[2])){
-        fs::path src(argv[1]);
-        fs::path dst(argv[2]);
+    if(input!= output){
+        fs::path src(input);
+        fs::path dst(output);
         if(fs::exists(dst)){
-            msg = "argv[2] is existed, we will remove and copy argv[1] to argv[2].";
+            msg = "output is existed, we will remove and copy input to output.";
             return_msg(0,msg);
             fs::remove(dst);
         }
         fs::copy(src,dst);
     }
 
-    GDALDataset* ds = static_cast<GDALDataset*>(GDALOpen(argv[2],GA_Update));
+    GDALDataset* ds = static_cast<GDALDataset*>(GDALOpen(output.c_str(), GA_Update));
     if(ds == nullptr)
-        return return_msg(-2,"ds is nullptr. argv[2] is no-existed(when argv[1]==argv[2]), or cann't be create?");
+        return return_msg(-2,"ds is nullptr. output is no-existed(when input==output), or cann't be create?");
 
     int xsize = ds->GetRasterXSize();
     int ysize = ds->GetRasterYSize();
@@ -89,8 +108,7 @@ int main(int argc, char* argv[])
     }
     
     GDALClose(ds);
-     msg = string(EXE_NAME) + " successed.";
-    return return_msg(1, msg);
+    return return_msg(1,"\nnan_TransTo succeed.");
 
 }
 
