@@ -1,72 +1,41 @@
-#include <gdal_priv.h>
-
-#include <iostream>
-#include <string>
-#include <stdio.h>
-#include <stdlib.h>
-#include <vector>
-#include <filesystem>
-
-#include <spdlog/spdlog.h>
-#include <spdlog/sinks/basic_file_sink.h>
-
+#include "raster_include.h"
 #include "template_stretch.h"
 
-#define EXE_NAME "histogram_statistics"
+/*
+    sub_histogram_stretch.add_argument("input_imgpath")
+        .help("input image filepath, doesn't support complex datatype");
 
-using namespace std;
-namespace fs = std::filesystem;
+    sub_histogram_stretch.add_argument("histogram_size")
+        .help("int, histogram size, more than 1, default is 256.")
+        .scan<'i',int>()
+        .default_value("256");    
+*/
 
-string EXE_PLUS_FILENAME(string extention){
-    return string(EXE_NAME)+"."+ extention;
-}
-
-struct range_statistics{
-    double min{NAN}, max{NAN};
-    int num=0;
-    range_statistics(){}
-    range_statistics(double min_, double max_, int num_):min(min_),max(max_),num(num_){}
-};
-
-int main(int argc, char* argv[])
+int histogram_statistics(argparse::ArgumentParser* args,std::shared_ptr<spdlog::logger> logger)
 {
     GDALAllRegister();
-    string msg;
+    CPLSetConfigOption("GDAL_FILENAME_IS_UTF8", "NO");
 
-    auto my_logger = spdlog::basic_logger_mt(EXE_NAME, EXE_PLUS_FILENAME("txt"));
-
-    auto return_msg = [my_logger](int rtn, string msg){
-        my_logger->info(msg);
-		spdlog::info(msg);
-        return rtn;
-    };
-
-    if(argc < 3){
-        msg =   EXE_PLUS_FILENAME("exe\n");
-        msg +=  " manual:\n" 
-                " argv[0]: " EXE_NAME ",\n"
-                " argv[1]: input imgpath,\n"
-                " argv[2]: histogram length, more than 1.";
-        return return_msg(-1,msg);
-    }
-
-    int histogram_length = atoi(argv[2]);
+    std::string img_filepath = args->get<std::string>("input_imgpath");
+    int histogram_length = args->get<int>("histogram_size");
     if(histogram_length < 1){
-        return return_msg(-1, fmt::format("histogram length({}) is less than 1.",histogram_length));
+        PRINT_LOGGER(logger, error, fmt::format("histogram length({}) is less than 1.",histogram_length));
+        return -1;
     }
-    
-    return_msg(0,EXE_NAME " start.");
 
-    GDALDataset* ds = static_cast<GDALDataset*>(GDALOpen(argv[3],GA_Update));
-    if(ds == nullptr)
-        return return_msg(-2,"ds is nullptr. argv[3] is no-existed(when argv[1]==argv[3]), or cann't be create?");
-
+    GDALDataset* ds = (GDALDataset*)GDALOpen(img_filepath.c_str(), GA_Update);
+    if(!ds){
+        PRINT_LOGGER(logger, error, "ds is nullptr.");
+        return -2;
+    }
+        
     int xsize = ds->GetRasterXSize();
     int ysize = ds->GetRasterYSize();
     int bands = ds->GetRasterCount();
     GDALDataType datatype = ds->GetRasterBand(1)->GetRasterDataType();
     if(datatype > GDT_Float64 /*cshort cint cfloat cdouble*/ || datatype == 0 /*unknown*/){
-        return return_msg(-3,"unsupported datatype, unsupport list: complex");
+        PRINT_LOGGER(logger, error,"unsupported datatype, unsupport list: complex.");
+        return -3;
     }
     GDALRasterBand* rb = ds->GetRasterBand(1);
 
@@ -75,27 +44,28 @@ int main(int argc, char* argv[])
     GUIntBig* histogram_result = new GUIntBig[histogram_length];
     err = rb->ComputeRasterMinMax(FALSE,minmax);
     if(err == CE_Failure){
-        return return_msg(-2,"rb.computeRasterMinMax failed.");
+        PRINT_LOGGER(logger, error,"rb.computeRasterMinMax failed.");
+        return -4;
     }
     err = rb->GetHistogram(minmax[0], minmax[1], histogram_length, histogram_result, FALSE, FALSE, GDALDummyProgress, nullptr);
     if(err == CE_Failure){
-        return return_msg(-2 ,"rb.getHistrogram failed.");
+        PRINT_LOGGER(logger, error,"rb.getHistrogram failed.");
+        return -5;
     }
 
-    
     double delta_value = ( minmax[1] -  minmax[0]) / histogram_length;
-    cout<<"histogram statistics,"<<endl;
+
+    string msg = "histogram statistics:\n";
     for(int i=0; i< histogram_length; i++)
     {
         double min = minmax[0] + i * delta_value;
         double max = minmax[0] + (i+1) * delta_value;
         unsigned long long num = histogram_result[i];
-        cout<<fmt::format("range: [{},{}]", min, max)<<endl;
-        cout<<fmt::format(" num : {}",num)<<endl;
+        msg += fmt::format("range: [{},{}], num:{}\n", min, max, num);
     }
-
     delete[] histogram_result;
+    PRINT_LOGGER(logger, info, msg);
 
-    return return_msg(1, EXE_NAME " end.");
-
+    PRINT_LOGGER(logger, info,"histogram_statistics success.");
+    return 1;
 }

@@ -1,56 +1,32 @@
-#include <gdal_priv.h>
+#include "raster_include.h"
 
-#include <iostream>
-#include <string>
-#include <stdio.h>
-#include <stdlib.h>
-#include <filesystem>
+/*
+    sub_trans_geoinfo.add_argument("source")
+        .help("source image");
 
-#include <spdlog/spdlog.h>
-#include <spdlog/sinks/basic_file_sink.h>
+    sub_trans_geoinfo.add_argument("target")
+        .help("target image");    
+*/
 
-
-#define EXE_NAME "transmit_geoinformation"
-
-using namespace std;
-namespace fs = std::filesystem;
-
-string EXE_PLUS_FILENAME(string extention){
-    return string(EXE_NAME)+"."+ extention;
-}
-
-int main(int argc, char* argv[])
+int trans_geoinformation(argparse::ArgumentParser* args,std::shared_ptr<spdlog::logger> logger)
 {
     GDALAllRegister();
-    string msg;
+    CPLSetConfigOption("GDAL_FILENAME_IS_UTF8", "NO");
 
-    auto my_logger = spdlog::basic_logger_mt(EXE_NAME, EXE_PLUS_FILENAME("txt"));
+    string src = args->get<string>("source");
+    string dst = args->get<string>("target");
 
-    auto return_msg = [my_logger](int rtn, string msg){
-        my_logger->info(msg);
-		spdlog::info(msg);
-        return rtn;
-    };
-
-    if(argc < 3){
-        msg =   EXE_PLUS_FILENAME("exe\n");
-        msg +=  " manual:\n" 
-                " argv[0]: " EXE_NAME ",\n"
-                " argv[1]: reference imgpath, which has geoinformation,\n"
-                " argv[2]: target imgpath, which the reference geoinformation transmit to.";
-        return return_msg(-1,msg);
+    GDALDataset* ds_in = static_cast<GDALDataset*>(GDALOpen(src.c_str(), GA_ReadOnly));
+    if(!ds_in){
+        PRINT_LOGGER(logger, error, "ds_in is nullptr.");
+        return -1;
     }
-
-    msg = string(EXE_NAME) + " start.";
-    return_msg(0,msg);
-
-    GDALDataset* ds_in = static_cast<GDALDataset*>(GDALOpen(argv[1],GA_ReadOnly));
-    if(ds_in == nullptr)
-        return return_msg(-2,"ds_in is nullptr.");
-
-    GDALDataset* ds_out = static_cast<GDALDataset*>(GDALOpen(argv[2],GA_Update));
-    if(ds_out == nullptr)
-        return return_msg(-3,"ds_out is nullptr.");
+        
+    GDALDataset* ds_out = static_cast<GDALDataset*>(GDALOpen(dst.c_str(), GA_Update));
+    if(!ds_out){
+        PRINT_LOGGER(logger, error, "ds_out is nullptr.");
+        return -2;
+    }
     
     double gt[6];
     ds_in->GetGeoTransform(gt);
@@ -60,10 +36,7 @@ int main(int argc, char* argv[])
     
     GDALClose(ds_in);
     GDALClose(ds_out);
-    msg = string(EXE_NAME) + " successed.";
-    return return_msg(1, msg);
-
-}
-
-
     
+    PRINT_LOGGER(logger, info, "trans_geoinformation success.");
+    return 1;
+}

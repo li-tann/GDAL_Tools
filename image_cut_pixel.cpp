@@ -1,84 +1,42 @@
-#include <iostream>
-#include <fstream>
-#include <chrono>
-#include <vector>
-#include <filesystem>
-#include <complex>
-#include <omp.h>
+#include "raster_include.h"
 
-#include <spdlog/spdlog.h>
-#include <spdlog/sinks/basic_file_sink.h>
+/*
+    sub_image_cut_pixel.add_argument("input_imgpath")
+        .help("input image filepath");
 
-#include <gdal_priv.h>
-#include <fmt/format.h>
+    sub_image_cut_pixel.add_argument("output_imgpath")
+        .help("output image filepath");   
 
-#include "datatype.h"
+    sub_image_cut_pixel.add_argument("pars")
+        .help("4 pars with the order like: start_x start_y width height")
+        .scan<'i',int>()
+        .nargs(4);       
+*/
 
-#define EXE_NAME "image_cut_pixel"
-
-using namespace std;
-namespace fs = std::filesystem;
-
-string EXE_PLUS_FILENAME(string extention){
-    return string(EXE_NAME)+"."+ extention;
-}
-
-
-int main(int argc, char* argv[])
+int image_cut_by_pixel(argparse::ArgumentParser* args,std::shared_ptr<spdlog::logger> logger)
 {
-
-    auto start = chrono::system_clock::now();
-    string msg;
-
-    auto my_logger = spdlog::basic_logger_mt(EXE_NAME, EXE_PLUS_FILENAME("txt"));
-
-    auto return_msg = [my_logger](int rtn, string msg){
-        if(rtn >= 0){
-            my_logger->info(msg);
-            spdlog::info(msg);
-        }
-        else{
-            my_logger->error(msg);
-            spdlog::error(msg);
-        }
-        
-        return rtn;
-    };
-
-    if(argc < 4){
-        msg =   EXE_PLUS_FILENAME("exe\n");
-        msg +=  " manual: " EXE_NAME " [img in] [parameters] [img out]\n" 
-                " argv[0]: " EXE_NAME ",\n"
-                " argv[1]: input, image filepath .\n"
-                " argv[2]: input, 4 int parameters splited by ',': start_x, start_y, width, height .\n"
-                " argv[3]: output, cutted image filepath.";
-        return return_msg(-1,msg);
-    }
-
-    return_msg(0,EXE_NAME " start.");
-
-    vector<string> splited_strings;
-    strSplit(string(argv[2]), splited_strings, ",");
-    if(splited_strings.size() < 4){
-        return return_msg(-2,fmt::format("the size of splited argv[2] is {} < 4.",splited_strings.size()));
-    }
-
-    int start_x = stoi(splited_strings[0]);
-    int start_y = stoi(splited_strings[1]);
-    int cutted_width  = stoi(splited_strings[2]);
-    int cutted_height = stoi(splited_strings[3]);
-
     GDALAllRegister();
     CPLSetConfigOption("GDAL_FILENAME_IS_UTF8", "NO");
 
-    GDALDataset* ds = (GDALDataset*)GDALOpen(argv[1], GA_ReadOnly);
+
+    string input_img = args->get<string>("input_imgpath");
+    string output_img = args->get<string>("output_imgpath");
+    vector<int> pars_list = args->get<vector<int>>("pars");
+    int start_x = pars_list[0];
+    int start_y = pars_list[1];
+    int cutted_width  = pars_list[2];
+    int cutted_height = pars_list[3];
+
+    GDALDataset* ds = (GDALDataset*)GDALOpen(input_img.c_str(), GA_ReadOnly);
     if(!ds){
-        return return_msg(-2, "ds is nullptr.");
+        PRINT_LOGGER(logger, error, "ds is nullptr.");
+        return -1;
     }
     GDALRasterBand* rb = ds->GetRasterBand(1);
 
     int width = ds->GetRasterXSize();
     int height= ds->GetRasterYSize();
+    int bands = ds->GetRasterCount();
     GDALDataType datatype = rb->GetRasterDataType();
     int datasize = GDALGetDataTypeSize(datatype);
     double geotransform[6];
@@ -93,11 +51,24 @@ int main(int argc, char* argv[])
 
 
     GDALDriver* dv = GetGDALDriverManager()->GetDriverByName("GTiff");
-    GDALDataset* ds_out = dv->Create(argv[3], cutted_width, cutted_height, 1, datatype, NULL);
+    GDALDataset* ds_out = dv->Create(output_img.c_str(), cutted_width, cutted_height, bands, datatype, NULL);
     if(!ds_out){
-        return return_msg(-3, "ds_out create failed.");
+        PRINT_LOGGER(logger, error, "ds_out is nullptr, create failed.");
+        return -1;
     }
-    GDALRasterBand* rb_out = ds_out->GetRasterBand(1);
+
+    for(int b = 1; b <= bands; b++)
+    {
+        GDALRasterBand* rb_out = ds_out->GetRasterBand(b);
+        void* arr = malloc(cutted_width * datasize);
+        for(int i=0; i< cutted_width; i++)
+        {
+            rb->RasterIO(GF_Read, start_x, i + start_y, cutted_width, 1, arr, cutted_width, 1, datatype, 0, 0);
+            rb_out->RasterIO(GF_Write, 0, i, cutted_width, 1, arr, cutted_width, 1, datatype, 0, 0);
+        }
+        free(arr);
+    }
+
     if(has_geotransform){
         double geotransform_out[6];
         geotransform_out[0] = geotransform[0] + start_x * geotransform[1] + start_y * geotransform[2];
@@ -110,17 +81,9 @@ int main(int argc, char* argv[])
         ds_out->SetProjection(ds->GetProjectionRef());
     }
 
-
-    void* arr = malloc(cutted_width * datasize);
-    for(int i=0; i< cutted_width; i++)
-    {
-        rb->RasterIO(GF_Read, start_x, i + start_y, cutted_width, 1, arr, cutted_width, 1, datatype, 0, 0);
-        rb_out->RasterIO(GF_Write, 0, i, cutted_width, 1, arr, cutted_width, 1, datatype, 0, 0);
-    }
-    free(arr);
-
     GDALClose(ds);
     GDALClose(ds_out);
 
-    return return_msg(1, EXE_NAME " end.");
+    PRINT_LOGGER(logger, info, "image_cut_by_pixel success.");
+    return 1;
 }

@@ -1,70 +1,46 @@
-#include <iostream>
-#include <fstream>
-#include <chrono>
-#include <vector>
-#include <filesystem>
-#include <complex>
-
-#include <spdlog/spdlog.h>
-#include <spdlog/sinks/basic_file_sink.h>
+#include "raster_include.h"
 
 #include <gdal.h>
 #include <gdal_priv.h>
 #include <ogrsf_frmts.h>
 #include <gdalwarper.h>
+/*
+        sub_over_resample.add_argument("input_imgpath")
+            .help("input image filepath");
 
-#include "datatype.h"
+        sub_over_resample.add_argument("output_imgpath")
+            .help("output image filepath");
+            
+        sub_over_resample.add_argument("scale")
+            .help("scale of over-resample.")
+            .scan<'g',double>();
 
-#define EXE_NAME "over_resample"
-
-using namespace std;
-namespace fs = std::filesystem;
-
-string EXE_PLUS_FILENAME(string extention){
-    return string(EXE_NAME)+"."+ extention;
-}
-
-enum class method{unknown, point, txt, dem};
-
-using namespace std;
+         sub_over_resample.add_argument("method")
+            .help("over-resample method, use int to represent method : 0,nearst; 1,bilinear; 2,cubic; 3,cubicSpline; 4,lanczos(sinc).; 5,average.")
+            .scan<'i',int>()
+            .default_value("1");     
+*/
 
 funcrst gdal_image_resample_warp(const char *pszSrcFile, const char *pszDstFile,
                                                      double scale,
                                                      GDALResampleAlg eResampleMethod = GRA_NearestNeighbour);
 
-int main(int argc, char* argv[])
+int over_resample(argparse::ArgumentParser* args,std::shared_ptr<spdlog::logger> logger)
 {
+    double scale = args->get<double>("scale");
+    int method_int = args->get<int>("method");
+    string input_filepath = args->get<string>("input_imgpath");
+    string output_filepath = args->get<string>("output_imgpath");
+    GDALResampleAlg eResampleMethod = GDALResampleAlg(method_int);
 
-    auto start = chrono::system_clock::now();
-    string msg;
-
-    auto my_logger = spdlog::basic_logger_mt(EXE_NAME, EXE_PLUS_FILENAME("txt"));
-
-    auto return_msg = [my_logger](int rtn, string msg){
-        my_logger->info(msg);
-        spdlog::info(msg);
-        return rtn;
-    };
-
-   
-    if(argc < 5){
-        msg =   EXE_PLUS_FILENAME("exe\n");
-        msg +=  " manual: " EXE_NAME " [method] [filepath]\n" 
-                " argv[0]: " EXE_NAME ",\n"
-                " argv[1]: input , filepath.\n"
-                " argv[2]: scale , int & > 1.\n"
-                " argv[3]: method, int 0,nearst; 1,bilinear; 2,cubic; 3,cubicSpline; 4,lanczos(sinc).; 5,average\n"
-                " argv[4]: output, filepath";
-        return return_msg(-1,msg);
+    auto rst = gdal_image_resample_warp(input_filepath.c_str(), output_filepath.c_str(), scale, eResampleMethod);
+    if(!rst){
+        PRINT_LOGGER(logger, error, fmt::format("gdal_image_resample_warp failed, cause : '{}'", rst.explain));
+        return -1;
     }
-    return_msg(0,EXE_NAME " start.");
-
-     GDALResampleAlg eResampleMethod = GDALResampleAlg(atoi(argv[3]));
-    auto rst = gdal_image_resample_warp(argv[1], argv[4], atoi(argv[2]), eResampleMethod);
-    
-    std::cout<<rst.explain<<endl;
-
-    return return_msg(1, EXE_NAME " end.");
+    PRINT_LOGGER(logger, info, rst.explain);
+    PRINT_LOGGER(logger, info, "over_resample success.");
+    return 1;
 }
 
 funcrst gdal_image_resample_warp(const char *pszSrcFile, const char *pszDstFile,

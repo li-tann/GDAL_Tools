@@ -186,7 +186,24 @@ inline type swap(type src)
 	return dst;
 }
 
+enum ByteOrder_{LSB, MSB};
 
+class for_loop_timer
+{
+public:
+	for_loop_timer(size_t for_loop_number, void(*)(size_t, size_t, size_t));
+	/// @brief 每次循环都要输出一次, 适合循环次数不多, 循环间隔较长的内容
+	void update();
+	/// @brief 当循环进度增加1%时输出一次, 适合循环次数非常多, 但不需要每次都打印信息的内容
+	void update_percentage();
+
+	size_t m_current = 0;
+	size_t m_for_look_number;
+
+	size_t m_percentage = 0;
+	std::chrono::system_clock::time_point m_start_time;
+	void(*info_print) (size_t current, size_t total, size_t remain);
+};
 
 #endif
 

@@ -5,21 +5,18 @@
 
 #include <vector>
 #include <string>
-#include <tuple>
-
-using tuple_bs = std::tuple<bool, std::string>;
-
+#include "datatype.h"
 
 /// gdaldataset* ds must be opened by gdalopen(..., ga_update)
 template<typename _Ty>
-tuple_bs nodata_transto(GDALDataset* ds, _Ty value)
+funcrst nodata_transto(GDALDataset* ds, _Ty value)
 {
     using namespace std;
     string func_name = "nodata_transto";
     cout <<func_name <<" start."<<endl;
     
     if(ds == nullptr)
-        return make_tuple(false, "ds is nullptr");
+        return funcrst(false, "ds is nullptr");
 
     int xsize = ds->GetRasterXSize();
     int ysize = ds->GetRasterYSize();
@@ -59,19 +56,19 @@ tuple_bs nodata_transto(GDALDataset* ds, _Ty value)
     cout<<100<<endl;
 
     cout<<func_name <<" successd."<<endl;
-    return make_tuple(true, "nodata_transto func successd.");
+    return funcrst(true, "nodata_transto func successd.");
 }
 
 
 template<typename _Ty>
-tuple_bs value_transto(GDALDataset* ds, _Ty value_in, _Ty value_out)
+funcrst value_transto(GDALDataset* ds, _Ty value_in, _Ty value_out)
 {
     using namespace std;
     string func_name = "value_transto";
     cout <<func_name <<" start."<<endl;
 
     if(ds == nullptr)
-        return make_tuple(false, "ds is nullptr");
+        return funcrst(false, "ds is nullptr");
 
     int xsize = ds->GetRasterXSize();
     int ysize = ds->GetRasterYSize();
@@ -110,7 +107,7 @@ tuple_bs value_transto(GDALDataset* ds, _Ty value_in, _Ty value_out)
     cout<<100<<endl;
 
     cout<<func_name <<" successd."<<endl;
-    return make_tuple(true, "value_transto func successd.");
+    return funcrst(true, "value_transto func successd.");
 }
 
 #endif //TEMPLATE_NAN_CONVERT_TO

@@ -19,6 +19,11 @@ namespace fs = std::filesystem;
 int main(int argc, char* argv[])
 {
 
+    std::string str_nan = "nan";
+    float val = stof(str_nan);
+    
+    cout<<val<<"\n"<< (isnan(val) ? "val is nan" : "val is not nan")<<endl;
+    return 0;
     /// argparse
     argparse::ArgumentParser program("nan_TransTo","1.0", argparse::default_arguments::help);
     program.add_description("translate the NaN from in_img to out_img.");

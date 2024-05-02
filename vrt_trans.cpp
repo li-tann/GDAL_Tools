@@ -1,233 +1,157 @@
-#include <iostream>
-#include <fstream>
-#include <chrono>
-#include <vector>
-#include <filesystem>
-#include <complex>
+#include "raster_include.h"
+/*
+    sub_vrt_to_tif.add_argument("vrt")
+        .help("input image filepath (*.vrt)");
 
-#include <spdlog/spdlog.h>
-#include <spdlog/sinks/basic_file_sink.h>
+    sub_vrt_to_tif.add_argument("tif")
+        .help("output image filepath (*.tif)");    
 
-#include <gdal_priv.h>
+*/
 
-#include "datatype.h"
+int vrt_to_tif(argparse::ArgumentParser* args,std::shared_ptr<spdlog::logger> logger)
+{
+    string vrt_filepath = args->get<string>("vrt");
+    string tif_filepath = args->get<string>("tif");
 
-#define EXE_NAME "_vrt_trans"
+    GDALDataset* ds_in = (GDALDataset*)GDALOpen(vrt_filepath.c_str(),GA_ReadOnly);
+    if(!ds_in){
+        PRINT_LOGGER(logger, error, "ds_in is nullptr");
+        return -1;
+    }
+    GDALRasterBand* rb = ds_in->GetRasterBand(1);
 
-using namespace std;
-namespace fs = std::filesystem;
+    int width = ds_in->GetRasterXSize();
+    int height = ds_in->GetRasterYSize();
+    int bands = ds_in->GetRasterCount();
+    GDALDataType datatype = rb->GetRasterDataType();
+    int datasize = GDALGetDataTypeSize(datatype);
 
-string EXE_PLUS_FILENAME(string extention){
-    return string(EXE_NAME)+"."+ extention;
+    GDALDriver* driver_tif = GetGDALDriverManager()->GetDriverByName("GTiff");
+    GDALDataset* ds_out = driver_tif->Create(tif_filepath.c_str(), width, height, bands, datatype,NULL);
+    if(!ds_out){
+        GDALClose(ds_in);
+        PRINT_LOGGER(logger, error, "ds_out is nullptr");
+        return -2;
+    }
+    GDALRasterBand* rb_out = ds_out->GetRasterBand(1);
+
+    for(int b = 1; b <= bands; b++)
+    {
+        auto rb_in = ds_in->GetRasterBand(b);
+        auto rb_out = ds_out->GetRasterBand(b);
+        void* arr = malloc(width * datasize);
+        for(int i=0; i<height; i++)
+        {
+            rb_in->RasterIO(GF_Read, 0, i, width, 1, arr, width, 1, datatype, 0, 0);
+            rb_out->RasterIO(GF_Write, 0, i, width, 1, arr, width, 1, datatype, 0, 0);
+        }
+        free(arr);
+    }
+
+    GDALClose(ds_in);
+    GDALClose(ds_out);
+
+    PRINT_LOGGER(logger, info,"vrt_to_tif success.");
+    return 1;
 }
 
-enum class method{unknown, point, txt, dem};
 
-using namespace std;
+/*
+    sub_tif_to_vrt.add_argument("tif")
+        .help("input image filepath");
 
-int main(int argc, char* argv[])
+    sub_tif_to_vrt.add_argument("binary")
+        .help("output image filepath (binary, without extension)");
+        
+    sub_tif_to_vrt.add_argument("ByteOrder")
+        .help("MSB or LSB");
+*/
+
+#include "binary_write.h"
+
+#define IMG_WRITE(type) \
+        binary_write<type> bw;                                                          \
+        rst = bw.init(binary_filepath.c_str(), height, width, byte_order);              \
+        if(!rst){                                                                       \
+            PRINT_LOGGER(logger, error, fmt::format("bw<{}>.init failed.",#type));      \
+            return -3;                                                                  \
+        }                                                                               \
+        type* arr = new type[width];                                                    \
+        for(int i=0; i<height; i++){                                                    \
+            rb_in->RasterIO(GF_Read, 0, i, width, 1, arr, width, 1, datatype, 0, 0);    \
+            bw.array_to_bin(arr, width);                                                \
+        }                                                                               \
+        delete[] arr;                                                                   \
+        rst = bw.print_vrt();                                                           \
+        if(!rst){                                                                       \
+            PRINT_LOGGER(logger, error, fmt::format("bw<{}>.print_vrt failed.",#type)); \
+            return -4;                                                                  \
+        }                                                                               \
+        bw.close();                                                                     \
+
+int tif_to_vrt(argparse::ArgumentParser* args,std::shared_ptr<spdlog::logger> logger)
 {
+    string binary_filepath = args->get<string>("binary");
+    string vrt_filepath = binary_filepath + ".vrt";
+    string tif_filepath = args->get<string>("tif");
 
-    auto start = chrono::system_clock::now();
-    string msg;
+    string str_byteorder = args->get<string>("ByteOrder");\
+    std::transform(str_byteorder.begin(), str_byteorder.end(), str_byteorder.begin(), ::toupper);
+    if(str_byteorder != "LSB" && str_byteorder != "MSB"){
+        PRINT_LOGGER(logger, error, "str_byteorder is not 'LSB' or 'MSB'");
+        return -1;
+    }
+    ByteOrder_ byte_order = (str_byteorder == "LSB" ? ByteOrder_::LSB : ByteOrder_::MSB );
 
-    auto my_logger = spdlog::basic_logger_mt(EXE_NAME, EXE_PLUS_FILENAME("txt"));
+    GDALDataset* ds_in = (GDALDataset*)GDALOpen(tif_filepath.c_str(), GA_ReadOnly);
+    if(!ds_in){
+        PRINT_LOGGER(logger, error, "ds_in is nullptr");
+        return -2;
+    }
+    GDALRasterBand* rb_in = ds_in->GetRasterBand(1);
 
-    auto return_msg = [my_logger](int rtn, string msg){
-        my_logger->info(msg);
-        spdlog::info(msg);
-        return rtn;
-    };
+    int width = ds_in->GetRasterXSize();
+    int height = ds_in->GetRasterYSize();
+    GDALDataType datatype = rb_in->GetRasterDataType();
+    int datasize = GDALGetDataTypeSize(datatype);
+    funcrst rst;
 
-   
-    if(argc < 4){
-        msg =   EXE_PLUS_FILENAME("exe\n");
-        msg +=  " manual: " EXE_NAME " [method] [filepath]\n" 
-                " argv[0]: " EXE_NAME ",\n"
-                " argv[1]: method , v2t or t2v.\n"
-                " argv[2]: input  , vrt or tif filepath.\n"
-                " argv[3]: output , tif or bin filepath.";
-        return return_msg(-1,msg);
+    switch (datatype)
+    {
+    case GDT_Byte:{
+        IMG_WRITE(unsigned char);
+    }break;    
+    case GDT_Int16:{
+        IMG_WRITE(short);
+    }break;
+    case GDT_Int32:{
+        IMG_WRITE(int);
+    }break;
+    case GDT_Float32:{
+        IMG_WRITE(float);
+    }break;
+    case GDT_Float64:{
+        IMG_WRITE(double);
+    }break;
+    case GDT_CInt16:{
+        IMG_WRITE(std::complex<short>);
+    }break;
+    case GDT_CInt32:{
+        IMG_WRITE(std::complex<int>);
+    }break;
+    case GDT_CFloat32:{
+        IMG_WRITE(std::complex<float>);
+    }break;
+    case GDT_CFloat64:{
+        IMG_WRITE(std::complex<double>);
+    }break;
+    default:
+        PRINT_LOGGER(logger, error, "unsupported datatype (supported datatype are: byte, short int, float, double, scpx, icpx, fcpx, dcpx)");
+        return -3;
     }
 
-    return_msg(0,EXE_NAME " start.");
+    GDALClose(ds_in);
 
-    bool b_v2t;
-    if(string(argv[1]) == "v2t"){
-        b_v2t = true;
-    }else if(string(argv[1]) == "t2v"){
-        b_v2t = false;
-    }else{
-        msg = "method is not both 'v2t' & 't2v'";
-        return return_msg(-1,msg);
-    }
- 
-    GDALAllRegister();
-
-    if(b_v2t){
-
-        /// vrt 2 tif
-
-        std::string input_filepath = argv[2];
-        fs::path path_input(input_filepath);
-        std::string binary_name = path_input.filename().string();
-        std::string binary_path = input_filepath;
-        std::string vrt_path = binary_path + ".vrt";
-        
-        GDALDataset* ds_in = (GDALDataset*)GDALOpen(argv[2],GA_ReadOnly);
-        if(!ds_in){
-            return return_msg(-2,"ds_in is nullptr");
-        }
-        GDALRasterBand* rb_in = ds_in->GetRasterBand(1);
-
-        int width = ds_in->GetRasterXSize();
-        int height = ds_in->GetRasterYSize();
-        GDALDataType datatype = rb_in->GetRasterDataType();
-
-        GDALDriver* driver_tif = GetGDALDriverManager()->GetDriverByName("GTiff");
-        GDALDataset* ds_out = driver_tif->Create(argv[3],width, height,1,datatype,NULL);
-        GDALRasterBand* rb_out = ds_out->GetRasterBand(1);
-        switch (datatype)
-        {
-        case GDT_CFloat32:{
-            std::complex<float>* arr = new complex<float>[width];
-            int percentage = 0;
-            std::cout<<"percent: ";
-            for(int i=0; i<height; i++){
-                if(i * 100 / height > percentage){
-                    percentage = i * 100 / height;
-                    std::cout<<"\rpercent: "<<percentage+1 <<"%("<<i<<"/"<<height<<")";
-                }
-                rb_in->RasterIO(GF_Read, 0, i, width, 1, arr, width,1,GDT_CFloat32,0,0);
-                rb_out->RasterIO(GF_Write, 0, i, width, 1, arr, width, 1, GDT_CFloat32, 0, 0);
-            }
-            std::cout<<std::endl;
-            delete[] arr;
-        }break;
-        case GDT_Float32:{
-            float* arr = new float[width];
-            int percentage = 0;
-            std::cout<<"percent: ";
-            for(int i=0; i<height; i++){
-                if(i * 100 / height > percentage){
-                    percentage = i * 100 / height;
-                    std::cout<<"\rpercent: "<<percentage+1 <<"%("<<i<<"/"<<height<<")";
-                }
-                rb_in->RasterIO(GF_Read, 0, i, width, 1, arr, width,1,GDT_Float32,0,0);
-                rb_out->RasterIO(GF_Write, 0, i, width, 1, arr, width, 1, GDT_Float32, 0, 0);
-            }
-            std::cout<<std::endl;
-            delete[] arr;
-        }break;
-        default:{
-            std::cout<<"unknown datatype.\n";
-            return 1;
-        }
-        }
-
-        GDALClose(ds_in);
-        GDALClose(ds_out);
-    }
-    else{  
-
-        /// tif 2 vrt
-
-        fs::path path_bin(argv[3]);
-        std::string binary_name = path_bin.filename().string();
-        std::string vrt_path = path_bin.string() + ".vrt";
-
-        GDALDataset* ds_in = (GDALDataset*)GDALOpen(argv[2],GA_ReadOnly);
-        if(!ds_in){
-            return return_msg(-2,"ds_in is nullptr");
-        }
-        GDALRasterBand* rb_in = ds_in->GetRasterBand(1);
-
-        int width = ds_in->GetRasterXSize();
-        int height = ds_in->GetRasterYSize();
-        GDALDataType datatype = rb_in->GetRasterDataType();
-
-
-        std::ofstream ofs(argv[3],ios::binary);
-        if(!ofs.is_open()){
-            return return_msg(-3,"ofs open failed.");
-        }
-
-
-        int PixelOffset = 0;
-        int LineOffset = 0;
-        switch (datatype)
-        {
-        case GDT_CFloat32:{
-            PixelOffset = 8;
-            LineOffset = PixelOffset * width;
-            std::complex<float>* arr = new complex<float>[width];
-            int percentage = 0;
-            std::cout<<"percent: ";
-            for(int i=0; i<height; i++){
-                if(i * 100 / height > percentage){
-                    percentage = i * 100 / height;
-                    std::cout<<"\rpercent: "<<percentage+1 <<"%("<<i<<"/"<<height<<")";
-                }
-                rb_in->RasterIO(GF_Read, 0, i, width, 1, arr, width,1,GDT_CFloat32,0,0);
-                float* arr_flt = (float*)(arr);
-                for (int i = 0; i < 2 * width; i++) {
-                    float val = swap(arr_flt[i]);
-                    ofs.write((char*)(&val), sizeof(val));
-                }
-            }
-            std::cout<<std::endl;
-            delete[] arr;
-        }break;
-        case GDT_Float32:{
-            PixelOffset = 4;
-            LineOffset = PixelOffset * width;
-            float* arr = new float[width];
-            int percentage = 0;
-            std::cout<<"percent: ";
-            for(int i=0; i<height; i++){
-                if(i * 100 / height > percentage){
-                    percentage = i * 100 / height;
-                    std::cout<<"\rpercent: "<<percentage+1 <<"%("<<i<<"/"<<height<<")";
-                }
-                rb_in->RasterIO(GF_Read, 0, i, width, 1, arr, width,1,GDT_Float32,0,0);
-                for (int i = 0; i < width; i++) {
-                    float val = swap(arr[i]);
-                    ofs.write((char*)(&val), sizeof(val));
-                }
-            }
-            std::cout<<std::endl;
-            delete[] arr;
-        }break;
-        default:{
-            return return_msg(-3,"unsupport datatype");
-        }
-        }
-
-        ofs.close();
-
-
-        GDALDriver* driver_vrt = GetGDALDriverManager()->GetDriverByName("VRT");
-        GDALDataset* ds_out = driver_vrt->Create(vrt_path.c_str(), width, height, 0,GDT_Float32,NULL);
-        if(!ds_out){
-            return return_msg(-2,"ds_out is nullptr");
-        }
-        char** papszOptions = NULL;
-        papszOptions = CSLAddNameValue(papszOptions, "subclass", "VRTRawRasterBand"); // if not specified, default to VRTRasterBand
-        papszOptions = CSLAddNameValue(papszOptions, "SourceFilename", binary_name.c_str()); // mandatory
-        papszOptions = CSLAddNameValue(papszOptions, "ImageOffset", "0"); // optional. default = 0
-        papszOptions = CSLAddNameValue(papszOptions, "PixelOffset", to_string(PixelOffset).c_str()); // optional. default = size of band type
-        papszOptions = CSLAddNameValue(papszOptions, "LineOffset", to_string(LineOffset).c_str()); // optional. default = size of band type * width
-        papszOptions = CSLAddNameValue(papszOptions, "ByteOrder", "MSB"); // optional. default = machine order
-        papszOptions = CSLAddNameValue(papszOptions, "relativeToVRT", "true"); // optional. default = false
-        ds_out->AddBand(datatype, papszOptions);
-        CSLDestroy(papszOptions);
-
-        delete ds_out;
-
-
-        
-    }
-    
-
-    return return_msg(1, EXE_NAME " end.");
+    PRINT_LOGGER(logger, info,"tif_to_vrt success.");
+    return 1;
 }

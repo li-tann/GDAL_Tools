@@ -21,45 +21,49 @@ include(CPack)
 
 set(EXE_LIST)
 
+# main_vector & main_raster
+add_executable(gdal_tool_raster
+        main_raster.cpp
+        datatype.h
+        datatype.cpp
+        raster_include.h     
+        value_translate.cpp         # A转换为B
+        template_nan_convert_to.h       # template A转换为B
+        set_nodata_value.cpp        # 设置NoData值
+        statistics.cpp              # 栅格信息统计
+        histogram_stretch.cpp       # 栅格百分比拉伸
+        histogram_statistics.cpp    # 直方图统计
+        template_stretch.h              # template 栅格百分比拉伸 & 直方图统计
+        vrt_trans.cpp               # vrt与tif格式相互转换
+        binary_write.h                  # template vrt与tif格式相互转换
+        over_resample.cpp           # 过采样
+        transmit_geoinformation.cpp # 传递地理坐标
+        image_cut_pixel.cpp         #基于像素的影像裁剪
+        #获取图像在某条直线上的值
+        )
+target_link_libraries(gdal_tool_raster PRIVATE GDAL::GDAL)
+target_link_libraries(gdal_tool_raster PRIVATE spdlog::spdlog spdlog::spdlog_header_only)
+target_link_libraries(gdal_tool_raster PRIVATE argparse::argparse)
+set(EXE_LIST ${EXE_LIST} gdal_tool_raster)
+
+add_executable(gdal_tool_vector
+        main_vector.cpp
+        datatype.h
+        datatype.cpp
+        vector_include.h
+        point_with_shapefile.cpp        # 判断点是否在shp文件中
+        create_polygon_shapefile.cpp    # 创建多边形shp文件
+        create_point_shapefile.cpp      # 创建点shp文件  创建3维点shp文件
+        )
+target_link_libraries(gdal_tool_vector PRIVATE GDAL::GDAL)
+target_link_libraries(gdal_tool_vector PRIVATE spdlog::spdlog spdlog::spdlog_header_only)
+target_link_libraries(gdal_tool_vector PRIVATE argparse::argparse)
+set(EXE_LIST ${EXE_LIST} gdal_tool_vector)
+
+
 #debug config 测试
 add_executable(debug_config_test debug_config_test.cpp)
 
-# 空值转换为指定数值
-add_executable(nan_TransTo nan_transto.cpp template_nan_convert_to.h)
-target_link_libraries(nan_TransTo PRIVATE GDAL::GDAL)
-target_link_libraries(nan_TransTo PRIVATE spdlog::spdlog spdlog::spdlog_header_only)
-target_link_libraries(nan_TransTo PRIVATE argparse::argparse)
-set(EXE_LIST ${EXE_LIST} nan_TransTo)
-
-# setNoDataValue 去黑边
-add_executable(set_NoData_Value set_nodata_value.cpp)
-target_link_libraries(set_NoData_Value PRIVATE GDAL::GDAL)
-target_link_libraries(set_NoData_Value PRIVATE spdlog::spdlog spdlog::spdlog_header_only)
-set(EXE_LIST ${EXE_LIST} set_NoData_Value)
-
-# tif转换为二进制格式
-add_executable(tif_to_binary tif_to_binary.cpp template_binary_img_io.h)
-target_link_libraries(tif_to_binary PRIVATE GDAL::GDAL)
-target_link_libraries(tif_to_binary PRIVATE spdlog::spdlog spdlog::spdlog_header_only)
-set(EXE_LIST ${EXE_LIST} tif_to_binary)
-
-# 统计影像信息
-add_executable(statistics statistics.cpp)
-target_link_libraries(statistics PRIVATE GDAL::GDAL)
-target_link_libraries(statistics PRIVATE spdlog::spdlog spdlog::spdlog_header_only)
-set(EXE_LIST ${EXE_LIST} statistics)
-
-#百分比拉伸
-add_executable(histogram_stretch histogram_stretch.cpp template_stretch.h)
-target_link_libraries(histogram_stretch PRIVATE GDAL::GDAL)
-target_link_libraries(histogram_stretch PRIVATE spdlog::spdlog spdlog::spdlog_header_only)
-set(EXE_LIST ${EXE_LIST} histogram_stretch)
-
-# 直方图统计
-add_executable(histogram_statistics histogram_statistics.cpp template_stretch.h)
-target_link_libraries(histogram_statistics PRIVATE GDAL::GDAL)
-target_link_libraries(histogram_statistics PRIVATE spdlog::spdlog spdlog::spdlog_header_only)
-set(EXE_LIST ${EXE_LIST} histogram_statistics)
 
 #创建delaunay
 add_executable(create_delaunay CreateDelaunay.cpp)
@@ -67,53 +71,15 @@ target_link_libraries(create_delaunay PRIVATE GDAL::GDAL)
 target_link_libraries(create_delaunay PRIVATE spdlog::spdlog spdlog::spdlog_header_only)
 set(EXE_LIST ${EXE_LIST} create_delaunay)
 
-#判断点是否在shp文件中
-add_executable(determine_topological_relationship DetermineTopologicalRelationship.cpp)
-target_link_libraries(determine_topological_relationship PRIVATE GDAL::GDAL)
-target_link_libraries(determine_topological_relationship PRIVATE spdlog::spdlog spdlog::spdlog_header_only)
-target_link_libraries(determine_topological_relationship PRIVATE fmt::fmt)
-set(EXE_LIST ${EXE_LIST} determine_topological_relationship)
-
-#打印相交矢量的名称
-add_executable(intersect_with_target_shapefile IntersectWithTargetShapefile.cpp)
-target_link_libraries(intersect_with_target_shapefile PRIVATE GDAL::GDAL)
-target_link_libraries(intersect_with_target_shapefile PRIVATE spdlog::spdlog spdlog::spdlog_header_only)
-target_link_libraries(intersect_with_target_shapefile PRIVATE fmt::fmt)
-set(EXE_LIST ${EXE_LIST} intersect_with_target_shapefile)
-
 # duqu EGM2008文件, 并写出
 add_executable(read_egm2008 read_egm2008.cpp datatype.cpp)
 target_include_directories( read_egm2008 
-							INTERFACE 
-							${CMAKE_CURRENT_SOURCE_DIR})
+                                INTERFACE 
+                                ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(read_egm2008 PRIVATE GDAL::GDAL)
 target_link_libraries(read_egm2008 PRIVATE spdlog::spdlog spdlog::spdlog_header_only)
 target_link_libraries(read_egm2008 PRIVATE fmt::fmt)
 set(EXE_LIST ${EXE_LIST} read_egm2008)
-
-# vrt数据的读写(测试)
-add_executable(vrt_io vrt_test.cpp)
-target_link_libraries(vrt_io PRIVATE GDAL::GDAL)
-target_link_libraries(vrt_io PRIVATE spdlog::spdlog spdlog::spdlog_header_only)
-set(EXE_LIST ${EXE_LIST} vrt_io)
-
-# vrt与tif格式相互转换
-add_executable(vrt_trans vrt_trans.cpp)
-target_link_libraries(vrt_trans PRIVATE GDAL::GDAL)
-target_link_libraries(vrt_trans PRIVATE spdlog::spdlog spdlog::spdlog_header_only)
-set(EXE_LIST ${EXE_LIST} vrt_trans)
-
-# 过采样
-add_executable(over_resample over_resample.cpp datatype.h)
-target_link_libraries(over_resample PRIVATE GDAL::GDAL)
-target_link_libraries(over_resample PRIVATE spdlog::spdlog spdlog::spdlog_header_only)
-set(EXE_LIST ${EXE_LIST} over_resample)
-
-# 传递地理坐标
-add_executable(transmit_geoinformation transmit_geoinformation.cpp)
-target_link_libraries(transmit_geoinformation PRIVATE GDAL::GDAL)
-target_link_libraries(transmit_geoinformation PRIVATE spdlog::spdlog spdlog::spdlog_header_only)
-set(EXE_LIST ${EXE_LIST} transmit_geoinformation)
 
 # 同一坐标系统的分块数据拼接
 add_executable(unified_geoimage_merging unified_GeoImage_merging.cpp datatype.h datatype.cpp)
@@ -125,31 +91,6 @@ else()
     message(FATAL_ERROR "openmp not found!")
 endif()
 set(EXE_LIST ${EXE_LIST} unified_geoimage_merging)
-
-# 创建多边形shp文件
-add_executable(create_polygon_shapefile create_polygon_shapefile.cpp datatype.h datatype.cpp)
-target_link_libraries(create_polygon_shapefile PRIVATE GDAL::GDAL)
-target_link_libraries(create_polygon_shapefile PRIVATE spdlog::spdlog spdlog::spdlog_header_only)
-set(EXE_LIST ${EXE_LIST} create_polygon_shapefile)
-
-# 创建点shp文件
-add_executable(create_point_shapefile create_point_shapefile.cpp datatype.h datatype.cpp)
-target_link_libraries(create_point_shapefile PRIVATE GDAL::GDAL)
-target_link_libraries(create_point_shapefile PRIVATE spdlog::spdlog spdlog::spdlog_header_only)
-set(EXE_LIST ${EXE_LIST} create_point_shapefile)
-
-# 创建3维点shp文件
-add_executable(create_3dpoint_shapefile create_3dpoint_shapefile.cpp datatype.h datatype.cpp)
-target_link_libraries(create_3dpoint_shapefile PRIVATE GDAL::GDAL)
-target_link_libraries(create_3dpoint_shapefile PRIVATE spdlog::spdlog spdlog::spdlog_header_only)
-set(EXE_LIST ${EXE_LIST} create_3dpoint_shapefile)
-
-#基于像素的影像裁剪
-add_executable(image_cut_pixel image_cut_pixel.cpp datatype.h datatype.cpp)
-target_link_libraries(image_cut_pixel PRIVATE GDAL::GDAL)
-target_link_libraries(image_cut_pixel PRIVATE spdlog::spdlog spdlog::spdlog_header_only)
-target_link_libraries(image_cut_pixel PRIVATE fmt::fmt)
-set(EXE_LIST ${EXE_LIST} image_cut_pixel)
 
 #获取图像在某条直线上的值
 add_executable(get_image_value_in_line get_image_value_in_line.cpp datatype.h datatype.cpp)

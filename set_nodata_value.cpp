@@ -1,72 +1,41 @@
-#include <gdal_priv.h>
+#include "raster_include.h"
 
-#include <iostream>
-#include <string>
-#include <stdio.h>
-#include <stdlib.h>
+/*
+    sub_set_nodata.add_argument("img_filepath")
+        .help("raster image filepath.");
 
-#include <spdlog/spdlog.h>
-#include <spdlog/sinks/basic_file_sink.h>
+    sub_set_nodata.add_argument("nodata_value")
+        .help("nodata value")
+        .scan<'g',double>();
+*/
 
-#define EXE_NAME "set_NoData_Value"
-
-using namespace std;
-namespace fs = std::filesystem;
-
-string EXE_PLUS_FILENAME(string extention){
-    return string(EXE_NAME)+"."+ extention;
-}
-
-int main(int argc, char* argv[])
+int set_nodata_value(argparse::ArgumentParser* args,std::shared_ptr<spdlog::logger> logger)
 {
     GDALAllRegister();
-    string msg;
-    CPLErr err;
+    CPLSetConfigOption("GDAL_FILENAME_IS_UTF8", "NO");
 
-    auto my_logger = spdlog::basic_logger_mt(EXE_NAME, EXE_PLUS_FILENAME("txt"));
+    std::string imgpath = args->get<std::string>("img_filepath");
+    double val = args->get<double>("nodata_value");
 
-    auto return_msg = [my_logger](int rtn, string msg){
-        my_logger->info(msg);
-		spdlog::info(msg);
-        return rtn;
-    };
-
-    if(argc < 3){
-        msg =   EXE_PLUS_FILENAME("exe\n");
-        msg +=  " manual:\n" 
-                " argv[0]: " EXE_NAME ",\n"
-                " argv[1]: input imgpath,\n"
-                " argv[2]: value, NoData Value.";
-        return return_msg(-1,msg);
+    GDALDataset* ds = static_cast<GDALDataset*>(GDALOpen(imgpath.c_str(),GA_Update));
+    if(ds == nullptr){
+        PRINT_LOGGER(logger, error, "ds is nullptr.");
     }
+    int bands = ds->GetRasterCount();
 
-    my_logger->info("_Set_NoData_Value start.");
-    spdlog::info("_Set_NoData_Value start.");
-
-    double val = atof(argv[2]);
-
-    GDALDataset* ds_in = static_cast<GDALDataset*>(GDALOpen(argv[1],GA_Update));
-    if(ds_in == nullptr)
-        return return_msg(-2,"img_in.dataset is nullptr.");
-
-    int xsize = ds_in->GetRasterXSize();
-    int ysize = ds_in->GetRasterYSize();
-    int bands = ds_in->GetRasterCount();
-    GDALDataType datatype = ds_in->GetRasterBand(1)->GetRasterDataType();
-    int sizeof_datatype = 0;
 
     for(int band = 1; band <= bands; band++)
     {
-        GDALRasterBand* rb_in = ds_in->GetRasterBand(band);
+        GDALRasterBand* rb = ds->GetRasterBand(band);
         // err = rb_in->SetNoDataValue(val);
-        err = rb_in->SetNoDataValue(val);
-        if(err > 1)
-            return return_msg(-2,"setNoDataValue error.");
+        auto err = rb->SetNoDataValue(val);
+        if(err !=  CE_None){
+            PRINT_LOGGER(logger, error, fmt::format("band[{}].setNoDataValue failed.", band));
+            return false;
+        }
     }
-
-    GDALClose(ds_in);
+    GDALClose(ds);
     
-
-    return return_msg(1, "_Set_NoData_Value end.");
-
+    PRINT_LOGGER(logger, info, "set_nodata_value success.");
+    return true;
 }

@@ -515,3 +515,33 @@ funcrst egm2008::write_height_anomaly_image(int interped_height, int interped_wi
 
     return funcrst(true, "write_height_anomaly_image, success.");
 }
+
+
+for_loop_timer::for_loop_timer(size_t for_loop_num, void(*func)(size_t, size_t, size_t))
+{
+    m_for_look_number = for_loop_num;
+    info_print = func;
+    m_start_time = std::chrono::system_clock::now();
+}
+
+void for_loop_timer::update()
+{
+    if (m_current >= m_for_look_number)
+        return;
+    ++m_current;
+    auto spend_time_ = spend_time(m_start_time);
+    size_t remain_sceond = spend_time_ / m_current * (m_for_look_number - m_current);
+    info_print(m_current, m_for_look_number, remain_sceond);
+}
+
+void for_loop_timer::update_percentage()
+{
+    size_t current_percentage = ++m_current * 100 / m_for_look_number;
+    if(current_percentage <= m_percentage){
+        return; /// 不需要重复输出
+    }
+    m_percentage = current_percentage;
+    auto spend_time_ = spend_time(m_start_time);
+    size_t remain_sceond = spend_time_ / m_current * (m_for_look_number - m_current);
+    info_print(m_current, m_for_look_number, remain_sceond);
+}
