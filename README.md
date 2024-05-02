@@ -6,59 +6,57 @@ Collection of executable, which dependent on GDAL (and spdlog)
 
 随便写写，实际使用时难免会有很多bug
 
-## binary_img_to_tif
+## Module
+
+### binary_img_to_tif
 
 二进制文件转tif图，目前已测试果的数据格式仅仅fcomplex
 
-## tif_to_binary_img
+### tif_to_binary_img
 
 tif图转换为二进制文件
 
-## create delaunay
+### create delaunay
 
 提供二维点文件, 创建delaunay三角网，输出所有三角形的坐标
 
-## determine topological relationship
+### determine topological relationship
 
 计算一个点与shp的拓扑关系，输入一个点平面坐标，一个shp文件，文字形式输出点与shp文件的关系(in or out)
 
-## histogram stretch
+### histogram stretch
 
 对影像进行百分比拉伸计算，去除两端的噪声
 
-## nan trans to
+### nan trans to
 
 将图像中的nan值统一转换为一个指定的数值
 
-## set nodata value
+### set nodata value
 
 将图像中某一个值标记为nodata，从而使大部分地学看图软件(envi, arcmap, ...)不显示nodata值, 实现去除编码后黑色无数据区域的效果
 
-## statistics
+### statistics
 
 对影像的某个波段(RasterBand, 波段, 图层, 通道,...)进行数值统计，输出该波段数据的最值、均值和方差
 
-## egm2008
+### egm2008
 
 通过egm2008，输出单点经纬度，或经纬度文件，或带地理坐标的DEM文件，输入小端存储（*_SE）的EGM2008文件,输出对应点或范围的高程异常值
 
-## vrt_test
-
-读或写一个vrt文件
-
-## vrt_trans
+### vrt_trans
 
 vrt格式的数据转换为tif格式，或tif格式的数据转换为vrt格式
 
-## over_resample
+### over_resample
 
 基于GDAL的Warp，对影像进行重采样, 并以tif格式输出
 
-## transmit_geoinformation
+### transmit_geoinformation
 
 把影像A的GeoTransform和ProjectRef写到影像B内
 
-## unified_GeoImage_merging
+### unified_GeoImage_merging
 
 统一坐标系统的影像的拼接，例如全球分块的DEM文件。
 
@@ -129,6 +127,22 @@ D:.
 
 TDM_DEM文件中有很多tif数据，但只有DEM数据的后缀名称是“xxxx_DEM.tif”，所以使用正则表达式`.*DEM.tif$`可以从中筛选出DEM数据。
 
-## create_shapfile
+### create_shapfile
 
 输入一个记录经纬度信息的shapfile文件
+
+## 更新日志
+
+### 2024.05.03
+
+增加了argparse库, 使终端的命令输入模式更加规范。
+
+删除了部分测试项的功能模块, 将部分与栅格相关的模块整合到gdal_tool_raster中，将部分与矢量文件相关的模块整合到gdal_tool_vector中。
+
+部分特殊的模块，如read_egm2008, geoimage_merging等, 暂时已单独模块的形式存在。
+
+gdal_tool_raster和gdal_tool_vector两个集合，可以使用`gdal_tool_raster -h`指令查看使用方法，使用`gdal_tool_vector \[sub_module\] -h`指令查看二级模块的使用方法。
+
+如:
+
+（举例说明）
