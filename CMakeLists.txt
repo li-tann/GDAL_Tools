@@ -104,14 +104,14 @@ add_executable(virtual_files_system_test virtual_files_system_test.cpp datatype.
 target_link_libraries(virtual_files_system_test PRIVATE GDAL::GDAL)
 target_link_libraries(virtual_files_system_test PRIVATE spdlog::spdlog spdlog::spdlog_header_only)
 target_link_libraries(virtual_files_system_test PRIVATE fmt::fmt)
-set(EXE_LIST ${EXE_LIST} virtual_files_system_test)
+# set(EXE_LIST ${EXE_LIST} virtual_files_system_test)
 
 
 
 #LandSAR 将存储PS点的tif转换为栅格图tif
 add_executable(landsar_ps_points_transto_tif landsar_ps_points_transto_tif.cpp)
 target_link_libraries(landsar_ps_points_transto_tif PRIVATE GDAL::GDAL)
-set(EXE_LIST ${EXE_LIST} landsar_ps_points_transto_tif)
+# set(EXE_LIST ${EXE_LIST} landsar_ps_points_transto_tif)
 
 
 # add "cmake.configureSettings": {"CMAKE_BUILD_TYPE":"${buildType}"} in setting.json, when ${CMAKE_BUILD_TYPE} is ""
@@ -141,4 +141,7 @@ install(FILES ${CMAKE_CURRENT_LIST_DIR}/proj.db DESTINATION binary CONFIGURATION
 
 file(GLOB scripts "scripts/*.ps1" "scripts/*.bat") # 假设DLLs在构建目录中
 install(FILES ${scripts} DESTINATION binary CONFIGURATIONS Release)
+
+file(GLOB vcruntime "vcruntime/*.dll" ) # 假设DLLs在构建目录中
+install(FILES ${vcruntime} DESTINATION binary CONFIGURATIONS Release)
 # message("scripts: ${scripts}")
