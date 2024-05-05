@@ -71,7 +71,8 @@ int point_with_shp(argparse::ArgumentParser* args, std::shared_ptr<spdlog::logge
 
     GDALAllRegister();
     OGRRegisterAll();
-
+    CPLSetConfigOption("GDAL_FILENAME_IS_UTF8", "NO");
+    
     OGRPoint target_point;
 
     GDALDataset* dataset = (GDALDataset*)GDALOpenEx(shp_path.c_str(), GDAL_OF_VECTOR, NULL, NULL, NULL);

@@ -34,14 +34,14 @@ int main(int argc, char* argv[])
     argparse::ArgumentParser program("gdal_tool_raster","1.0");
     program.add_description("gdal_tools about raster data, ...");
     
-    argparse::ArgumentParser sub_value_translate("value_translate");
+    argparse::ArgumentParser sub_value_translate("trans_val");
     sub_value_translate.add_description("translate the source value in input image to  target value in output image.");
     {
         sub_value_translate.add_argument("input_imgpath")
             .help("the original image with the source value.");
 
         sub_value_translate.add_argument("output_imgpath")
-            .help("the target image, 如果output_imgpath == input_imgpath, 则直接对源数据进行操作.");
+            .help("the target image, if 'output_imgpath' and 'input_imgpath' are the same, directly operate on the input data.");
 
         sub_value_translate.add_argument("source_value")
             .help("source_value")
@@ -63,8 +63,8 @@ int main(int argc, char* argv[])
             .scan<'g',double>();
     }
 
-    argparse::ArgumentParser sub_statistics("statistics");
-    sub_statistics.add_description("statistics on anyone band of the image.");
+    argparse::ArgumentParser sub_statistics("stat_minmax");
+    sub_statistics.add_description("statistics min, max, ave, std of the specified band of a image.");
     {
         sub_statistics.add_argument("img_filepath")
             .help("raster image filepath.");
@@ -75,22 +75,22 @@ int main(int argc, char* argv[])
             .default_value("1");
     }
 
-    argparse::ArgumentParser sub_histogram_stretch("histogram_stretch");
+    argparse::ArgumentParser sub_histogram_stretch("stretch_hist");
     sub_histogram_stretch.add_description("remove the extreme values at both ends of the image based on proportion.");
     {
         sub_histogram_stretch.add_argument("input_imgpath")
             .help("input image filepath, doesn't support complex datatype");
 
         sub_histogram_stretch.add_argument("output_imgpath")
-            .help("output image filepath.");
+            .help("output image filepath (*.tif).");
 
         sub_histogram_stretch.add_argument("stretch_rate")
             .help("double, within (0,0.5], default is 0.02.")
             .scan<'g',double>()
-            .default_value("0.2");    
+            .default_value("0.02");    
     }
 
-    argparse::ArgumentParser sub_histogram_statistics("histogram_statistics");
+    argparse::ArgumentParser sub_histogram_statistics("stat_hist");
     sub_histogram_statistics.add_description("histogram statistics.");
     {
         sub_histogram_statistics.add_argument("input_imgpath")
@@ -102,7 +102,7 @@ int main(int argc, char* argv[])
             .default_value("256");    
     }
 
-    argparse::ArgumentParser sub_vrt_to_tif("vrt_to_tif");
+    argparse::ArgumentParser sub_vrt_to_tif("vrt2tif");
     sub_vrt_to_tif.add_description("vrt image trans to tif");
     {
         sub_vrt_to_tif.add_argument("vrt")
@@ -112,7 +112,7 @@ int main(int argc, char* argv[])
             .help("output image filepath (*.tif)");    
     }
 
-    argparse::ArgumentParser sub_tif_to_vrt("tif_to_vrt");
+    argparse::ArgumentParser sub_tif_to_vrt("tif2vrt");
     sub_tif_to_vrt.add_description("tif image trans to vrt(binary), only trans the first band.");
     {
         sub_tif_to_vrt.add_argument("tif")
@@ -126,7 +126,7 @@ int main(int argc, char* argv[])
             .default_value("MSB");
     }
 
-    argparse::ArgumentParser sub_over_resample("over_resample");
+    argparse::ArgumentParser sub_over_resample("resample");
     sub_over_resample.add_description("over resample by gdalwarp.");
     {
         sub_over_resample.add_argument("input_imgpath")
@@ -145,7 +145,7 @@ int main(int argc, char* argv[])
             .default_value("1");       
     }
 
-    argparse::ArgumentParser sub_trans_geoinfo("trans_geoinfo");
+    argparse::ArgumentParser sub_trans_geoinfo("trans_geo");
     sub_trans_geoinfo.add_description("copy source's geoinformation to target");
     {
         sub_trans_geoinfo.add_argument("source")
@@ -155,11 +155,8 @@ int main(int argc, char* argv[])
             .help("target image");    
     }
 
-                    " argv[1]: input, image filepath .\n"
-                " argv[2]: input, 4 int parameters splited by ',': start_x, start_y, width, height .\n"
-                " argv[3]: output, cutted image filepath.";
-    argparse::ArgumentParser sub_image_cut_pixel("image_cut_pixel");
-    sub_image_cut_pixel.add_description("cut image by pixel");
+    argparse::ArgumentParser sub_image_cut_pixel("image_cut");
+    sub_image_cut_pixel.add_description("cut image by pixel, such as: input.tif output.tif 0 0 500 200");
     {
         sub_image_cut_pixel.add_argument("input_imgpath")
             .help("input image filepath");
@@ -168,7 +165,7 @@ int main(int argc, char* argv[])
             .help("output image filepath (*.tif)");   
 
         sub_image_cut_pixel.add_argument("pars")
-            .help("4 pars with the order like: start_x, start_y, width, height")
+            .help("4 pars with the order like: 'start_x start_y width height'(Use spaces as separators)")
             .scan<'i',int>()
             .nargs(4);        
     }
@@ -192,18 +189,6 @@ int main(int argc, char* argv[])
     for(auto prog_map : parser_map_func){
         program.add_subparser(*(prog_map.first));
     }
-
-    // std::initializer_list<argparse::ArgumentParser*> sub_programs{
-    //     &sub_value_translate, 
-    //     &sub_set_nodata, 
-    //     &sub_statistics,
-    //     &sub_histogram_stretch,
-    // };
-
-    // for(auto prog : sub_programs){
-    //     program.add_subparser(*prog);
-    // }
-
 
     try {
         program.parse_args(argc, argv);

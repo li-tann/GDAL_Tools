@@ -2,28 +2,47 @@
 #include <gdal_alg.h>
 #include <iostream>
 #include <fstream>
+#include <filesystem>
 
+#include <argparse/argparse.hpp>
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/basic_file_sink.h>
 
-#define EXE_NAME "create_Delaunay"
-#define HISTOGRAM_SIZE 256
+#include "datatype.h"
 
 using namespace std;
 namespace fs = std::filesystem;
 
-string EXE_PLUS_FILENAME(string extention){
-    return string(EXE_NAME)+"."+ extention;
-}
-
-void strSplit(std::string input, std::vector<std::string>& output, std::string split, bool clearVector = true);
-
 int main(int argc, char* argv[])
 {
-    GDALAllRegister();
+    argparse::ArgumentParser program("create_delaunay", "1.0");
+    program.add_description("input points, construct delaunay network and output");
+
+    program.add_argument("input")
+        .help("points text file, with one line representing a point and a comma to separating 'x' and 'y', like: 'x,y'");
+
+    program.add_argument("output")
+        .help("output file, with one line representing a delaunay network, like:index:[i,j,k]; pos:[(x,y),(x,y),(x,y)])");
+
+    try {
+        program.parse_args(argc, argv);
+    }
+    catch (const std::exception& err) {
+        std::cerr << err.what() << std::endl<<std::endl;
+        std::cerr << program;
+        return 1;
+    }
+
+    /// log
+    char* pgmptr = 0;
+    _get_pgmptr(&pgmptr);
+    fs::path exe_root(fs::path(pgmptr).parent_path());
+    fs::path log_path = exe_root / "create_delaunay.log";
+    auto my_logger = spdlog::basic_logger_mt("create_delaunay", log_path.string());
+
+
     string msg;
 
-    auto my_logger = spdlog::basic_logger_mt(EXE_NAME, EXE_PLUS_FILENAME("txt"));
 
     auto return_msg = [my_logger](int rtn, string msg){
         my_logger->info(msg);
@@ -31,20 +50,14 @@ int main(int argc, char* argv[])
         return rtn;
     };
 
-    if(argc < 2){
-        msg =   EXE_PLUS_FILENAME("exe\n");
-        msg +=  " manual:\n" 
-                " argv[0]: " EXE_NAME ",\n"
-                " argv[1]: points txt(like: x,y\\n....),\n"
-                " argv[2]: delaunay infomation txt(such as, index:[i,j,k]; pos:[(x,y),(x,y),(x,y)]),\n";
-        return return_msg(-1,msg);
-    }
+    return_msg(0,"create_delaunay start.");
 
-    return_msg(0,EXE_NAME " start.");
+    string input_filepath = program.get<string>("input");
+    string output_filepath = program.get<string>("output");
 
-    ifstream ifs(argv[1]);
+    ifstream ifs(input_filepath.c_str());
     if(!ifs.is_open()){
-        return return_msg(-2,"argv[1] open failed.");
+        return return_msg(-2,"'input' open failed.");
     }
 
     string str_line;
@@ -74,15 +87,17 @@ int main(int argc, char* argv[])
     }
 
     GDALAllRegister();
-    auto dst = GDALTriangulationCreateDelaunay(vec_x.size(),x,y);
+    CPLSetConfigOption("GDAL_FILENAME_IS_UTF8", "NO");
+
+    auto dst = GDALTriangulationCreateDelaunay(vec_x.size(), x, y);
 
     if(dst->nFacets < 1){
         return return_msg(-3,"there is no available delaunay triangles.");
     }
 
-    ofstream ofs(argv[2]);
+    ofstream ofs(output_filepath.c_str());
     if(!ofs.is_open()){
-        return return_msg(-4,"argv[2] open failed.");
+        return return_msg(-4,"'output' open failed.");
     }
 
     for(int i=0; i<dst->nFacets; i++)
@@ -102,26 +117,5 @@ int main(int argc, char* argv[])
     ofs.close();
 
 
-    return return_msg(1, EXE_NAME " end.");
-}
-
-
-void strSplit(std::string input, std::vector<std::string>& output, std::string split, bool clearVector)
-{
-    if(clearVector)
-        output.clear();
-    std::string::size_type pos1, pos2;
-    pos1 = input.find_first_not_of(split);
-    pos2 = input.find(split,pos1);
-
-    if (pos1 == std::string::npos) {
-        return;
-    }
-    if (pos2 == std::string::npos) {
-        output.push_back(input.substr(pos1));
-        return;
-    }
-    output.push_back(input.substr(pos1, pos2 - pos1));
-    strSplit(input.substr(pos2 + 1), output, split,false);
-    
+    return return_msg(1, "create_delaunay end.");
 }

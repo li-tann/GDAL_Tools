@@ -6,6 +6,46 @@ Collection of executable, which dependent on GDAL (and spdlog)
 
 随便写写，实际使用时难免会有很多bug
 
+## 使用方法
+
+工具均为命令行形式启动，在命令行中输入`exe -h`，查看exe的使用方法。
+
+### 临时添加环境变量
+
+每次使用exe都需要输入exe的相对路径或绝对路径，这也增加了使用难度。将工具所在地址添加到环境变量是一种解决方法，但对于windows系统将过多工具添加到环境变量，又可能对其他工具的依赖环境造成困扰，所以就提供了一个将工具所在地址临时添加到环境变量的脚本`add_path_template.ps1`或`add_path_template.bat`，执行脚本后，仅当前终端添加工具地址到变量中，输入工具名称即可直接使用，并且可以通过tab补全工具，关闭后消失。
+
+powershell使用`add_path_template.ps1`，cmd使用`add_path_template.bat`。
+
+![add_path](docs/add_path.png)
+
+### gdal_tool_raster
+
+gdal_tool_raster集成了多个与栅格图相关的工具，输入`gdal_tool_raster -h`可以查看有哪些子命令`subcommands`。
+
+![gdal_tool_raster -h](docs/gdal_tool_raster_h.png)
+
+输入`gdal_tool_raster [subcommand] -h`可以查看子命令的使用方法。以`trans_geoinfo`为例，
+
+![gdal_tool_raster subcommand](docs/gdal_tool_raster_subcmd_exmpale.png)
+
+### gdal_tool_vector
+
+使用方法同gdal_tool_raster，不再赘述
+
+![gdal_tool_vector -h](docs/gdal_tool_vector_h.png)
+
+### 其他工具
+
+read_rgm2008, delaunay建网, DEM拼接, 获取图像在某条直线上的值..., 满足自己需求写的小工具, 不适合集成到gdal_tool_raster或gdal_tool_vector中，故以独立exe的形式存在。
+
+这些exe暂时还没有加入argparse, 无法使用-h的方式查看使用方法。
+
+为加入argparse的模块包括：
+
+- unified_geoimage_merging
+- get_image_value_in_line
+- virtual_files_system_test
+
 ## Module
 
 ### binary_img_to_tif

@@ -4,19 +4,14 @@
 #include <vector>
 #include <filesystem>
 
+#include <argparse/argparse.hpp>
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/basic_file_sink.h>
 
 #include "datatype.h"
 
-#define EXE_NAME "read_EGM2008"
-
 using namespace std;
 namespace fs = std::filesystem;
-
-string EXE_PLUS_FILENAME(string extention){
-    return string(EXE_NAME)+"."+ extention;
-}
 
 enum class method{unknown, point, txt, dem};
 
@@ -25,10 +20,36 @@ bool write_all_egm2008(const char* in_path, const char* out_path);
 int main(int argc, char* argv[])
 {
 
+    argparse::ArgumentParser program("create_delaunay", "1.0");
+    program.add_description("input points, construct delaunay network and output");
+
+    program.add_argument("input")
+        .help("input, choose one of the three modes for input, 1:point(lon,lat), 2:points_filepath(multi points, *.txt), 3:dem filepath(*.tif).");
+
+    program.add_argument("egm")
+        .help("input *_SE EGM filepath");
+
+    program.add_argument("-o","--output")
+        .help("output mode dependent by input mode, point(output on terminal), points_file(multi points, *.txt), err_hei filepath(*.tif).");
+
+    try {
+        program.parse_args(argc, argv);
+    }
+    catch (const std::exception& err) {
+        std::cerr << err.what() << std::endl<<std::endl;
+        std::cerr << program;
+        return 1;
+    }
+
+    /// log
+    char* pgmptr = 0;
+    _get_pgmptr(&pgmptr);
+    fs::path exe_root(fs::path(pgmptr).parent_path());
+    fs::path log_path = exe_root / "read_egm2008.log";
+    auto my_logger = spdlog::basic_logger_mt("read_egm2008", log_path.string());
+
     auto start = chrono::system_clock::now();
     string msg;
-
-    auto my_logger = spdlog::basic_logger_mt(EXE_NAME, EXE_PLUS_FILENAME("txt"));
 
     auto return_msg = [my_logger](int rtn, string msg){
         my_logger->info(msg);
@@ -36,36 +57,19 @@ int main(int argc, char* argv[])
         return rtn;
     };
 
-   
-    if(argc < 2){
-        msg =   EXE_PLUS_FILENAME("exe\n");
-        msg +=  " manual: " EXE_NAME " [input] [egm_filepath] [output]\n" 
-                " argv[0]: " EXE_NAME ",\n"
-                " argv[1]: input, there are three type, point(lon,lat), points_filepath(multi points), dem filepath.\n"
-                " argv[2]: egm_filepath, only support '*_SE' egm file."
-                " argv[3]: output, which dependent by input string, point(none, output on terminal), points(multi points), err_hei filepath.\n";
-        return return_msg(-1,msg);
-    }
-
-    /// 仅测试时使用, 打印所有的数字, 以逗号为分隔符
-    if(string(argv[1]) == "output_all"){
-        if(write_all_egm2008(argv[2], argv[3])){
-            cout<<"write all egm2008 success."<<endl;
-        }else{
-            cout<<"write all egm2008 failed."<<endl;
-        }
-        return 0;
-    }
-
-    return_msg(0,EXE_NAME " start.");
+    return_msg(0,"read_egm2008 start.");
 
     /// step.1 判断是单点计算还是批量还是DEM
     method input_method = method::unknown; 
 
     double lon, lat;
 
-    std::string str_input = argv[1];
+    string str_input = program.get<string>("input");
+    string egm_filepath = program.get<string>("egm");
+    string str_output = program.get<string>("output");
+
     fs::path input_path(str_input);
+
     if(fs::exists(input_path)){
         /// 如果确定输入的是一个文件, 那么以文件对待, 进行判断
         if(input_path.extension() ==".tif" || input_path.extension() ==".tiff" /* || input_path.extension() == ".hgt" */){
@@ -77,15 +81,10 @@ int main(int argc, char* argv[])
             msg = "input is not a standard file, which extension is exclude with tif, tiff or txt.";
             return return_msg(-2,msg);
         }
-        /// 确定输入的是文件后, 就需要保证输出项也填了, 否则报错
-        if(argc < 3){
-        msg =   EXE_PLUS_FILENAME("exe\n");
-        msg +=  " manual: " EXE_NAME " [input] [egm_filepath] [output]\n" 
-                " argv[0]: " EXE_NAME ",\n"
-                " argv[1]: input, there are three type, point(lon,lat), point_filepath(multi points), dem filepath.\n"
-                " argv[2]: egm_filepath, only support '*_SE' egm file."
-                " argv[3]: output, which dependent by input string, point(lon,lat,err_hei), points(multi points), err_hei filepath.\n";
-        return return_msg(-2,msg);
+        if(program.is_used("--output")){
+            return_msg(-1,"when inputting a file, '--output' is a mandatory option");
+            std::cerr << program;
+            return 1;
         }
     }
     else{
@@ -108,7 +107,7 @@ int main(int argc, char* argv[])
     /// 识别EGM类型, 不能只靠文件名
 
     egm2008 egm;
-    funcrst rst = egm.init(argv[2]);
+    funcrst rst = egm.init(egm_filepath.c_str());
     if(!rst){
         return return_msg(-3,rst.explain);
     }
@@ -133,13 +132,15 @@ int main(int argc, char* argv[])
         }
         break;
     case method::txt:{
-        rst = egm.write_height_anomaly_txt(argv[1], argv[3]);
+        rst = egm.write_height_anomaly_txt(str_input.c_str(), str_output.c_str());
         return return_msg(-3,rst.explain);
         }
         break;
     case method::dem:{
         GDALAllRegister();
-        GDALDataset* ds_in  = (GDALDataset*)GDALOpen(argv[1],GA_ReadOnly);
+        CPLSetConfigOption("GDAL_FILENAME_IS_UTF8", "NO");
+
+        GDALDataset* ds_in  = (GDALDataset*)GDALOpen(str_input.c_str(), GA_ReadOnly);
         if(!ds_in){
             return return_msg(-3,"ds_in is nullptr");
         }
@@ -150,7 +151,7 @@ int main(int argc, char* argv[])
         ds_in->GetGeoTransform(dem_gt);
 
         GDALDriver* tif_driver = GetGDALDriverManager()->GetDriverByName("GTiff");
-        GDALDataset* ds_out = tif_driver->Create(argv[3],dem_width, dem_height,1,GDT_Float32,nullptr);
+        GDALDataset* ds_out = tif_driver->Create(str_output.c_str(), dem_width, dem_height,1,GDT_Float32,nullptr);
         if(!ds_out){
             return return_msg(-3,"ds_out is nullptr");
         }
@@ -178,7 +179,7 @@ int main(int argc, char* argv[])
     }
 
 
-    return return_msg(1, EXE_NAME " end.");
+    return return_msg(1, "read_egm2008 end.");
 }
 
 bool write_all_egm2008(const char* in_path, const char* out_path)

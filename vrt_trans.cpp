@@ -13,6 +13,9 @@ int vrt_to_tif(argparse::ArgumentParser* args,std::shared_ptr<spdlog::logger> lo
     string vrt_filepath = args->get<string>("vrt");
     string tif_filepath = args->get<string>("tif");
 
+    GDALAllRegister();
+    CPLSetConfigOption("GDAL_FILENAME_IS_UTF8", "NO");
+
     GDALDataset* ds_in = (GDALDataset*)GDALOpen(vrt_filepath.c_str(),GA_ReadOnly);
     if(!ds_in){
         PRINT_LOGGER(logger, error, "ds_in is nullptr");
@@ -73,7 +76,7 @@ int vrt_to_tif(argparse::ArgumentParser* args,std::shared_ptr<spdlog::logger> lo
         binary_write<type> bw;                                                          \
         rst = bw.init(binary_filepath.c_str(), height, width, byte_order);              \
         if(!rst){                                                                       \
-            PRINT_LOGGER(logger, error, fmt::format("bw<{}>.init failed.",#type));      \
+            PRINT_LOGGER(logger, error, fmt::format("bw<{}>.init failed, by {}.",#type, rst.explain));      \
             return -3;                                                                  \
         }                                                                               \
         type* arr = new type[width];                                                    \
@@ -81,10 +84,11 @@ int vrt_to_tif(argparse::ArgumentParser* args,std::shared_ptr<spdlog::logger> lo
             rb_in->RasterIO(GF_Read, 0, i, width, 1, arr, width, 1, datatype, 0, 0);    \
             bw.array_to_bin(arr, width);                                                \
         }                                                                               \
+        std::cout<<std::endl;                                                           \
         delete[] arr;                                                                   \
         rst = bw.print_vrt();                                                           \
         if(!rst){                                                                       \
-            PRINT_LOGGER(logger, error, fmt::format("bw<{}>.print_vrt failed.",#type)); \
+            PRINT_LOGGER(logger, error, fmt::format("bw<{}>.print_vrt failed, by {}.",#type, rst.explain)); \
             return -4;                                                                  \
         }                                                                               \
         bw.close();                                                                     \
@@ -102,6 +106,9 @@ int tif_to_vrt(argparse::ArgumentParser* args,std::shared_ptr<spdlog::logger> lo
         return -1;
     }
     ByteOrder_ byte_order = (str_byteorder == "LSB" ? ByteOrder_::LSB : ByteOrder_::MSB );
+
+    GDALAllRegister();
+    CPLSetConfigOption("GDAL_FILENAME_IS_UTF8", "NO");
 
     GDALDataset* ds_in = (GDALDataset*)GDALOpen(tif_filepath.c_str(), GA_ReadOnly);
     if(!ds_in){

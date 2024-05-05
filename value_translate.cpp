@@ -20,8 +20,8 @@ int value_translate(argparse::ArgumentParser* args, std::shared_ptr<spdlog::logg
 {
     std::string input_filepath = args->get<std::string>("input_imgpath");
     std::string output_filepath = args->get<std::string>("output_imgpath");
-    std::string input_value = args->get<std::string>("source_value");
-    std::string output_value = args->get<std::string>("target_value");
+    double input_val = args->get<double>("source_value");
+    double output_val = args->get<double>("target_value");
 
     if(input_filepath!= output_filepath){
         fs::path src(input_filepath);
@@ -53,23 +53,23 @@ int value_translate(argparse::ArgumentParser* args, std::shared_ptr<spdlog::logg
     switch (datatype)
     {
     case GDT_Float32:{
-        float in_val = stof(input_value), out_val = stof(output_value);
-        PRINT_LOGGER(logger, info,"input_value:[{}], output_value:[{}]", in_val, out_val);
+        float in_val = input_val, out_val = output_val;
+        PRINT_LOGGER(logger, info,fmt::format("input_value:[{}], output_value:[{}]", in_val, out_val));
         rst = value_transto(ds, in_val, out_val);
     }break;
     case GDT_Float64:{
-        double in_val = stod(input_value), out_val = stod(output_value);
-        PRINT_LOGGER(logger, info,"input_value:[{}], output_value:[{}]", in_val, out_val);
+        double in_val = input_val, out_val = output_val;
+        PRINT_LOGGER(logger, info,fmt::format("input_value:[{}], output_value:[{}]", in_val, out_val));
         rst = value_transto(ds,in_val, out_val);
     }break;
     case GDT_Int16:{
-        short in_val = short(stoi(input_value)), out_val = short(stoi(output_value));
-        PRINT_LOGGER(logger, info,"input_value:[{}], output_value:[{}]", in_val, out_val);
+        short in_val = input_val, out_val = output_val;
+        PRINT_LOGGER(logger, info,fmt::format("input_value:[{}], output_value:[{}]", in_val, out_val));
         rst = value_transto(ds,in_val,out_val);
     }break;
     case GDT_Int32:{
-        int in_val = stoi(input_value), out_val = stoi(output_value);
-        PRINT_LOGGER(logger, info,"input_value:[{}], output_value:[{}]", in_val, out_val);
+        int in_val = input_val, out_val = output_val;
+        PRINT_LOGGER(logger, info,fmt::format("input_value:[{}], output_value:[{}]", in_val, out_val));
         rst = value_transto(ds, in_val, out_val);
     }break;
     default:

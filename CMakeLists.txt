@@ -66,9 +66,10 @@ add_executable(debug_config_test debug_config_test.cpp)
 
 
 #创建delaunay
-add_executable(create_delaunay CreateDelaunay.cpp)
+add_executable(create_delaunay CreateDelaunay.cpp datatype.h datatype.cpp)
 target_link_libraries(create_delaunay PRIVATE GDAL::GDAL)
 target_link_libraries(create_delaunay PRIVATE spdlog::spdlog spdlog::spdlog_header_only)
+target_link_libraries(create_delaunay PRIVATE argparse::argparse)
 set(EXE_LIST ${EXE_LIST} create_delaunay)
 
 # duqu EGM2008文件, 并写出
@@ -79,6 +80,7 @@ target_include_directories( read_egm2008
 target_link_libraries(read_egm2008 PRIVATE GDAL::GDAL)
 target_link_libraries(read_egm2008 PRIVATE spdlog::spdlog spdlog::spdlog_header_only)
 target_link_libraries(read_egm2008 PRIVATE fmt::fmt)
+target_link_libraries(read_egm2008 PRIVATE argparse::argparse)
 set(EXE_LIST ${EXE_LIST} read_egm2008)
 
 # 同一坐标系统的分块数据拼接

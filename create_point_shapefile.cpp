@@ -63,6 +63,10 @@ int create_2dpoint_shp(argparse::ArgumentParser* args, std::shared_ptr<spdlog::l
         return -2;
     }
 
+    GDALAllRegister();
+    OGRRegisterAll();
+    CPLSetConfigOption("GDAL_FILENAME_IS_UTF8", "NO");
+
     GDALDriver* shp_driver = GetGDALDriverManager()->GetDriverByName("ESRI Shapefile");
     if (shp_driver == nullptr) {
          PRINT_LOGGER(logger, error, "shp_driver is nullptr.");
@@ -173,6 +177,10 @@ int create_3dpoint_shp(argparse::ArgumentParser* args, std::shared_ptr<spdlog::l
         PRINT_LOGGER(logger, error, "points.size < 1");
         return -2;
     }
+
+    GDALAllRegister();
+    OGRRegisterAll();
+    CPLSetConfigOption("GDAL_FILENAME_IS_UTF8", "NO");
 
     GDALDriver* shp_driver = GetGDALDriverManager()->GetDriverByName("ESRI Shapefile");
     if (shp_driver == nullptr) {

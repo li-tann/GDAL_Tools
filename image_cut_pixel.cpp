@@ -59,11 +59,12 @@ int image_cut_by_pixel(argparse::ArgumentParser* args,std::shared_ptr<spdlog::lo
 
     for(int b = 1; b <= bands; b++)
     {
+        GDALRasterBand* rb_in = ds->GetRasterBand(b);
         GDALRasterBand* rb_out = ds_out->GetRasterBand(b);
         void* arr = malloc(cutted_width * datasize);
-        for(int i=0; i< cutted_width; i++)
+        for(int i=0; i< cutted_height; i++)
         {
-            rb->RasterIO(GF_Read, start_x, i + start_y, cutted_width, 1, arr, cutted_width, 1, datatype, 0, 0);
+            rb_in->RasterIO(GF_Read, start_x, i + start_y, cutted_width, 1, arr, cutted_width, 1, datatype, 0, 0);
             rb_out->RasterIO(GF_Write, 0, i, cutted_width, 1, arr, cutted_width, 1, datatype, 0, 0);
         }
         free(arr);

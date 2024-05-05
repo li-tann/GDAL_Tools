@@ -140,7 +140,7 @@ public:
         CSLDestroy(papszOptions);
 
         delete ds_out;
-        return funcrst(false, "print_vrt success.");
+        return funcrst(true, "print_vrt success.");
     }
 
     void close(){

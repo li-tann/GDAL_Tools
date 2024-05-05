@@ -62,6 +62,9 @@ int create_polygon_shp(argparse::ArgumentParser* args, std::shared_ptr<spdlog::l
         return -2;
     }
 
+    GDALAllRegister();
+    OGRRegisterAll();
+    CPLSetConfigOption("GDAL_FILENAME_IS_UTF8", "NO");
 
 
     OGRPolygon* polygen = (OGRPolygon*)OGRGeometryFactory::createGeometry(wkbPolygon);
