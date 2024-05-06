@@ -214,6 +214,6 @@ gdal_tool_raster和gdal_tool_vector两个集合，可以使用`gdal_tool_raster 
 
 简化了gdal_tool_raster工具部分子命令的拼写
 
-### 20240.05.06
+### 2024.05.06
 
 更新README.md
