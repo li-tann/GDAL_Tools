@@ -48,55 +48,86 @@ read_rgm2008, delaunay建网, DEM拼接, 获取图像在某条直线上的值...
 
 ## Module
 
-### binary_img_to_tif
+### Raster
 
-二进制文件转tif图，目前已测试果的数据格式仅仅fcomplex
+#### 1.image_cut
 
-### tif_to_binary_img
+图像裁剪, 使用起始点（左上角）坐标，输入需要裁剪的宽高，从原始影像中裁剪新影像。
 
-tif图转换为二进制文件
+#### 2.resample
 
-### create delaunay
+基于GDALWarp的重采样，可以选择多种插值方法。
 
-提供二维点文件, 创建delaunay三角网，输出所有三角形的坐标
+#### 3.set_nodata
 
-### determine topological relationship
+在影像的metadata中添加`NODATA_VALUE=val`字段，arcmap10.8及以上版本可以正常识别该字段并将NODATA数据显示为透明色。
+
+#### 4.stat_hist
+
+统计影像的直方图分布特征。
+
+（会更新\[image].aux.xml文件）
+
+#### 5.stat_minmax
+
+统计影像的最大最小值，平均值，以及方差。
+
+（会更新\[image].aux.xml文件）
+
+#### 6.stretch_hist
+
+基于直方图的影像拉伸。（去除两端一定百分比的极值）
+
+#### 7.tif2vrt
+
+tif图转vrt（头文件+二进制文件），可以设置二进制文件的存储类型，MSB或LSB。
+
+>MSB:大端存储，linux系统二进制文件的默认存储方法
+>LSB:小端存储，windows系统二进制文件的默认存储方法
+
+搭配vrt文件，任意存储类型均可以正常被GDAL库读取。
+
+#### 8.vrt2tif
+
+vrt文件转tif图。
+
+#### 9.trans_geo
+
+将参考影像的坐标系统传递给目标影像，包括坐标系统和六参数。
+
+#### 10.trans_val
+
+将参考影像中的指定数值替换为目标数值。
+
+### Vector
+
+#### 1.point_with_shp
 
 计算一个点与shp的拓扑关系，输入一个点平面坐标，一个shp文件，文字形式输出点与shp文件的关系(in or out)
 
-### histogram stretch
+#### 2.create_polygon_shp
 
-对影像进行百分比拉伸计算，去除两端的噪声
+使用点信息，创建一个多边形shp
 
-### nan trans to
+#### 3.create_2dpoint_shp
 
-将图像中的nan值统一转换为一个指定的数值
+使用平面点信息，创建一个二维点状shp，并`ID`字段，记录点的索引值。
 
-### set nodata value
+#### 4.create_3dpoint_shp
 
-将图像中某一个值标记为nodata，从而使大部分地学看图软件(envi, arcmap, ...)不显示nodata值, 实现去除编码后黑色无数据区域的效果
+使用三维点信息，创建一个二维点状shp，并`ID`和附有`VAL`字段，分别记录点索引值和第三维度信息。
 
-### statistics
+### Other
 
-对影像的某个波段(RasterBand, 波段, 图层, 通道,...)进行数值统计，输出该波段数据的最值、均值和方差
+#### 1.create delaunay
 
-### egm2008
+提供二维点文件, 创建delaunay三角网，输出所有三角形的坐标
+
+#### 2.read_egm2008
 
 通过egm2008，输出单点经纬度，或经纬度文件，或带地理坐标的DEM文件，输入小端存储（*_SE）的EGM2008文件,输出对应点或范围的高程异常值
 
-### vrt_trans
-
-vrt格式的数据转换为tif格式，或tif格式的数据转换为vrt格式
-
-### over_resample
-
-基于GDAL的Warp，对影像进行重采样, 并以tif格式输出
-
-### transmit_geoinformation
-
-把影像A的GeoTransform和ProjectRef写到影像B内
-
-### unified_GeoImage_merging
+#### 3.unified_GeoImage_merging
 
 统一坐标系统的影像的拼接，例如全球分块的DEM文件。
 
@@ -167,10 +198,6 @@ D:.
 
 TDM_DEM文件中有很多tif数据，但只有DEM数据的后缀名称是“xxxx_DEM.tif”，所以使用正则表达式`.*DEM.tif$`可以从中筛选出DEM数据。
 
-### create_shapfile
-
-输入一个记录经纬度信息的shapfile文件
-
 ## 更新日志
 
 ### 2024.05.03
@@ -183,6 +210,10 @@ TDM_DEM文件中有很多tif数据，但只有DEM数据的后缀名称是“xxxx
 
 gdal_tool_raster和gdal_tool_vector两个集合，可以使用`gdal_tool_raster -h`指令查看使用方法，使用`gdal_tool_vector \[sub_module\] -h`指令查看二级模块的使用方法。
 
-如:
+### 2024.05.05
 
-（举例说明）
+简化了gdal_tool_raster工具部分子命令的拼写
+
+### 20240.05.06
+
+更新README.md
