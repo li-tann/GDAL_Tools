@@ -15,8 +15,6 @@ namespace fs = std::filesystem;
 
 enum class method{unknown, point, txt, dem};
 
-bool write_all_egm2008(const char* in_path, const char* out_path);
-
 #ifndef PRINT_LOGGER
 #define PRINT_LOGGER(LOGGER, TYPE, MASSAGE)  \
     LOGGER->TYPE(MASSAGE);                   \
@@ -48,12 +46,13 @@ int main(int argc, char* argv[])
             .help("height")
             .scan<'g',float>();    
 
-        sub_single.add_argument("egm_filepath")
-            .help("input filepath  of 'Und_min10x10_egm2008_isw=82_WGS84_TideFree_SE' EGM database.");
-
         sub_single.add_argument("ref_elevation_system")
             .help("the reference elevation system of input point, please input 'geodetic' or 'normal'. default is 'geodetic'")
             .default_value("geodetic");
+        
+        sub_single.add_argument("-e","--egm_filepath")
+            .help("input filepath  of 'Und_min10x10_egm2008_isw=82_WGS84_TideFree_SE' EGM database.")
+            .default_value("./data/Und_min10x10_egm2008_isw=82_WGS84_TideFree_SE");
     }
     
     argparse::ArgumentParser sub_multi("multi");
@@ -65,12 +64,13 @@ int main(int argc, char* argv[])
         sub_multi.add_argument("output_filepath")
             .help("record a point info on each line of the file, like 'lon, lat, height, egm_val, correction_height'.");
 
-        sub_multi.add_argument("egm_filepath")
-            .help("input filepath  of 'Und_min10x10_egm2008_isw=82_WGS84_TideFree_SE' EGM database.");
-
         sub_multi.add_argument("ref_elevation_system")
             .help("the reference elevation system of input point, please input 'geodetic' or 'normal'. default is 'geodetic'")
             .default_value("geodetic");
+        
+        sub_multi.add_argument("-e","--egm_filepath")
+            .help("input filepath  of 'Und_min10x10_egm2008_isw=82_WGS84_TideFree_SE' EGM database.")
+            .default_value("./data/Und_min10x10_egm2008_isw=82_WGS84_TideFree_SE");
     }
 
 
@@ -83,14 +83,15 @@ int main(int argc, char* argv[])
         sub_dem.add_argument("output_dem")
             .help("corrected dem with float datatype and tif driver, corrected_dem = dem +/- egm_val ('+':ref_system is normal, '-':ref_system is geodetic)");
 
-        sub_single.add_argument("egm_filepath")
-            .help("input filepath  of 'Und_min10x10_egm2008_isw=82_WGS84_TideFree_SE' EGM database.");
-
         sub_dem.add_argument("ref_elevation_system")
             .help("the reference elevation system of input point, please input 'geodetic' or 'normal'. default is 'geodetic'")
             .default_value("geodetic");
 
-        sub_dem.add_argument("-e","--egm_val")
+        sub_dem.add_argument("-e","--egm_filepath")
+            .help("input filepath  of 'Und_min10x10_egm2008_isw=82_WGS84_TideFree_SE' EGM database.")
+            .default_value("./data/Und_min10x10_egm2008_isw=82_WGS84_TideFree_SE");
+
+        sub_dem.add_argument("-E","--egm_val")
             .help("write dem with value of egm2008.");
     }
 
@@ -153,34 +154,6 @@ int main(int argc, char* argv[])
     }
     PRINT_LOGGER(my_logger, info, fmt::format("read_egm2008 end, spend time {}s",spend_time(time_start)));
     return 1;
-}
-
-bool write_all_egm2008(const char* in_path, const char* out_path)
-{
-    ifstream ifs(in_path, ifstream::binary); //二进制读方式打开
-    if (!ifs.is_open()) {
-        printf("ERROR: File open failed...\nFilepath is %s",string(in_path));
-        return false;
-    }
-
-    ofstream ofs(out_path);
-    if(!ofs.is_open()){
-         printf("ERROR: File write failed...\nFilepath is %s",string(out_path));
-        return false;
-    }
-
-    long num = 0;
-    float value;
-    while (ifs.read((char*)&value, 4)) { //一直读到文件结束
-        ofs<<value<<",";
-        ++num;
-    }
-    ofs<<"\nnum:"<<num;
-
-    ifs.close();
-    ofs.close();
-
-    return true;
 }
 
 inline float get_corrected_height(float src_height, float abnormal_height, reference_elevation_system sys){

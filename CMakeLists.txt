@@ -121,6 +121,11 @@ message(STATUS "cmake build type: " ${CMAKE_BUILD_TYPE})
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/build/${CMAKE_BUILD_TYPE})
 file(COPY_FILE ${CMAKE_CURRENT_LIST_DIR}/proj.db ${CMAKE_CURRENT_LIST_DIR}/build/${CMAKE_BUILD_TYPE}/proj.db ONLY_IF_DIFFERENT)
 
+file(MAKE_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/build/${CMAKE_BUILD_TYPE}/data)
+file(COPY_FILE 
+        ${CMAKE_CURRENT_LIST_DIR}/data/Und_min10x10_egm2008_isw=82_WGS84_TideFree_SE 
+        ${CMAKE_CURRENT_LIST_DIR}/build/${CMAKE_BUILD_TYPE}/data/Und_min10x10_egm2008_isw=82_WGS84_TideFree_SE ONLY_IF_DIFFERENT)
+
 # INSTALL
 
 set(CMAKE_INSTALL_PREFIX ${CMAKE_CURRENT_LIST_DIR}/install)
@@ -139,6 +144,7 @@ install(FILES ${DLLS} DESTINATION binary CONFIGURATIONS Release)
 # message("DLLS: ${DLLS}")
 
 install(FILES ${CMAKE_CURRENT_LIST_DIR}/proj.db DESTINATION binary CONFIGURATIONS Release)
+install(FILES ${CMAKE_CURRENT_LIST_DIR}/data/Und_min10x10_egm2008_isw=82_WGS84_TideFree_SE DESTINATION binary/data CONFIGURATIONS Release)
 # install(FILES ${CMAKE_CURRENT_LIST_DIR}/vcruntime140d.dll ${CMAKE_CURRENT_LIST_DIR}/vcruntime140_1d.dll DESTINATION binary/vc CONFIGURATIONS Release)
 
 file(GLOB scripts "scripts/*.ps1" "scripts/*.bat") # 假设DLLs在构建目录中
