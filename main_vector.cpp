@@ -110,4 +110,19 @@ int main(int argc, char* argv[])
     fs::path log_path = exe_root / "gdal_tool_vector.log";
     auto my_logger = spdlog::basic_logger_mt("gdal_tool_vector", log_path.string());
 
+    std::string config;
+    for(int i=0; i<argc; i++){
+        config += std::string(argv[i]) + " ";
+    }
+    PRINT_LOGGER(my_logger, info, "gdal_tool_vector start");
+    PRINT_LOGGER(my_logger, info, fmt::format("config:[{}]",config));
+    auto time_start = std::chrono::system_clock::now();
+
+    for(auto& iter : parser_map_func){
+        if(program.is_subcommand_used(*(iter.first))){
+            return iter.second(iter.first, my_logger);
+        } 
+    }
+    PRINT_LOGGER(my_logger, info, fmt::format("gdal_tool_vector end, spend time {}s",spend_time(time_start)));
+    return 1;
 }
