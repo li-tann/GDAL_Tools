@@ -48,7 +48,8 @@ int main(int argc, char* argv[])
 
         sub_single.add_argument("ref_elevation_system")
             .help("the reference elevation system of input point, please input 'geodetic' or 'normal'. default is 'geodetic'")
-            .default_value("geodetic");
+            .default_value("geodetic")
+            .choices("geodetic", "normal");
         
         sub_single.add_argument("-e","--egm_filepath")
             .help("input filepath  of 'Und_min10x10_egm2008_isw=82_WGS84_TideFree_SE' EGM database.")
@@ -66,7 +67,8 @@ int main(int argc, char* argv[])
 
         sub_multi.add_argument("ref_elevation_system")
             .help("the reference elevation system of input point, please input 'geodetic' or 'normal'. default is 'geodetic'")
-            .default_value("geodetic");
+            .default_value("geodetic")
+            .choices("geodetic", "normal");
         
         sub_multi.add_argument("-e","--egm_filepath")
             .help("input filepath  of 'Und_min10x10_egm2008_isw=82_WGS84_TideFree_SE' EGM database.")
@@ -85,14 +87,17 @@ int main(int argc, char* argv[])
 
         sub_dem.add_argument("ref_elevation_system")
             .help("the reference elevation system of input point, please input 'geodetic' or 'normal'. default is 'geodetic'")
-            .default_value("geodetic");
+            .default_value("geodetic")
+            .choices("geodetic", "normal");
 
         sub_dem.add_argument("-e","--egm_filepath")
             .help("input filepath  of 'Und_min10x10_egm2008_isw=82_WGS84_TideFree_SE' EGM database.")
             .default_value("./data/Und_min10x10_egm2008_isw=82_WGS84_TideFree_SE");
 
         sub_dem.add_argument("-E","--egm_val")
-            .help("write dem with value of egm2008.");
+            .help("write dem with value of egm2008, default is false, print '-E' or '--egm_val' means true")
+            .default_value(false)
+            .implicit_value(true);
     }
 
 

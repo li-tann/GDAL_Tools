@@ -142,7 +142,8 @@ int main(int argc, char* argv[])
          sub_over_resample.add_argument("method")
             .help("over-resample method, use int to represent method : 0,nearst; 1,bilinear; 2,cubic; 3,cubicSpline; 4,lanczos(sinc).; 5,average.")
             .scan<'i',int>()
-            .default_value("1");       
+            .default_value("1")
+            .choices("0","1","2","3","4","5");       
     }
 
     argparse::ArgumentParser sub_trans_geoinfo("trans_geo");
