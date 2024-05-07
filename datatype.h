@@ -127,6 +127,7 @@ struct xyz{
 	double x, y, z;
 };
 
+enum reference_elevation_system {normal, geodetic};
 
 ///  10′*10′的EGM文件, 有1081(180*6+1)行和2160(360*6)列   (这里的列数不计算每行起止处的两个0)
 ///  以此类推, 1′*1′的EGM文件, 有10801(180*60+1)行21600(360*60)列
@@ -154,7 +155,7 @@ public:
 	/// 单点计算高程异常值
 	float calcluate_height_anomaly_single_point(double lon, double lat);
 
-	funcrst write_height_anomaly_txt(const char* input_filepath, const char* output_filepath);
+	funcrst write_height_anomaly_txt(const char* input_filepath, const char* output_filepath, reference_elevation_system sys);
 
 	/// 输入宽高和六参数, 可以确定一景DEM的基本信息, 计算对应位置的高程异常值, 并输出到height_anomaly_arr中
 	funcrst write_height_anomaly_image(int height, int width, double gt[], float* height_anomaly_arr);

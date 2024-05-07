@@ -457,7 +457,7 @@ float egm2008::calcluate_height_anomaly_single_point(double lon, double lat)
     return value;
 }
 
-funcrst egm2008::write_height_anomaly_txt(const char* input_filepath, const char* output_filepath)
+funcrst egm2008::write_height_anomaly_txt(const char* input_filepath, const char* output_filepath, reference_elevation_system sys)
 {
     ifstream ifs(input_filepath);
     if(!ifs.is_open()){
@@ -469,24 +469,42 @@ funcrst egm2008::write_height_anomaly_txt(const char* input_filepath, const char
         return funcrst(false, "write_height_anomaly_txt, ofs(output) open failed.");
     }
 
+    auto get_corrected_height = [](float src_height, float abnormal_height, reference_elevation_system sys){
+        float dst = src_height;
+        switch (sys)
+        {
+        case normal:
+            dst = src_height + abnormal_height;
+            break;
+        case geodetic:
+            dst = src_height - abnormal_height;
+            break;
+        default:
+            break;
+        }
+        return dst;
+    };
+
     string str;
     while (getline(ifs,str))
     {
         vector<string> splited;
         ofs<<str;
         strSplit(str,splited,",");
-        if(splited.size() < 2)
+        if(splited.size() < 3)
             continue;
         
-        double lon = stod(splited[0]);
-        double lat = stod(splited[1]);
+        float lon = stof(splited[0]);
+        float lat = stof(splited[1]);
+        float hei = stof(splited[2]);
         if(lon > 180 || lon < -180 || lat > 90 || lat < -90){
             ofs<<", the coordinate is not a valid value."<<endl;
             continue;
         }
   
-        float value = calcluate_height_anomaly_single_point(lon, lat);
-        ofs<<","<<value<<endl;
+        float abnormal = calcluate_height_anomaly_single_point(lon, lat);
+        float corrected_height = get_corrected_height(hei, abnormal, sys);
+        ofs<<fmt::format(", {}, {}", abnormal, corrected_height)<<std::endl;
     }
 
     ifs.close();
