@@ -171,6 +171,31 @@ int main(int argc, char* argv[])
             .nargs(4);        
     }
 
+    argparse::ArgumentParser sub_image_overlay("image_overlay");
+    sub_image_overlay.add_description("image_overlay, such as: upper.png lower.png overlay.png 0.5 0.9 normal");
+    {
+        sub_image_overlay.add_argument("upper_imgpath")
+            .help("upper image filepath (4 band, 8bit *.png)");
+
+        sub_image_overlay.add_argument("lower_imgpath")
+            .help("lower image filepath (4 band, 8bit *.png)");
+
+        sub_image_overlay.add_argument("overlay_imgpath")
+            .help("overlaied image filepath (4 band, 8bit *.png)");   
+
+        sub_image_overlay.add_argument("upper_opacity")
+            .help("upper image's opacity 0~1")
+            .scan<'g',double>();        
+
+        sub_image_overlay.add_argument("lower_opacity")
+            .help("lower image's opacity 0~1")
+            .scan<'g',double>();
+
+        sub_image_overlay.add_argument("method")
+            .help("overlay method, such as: normal, premultiple, mask, additive, multiple, screen")
+            .choices("normal","premultiple","mask","additive","multiple","screen");
+    }
+
 
     std::map<argparse::ArgumentParser* , 
             std::function<int(argparse::ArgumentParser* args,std::shared_ptr<spdlog::logger>)>> 
@@ -185,6 +210,7 @@ int main(int argc, char* argv[])
         {&sub_over_resample,        over_resample},
         {&sub_trans_geoinfo,        trans_geoinformation},
         {&sub_image_cut_pixel,      image_cut_by_pixel},
+        {&sub_image_overlay,        image_overlay},
     };
 
     for(auto prog_map : parser_map_func){

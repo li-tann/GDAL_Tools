@@ -41,3 +41,5 @@ int over_resample(argparse::ArgumentParser* args,std::shared_ptr<spdlog::logger>
 int trans_geoinformation(argparse::ArgumentParser* args,std::shared_ptr<spdlog::logger> logger);
 
 int image_cut_by_pixel(argparse::ArgumentParser* args,std::shared_ptr<spdlog::logger> logger);
+
+int image_overlay(argparse::ArgumentParser* args,std::shared_ptr<spdlog::logger> logger);

@@ -38,12 +38,14 @@ add_executable(gdal_tool_raster
         binary_write.h                  # template vrt与tif格式相互转换
         over_resample.cpp           # 过采样
         transmit_geoinformation.cpp # 传递地理坐标
-        image_cut_pixel.cpp         #基于像素的影像裁剪
+        image_cut_pixel.cpp         # 基于像素的影像裁剪
+        image_overlay.cpp           # 影像叠加
         #获取图像在某条直线上的值
         )
 target_link_libraries(gdal_tool_raster PRIVATE GDAL::GDAL)
 target_link_libraries(gdal_tool_raster PRIVATE spdlog::spdlog spdlog::spdlog_header_only)
 target_link_libraries(gdal_tool_raster PRIVATE argparse::argparse)
+target_link_libraries(gdal_tool_raster PRIVATE OpenMP::OpenMP_CXX)
 set(EXE_LIST ${EXE_LIST} gdal_tool_raster)
 
 add_executable(gdal_tool_vector
