@@ -197,10 +197,10 @@ int main(int argc, char* argv[])
     }
 
     argparse::ArgumentParser sub_image_set_colortable("image_color");
-    sub_image_set_colortable.add_description("set colortable (only support 8bit data) to image");
+    sub_image_set_colortable.add_description("set colortable to byte image, not supporting 'CreateCopy' data");
     {
         sub_image_set_colortable.add_argument("img_path")
-            .help("image filepath (1 band, 8bit best)");
+            .help("image filepath, with 1 band, 8bit, not supporting data in 'jpg', 'png' datatype");
 
         sub_image_set_colortable.add_argument("ct_path")
             .help("color table filepath (cm or cpt), set 'clear' if you want clear color table within image");
@@ -210,7 +210,7 @@ int main(int argc, char* argv[])
     sub_data_to_8bit.add_description("convert data to 8bit");
     {
         sub_data_to_8bit.add_argument("img_path")
-            .help("image filepath (support byte, (u)short, (u)int, float, double)");
+            .help("image filepath, supporting  data in 'byte', '(u)short', '(u)int', 'float', 'double' type");
 
         sub_data_to_8bit.add_argument("out_path")
             .help("out_path, which extension could be changed if it's diff with 'enxtension' par");
