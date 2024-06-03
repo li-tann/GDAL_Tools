@@ -27,6 +27,29 @@ void strSplit(std::string input, std::vector<std::string>& output, std::string s
     
 }
 
+void strSplits(std::string input, std::vector<std::string>& output, std::vector<std::string> splitters, bool clearVector)
+{
+    if(clearVector)
+        output.clear();
+    std::vector<std::string> splitted;
+    splitted.push_back(input);
+    size_t idx_start = 0, idx_end = 1;
+    for(auto splitter : splitters)
+    {
+        size_t tmp_idx_start = idx_start;
+        idx_start = splitted.size();
+        for(int i = tmp_idx_start; i < idx_end; i++){
+            strSplit(splitted[i], splitted, splitter, false);
+        }
+        idx_end = splitted.size();
+    }
+
+    for(int i = idx_start; i <  idx_end; i++){
+        output.push_back(splitted[i]);
+    }
+    splitted.clear();
+}
+
 double spend_time(decltype (std::chrono::system_clock::now()) start)
 {
     auto end = std::chrono::system_clock::now();
@@ -55,22 +78,240 @@ void strTrim(string &s)
 	}
 }
 
-color_map_v2::color_map_v2(const char* color_map_filepath)
+rgba::rgba():
+    red(0), green(0), blue(0), alpha(0) {
+
+    };
+rgba::rgba(int r, int g, int b, int a) :
+    red(r > 255 ? 255 : (r < 0 ? 0 : r)), green(g > 255 ? 255 : (g < 0 ? 0 : g)),
+    blue(b > 255 ? 255 : (b < 0 ? 0 : b)),alpha(a > 255 ? 255 : (a < 0 ? 0 : a)) {
+
+    }
+
+rgba::rgba(int r, int g, int b) :
+    red(r > 255 ? 255 : (r < 0 ? 0 : r)),green(g > 255 ? 255 : (g < 0 ? 0 : g)),
+    blue(b > 255 ? 255 : (b < 0 ? 0 : b)),alpha(255) {
+
+    }
+
+rgba::rgba(std::string hex){
+
+    auto hex_to_int = [](char c){
+        /// 有一个前提是默认输出的字符串是大写, 因为之前已经使用了transform(...,::toupper)
+        return (c < 48 ? 0 : (c < 58 ? int(c-'0') : (c < 65 ? 0 : (c < 71 ? 10+int(c-'A') : 0))));
+    };
+
+    std::transform(hex.begin(), hex.end(), hex.begin(), ::toupper);
+    int offset = (hex[0] == '#') ? 1 : 0;
+    if(hex.size() < 6 + offset)
+        return ;
+    red   = hex_to_int(hex[offset + 0]) * 16 + hex_to_int(hex[offset + 1]);
+    green = hex_to_int(hex[offset + 2]) * 16 + hex_to_int(hex[offset + 3]);
+    blue  = hex_to_int(hex[offset + 4]) * 16 + hex_to_int(hex[offset + 5]);
+    if(hex.size() > 8 + offset){
+        alpha = hex_to_int(hex[offset + 6]) * 16 + hex_to_int(hex[offset + 7]);
+    }else{
+        alpha = 255;
+    }
+};
+
+std::string rgba::rgb_to_hex(){
+    auto int_to_hex = [](int c)->std::string{
+        std::string s;
+        c < 10 ? s = std::to_string(c) : s = 'A'+c-10;
+        return s;
+    };
+    std::string s = "#";
+    for(int c : {red, green, blue}){
+        s += int_to_hex(c / 16);
+        s += int_to_hex(c % 16);
+    }
+    return s;
+}
+
+std::string rgba::rgba_to_hex(){
+    auto int_to_hex = [](int c)->std::string{
+        std::string str;
+        c < 10 ? str = std::to_string(c) : str = 'A'+c-10;
+        return str;
+    };
+    std::string s = "#";
+    for(int c : {red, green, blue, alpha}){
+        s += int_to_hex(c / 16);
+        s += int_to_hex(c % 16);
+    }
+    return s;
+}
+
+hsv rgba::to_hsv()
+{
+    return rgb_to_hsv(*this);
+}
+
+void rgba::from_hsv(hsv _hsv_)
+{
+    *this = hsv_to_rgb(_hsv_);
+}
+
+hsv::hsv() :
+    hue(0), saturation(0), value(0), alpha(0){
+        
+    }
+
+hsv::hsv(double h, double s, double v) :
+    hue(h), saturation(s), value(v), alpha(255){
+
+    }
+
+rgba hsv::to_rgb()
+{
+    return hsv_to_rgb(*this);
+}
+
+void hsv::from_rgb(rgba _rgba_)
+{
+    *this = rgb_to_hsv(_rgba_);
+}
+
+std::map<std::string, std::string> map_with_color_and_name = {
+    {"aliceblue","#f0f8ff"},{"antiquewhite","#faebd7"},{"aqua","#00ffff"},{"cyan","#00ffff"},{"aquamarine","#7fffd4"},
+    {"azure","#f0ffff"},{"beige","#f5f5dc"},{"bisque","#ffe4c4"},{"black","#000000"},{"blanchedalmond","#ffebcd"},
+    {"blue","#0000ff"},{"blueviolet","#8a2be2"},{"brown","#a52a2a"},{"burlywood","#deb887"},{"cadetblue","#5f9ea0"},
+    {"chartreuse","#7fff00"},{"chocolate","#d2691e"},{"coral","#ff7f50"},{"cornflowerblue","#6495ed"},{"cornsilk","#fff8dc"},
+    {"crimson","#dc143c"},{"darkblue","#00008b"},{"darkcyan","#008b8b"},{"darkgoldenrod","#b8860b"},{"darkgray","#a9a9a9"},
+    {"darkgreen","#006400"},{"darkkhaki","#bdb76b"},{"darkmagenta","#8b008b"},{"darkolivegreen","#556b2f"},{"darkorange","#ff8c00"},
+    {"darkorchid","#9932cc"},{"darkred","#8b0000"},{"darksalmon","#e9967a"},{"darkseagreen","#8fbc8f"},{"darkslateblue","#483d8b"},
+    {"darkslategray","#2f4f4f"},{"darkturquoise","#00ced1"},{"darkviolet","#9400d3"},{"deeppink","#ff1493"},{"deepskyblue","#00bfff"},
+    {"dimgray","#696969"},{"dodgerblue","#1e90ff"},{"firebrick (Fire Brick)","#b22222"},{"floralwhite","#fffaf0"},{"forestgreen","#228b22"},
+    {"fuchsia","#ff00ff"},{"magenta","#ff00ff"},{"gainsboro","#dcdcdc"},{"ghostwhite","#f8f8ff"},{"gold","#ffd700"},
+    {"goldenrod","#daa520"},{"gray","#808080"},{"green","#008000"},{"greenyellow","#adff2f"},{"honeydew","#f0fff0"},
+    {"hotpink","#ff69b4"},{"indianred","#cd5c5c"},{"indigo","#4b0082"},{"ivory","#fffff0"},{"khaki","#f0e68c"},
+    {"lavender","#e6e6fa"},{"lavenderblush","#fff0f5"},{"lawngreen","#7cfc00"},{"lemonchiffon","#fffacd"},{"lightblue","#add8e6"},
+    {"lightcoral","#f08080"},{"lightcyan","#e0ffff"},{"lightgoldenrodyellow","#fafad2"},{"lightgray","#d3d3d3"},{"lightgreen","#90ee90"},
+    {"lightpink","#ffb6c1"},{"lightsalmon","#ffa07a"},{"lightseagreen","#20b2aa"},{"lightskyblue","#87cefa"},{"lightslategray","#778899"},
+    {"lightsteelblue","#b0c4de"},{"lightyellow","#ffffe0"},{"lime","#00ff00"},{"limegreen","#32cd32"},{"linen","#faf0e6"},{"maroon","#800000"},
+    {"mediumaquamarine","#66cdaa"},{"mediumblue","#0000cd"},{"mediumorchid","#ba55d3"},{"mediumpurple","#9370db"},{"mediumseagreen","#3cb371"},
+    {"mediumslateblue","#7b68ee"},{"mediumspringgreen","#00fa9a"},{"mediumturquoise","#48d1cc"},{"mediumvioletred","#c71585"},{"midnightblue","#191970"},
+    {"mintcream","#f5fffa"},{"mistyrose","#ffe4e1"},{"moccasin","#ffe4b5"},{"navajowhite","#ffdead"},{"navy","#000080"},
+    {"oldlace","#fdf5e6"},{"olive","#808000"},{"olivedrab","#6b8e23"},{"orange","#ffa500"},{"yellowgreen","#9acd32"},
+    {"orangered","#ff4500"},{"orchid","#da70d6"},{"palegoldenrod","#eee8aa"},{"palegreen","#98fb98"},{"paleturquoise","#afeeee"},
+    {"palevioletred","#db7093"},{"papayawhip","#ffefd5"},{"peachpuff","#ffdab9"},{"peru","#cd853f"},{"pink","#ffc0cb"},
+    {"plum","#dda0dd"},{"powderblue","#b0e0e6"},{"purple","#800080"},{"red","#ff0000"},{"rosybrown","#bc8f8f"},
+    {"royalblue","#4169e1"},{"saddlebrown","#8b4513"},{"salmon","#fa8072"},{"sandybrown","#f4a460"},{"seagreen","#2e8b57"},
+    {"seashell","#fff5ee"},{"sienna","#a0522d"},{"silver","#c0c0c0"},{"skyblue","#87ceeb"},{"slateblue","#6a5acd"},
+    {"slategray","#708090"},{"snow","#fffafa"},{"springgreen","#00ff7f"},{"steelblue","#4682b4"},{"tan","#d2b48c"},
+    {"teal","#008080"},{"thistle","#d8bfd8"},{"tomato","#ff6347"},{"turquoise","#40e0d0"},{"violet","#ee82ee"},
+    {"wheat","#f5deb3"},{"white","#ffffff"},{"whitesmoke","#f5f5f5"},{"yellow","#ffff00"}
+};
+
+funcrst get_color_from_name(std::string color_name)
+{
+    auto rst = map_with_color_and_name.find(color_name);
+    if(rst == map_with_color_and_name.end()){
+        return funcrst(false, "#000000");
+    }
+    return funcrst(true, rst->second);
+}
+
+rgba hsv_to_rgb(hsv _hsv_)
+{
+    double h = _hsv_.hue;
+    double s = _hsv_.saturation;
+    double v = _hsv_.value;
+    int a = _hsv_.alpha;
+
+    while(h>=360){
+        h -= 360;
+    }
+    int hi = int(floor(h/60));
+    double f = h / 60. - hi;
+    double p = v *(1-s);
+    double q = v * (1 - f * s);
+    double t = v * (1 - (1-f) * s);
+
+    switch (hi)
+    {
+    case 0:
+        return rgba(int(v*255), int(t*255), int(p*255), a);
+    case 1:
+        return rgba(int(q*255), int(v*255), int(p*255), a);
+    case 2:
+        return rgba(int(p*255), int(v*255), int(t*255), a);
+    case 3:
+        return rgba(int(p*255), int(q*255), int(v*255), a);
+    case 4:
+        return rgba(int(t*255), int(p*255), int(v*255), a);
+    case 5:
+        return rgba(int(v*255), int(p*255), int(q*255), a);
+    }
+    return rgba(-1, -1, -1, 0);
+}
+
+hsv rgb_to_hsv(rgba _rgba_)
+{
+    hsv dst;
+    double r = _rgba_.red / 255.;
+    double g = _rgba_.green / 255.;
+    double b = _rgba_.blue / 255.;
+
+    std::vector<double> elements = {r, g, b};
+
+    auto cmax = std::max_element(elements.begin(), elements.end());
+    auto cmin = std::min_element(elements.begin(), elements.end());
+
+    double delta = *cmax - *cmin;
+
+    if(delta == 0){
+        dst.hue = 0;
+    }
+    else if(*cmax == r){
+        dst.hue = 60 * (g - b) / delta;
+        dst.hue += (g < b ? 360 : 0);
+    }
+    else if (*cmax == g){
+        dst.hue = 60 * (b - r) / delta + 120;
+    }
+    else{ ///*cmax == b
+        dst.hue = 60 * (r - g) / delta + 240;
+    }
+
+    dst.saturation = (*cmax == 0 ? 0 : delta / *cmax) ;
+    dst.value = *cmax;
+    dst.alpha = _rgba_.alpha;
+
+    return dst;
+}
+
+color_map::color_map(const char* color_map_filepath)
 {
     fs::path p(color_map_filepath);
-
-    if(p.extension().string() == ".cm"){
-        load_cm(color_map_filepath);
-    }
-    else if(p.extension().string() == ".cpt"){
+    if (p.extension() == ".cpt") {
         load_cpt(color_map_filepath);
     }
-    else{
-        return;
+    else if (p.extension() == ".cm") {
+        load_cm(color_map_filepath);
+    }
+    else {
+        /// do nothing
     }
 }
 
-color_map_v2::~color_map_v2()
+color_map::color_map(const char* color_map_filepath, color_map_type type)
+{
+    switch (type)
+    {
+    case color_map_type::cm: {
+        load_cm(color_map_filepath);
+    }break;
+    case color_map_type::cpt: {
+        load_cpt(color_map_filepath);
+    }break;
+    default:
+        break;
+    }
+}
+
+color_map::~color_map()
 {
     if (node != nullptr) {
         delete[] node;
@@ -81,7 +322,7 @@ color_map_v2::~color_map_v2()
     }
 }
 
-funcrst color_map_v2::is_opened()
+funcrst color_map::is_opened()
 {
     std::string error_explain = "open failed, cause: ";
     bool return_bool = true;
@@ -105,14 +346,14 @@ funcrst color_map_v2::is_opened()
     return funcrst(return_bool, return_bool ? "is opened" : error_explain);
 }
 
-funcrst color_map_v2::mapping(float node_min, float node_max)
+funcrst color_map::mapping(float node_min, float node_max)
 {
     funcrst rst = is_opened();
     if (!rst){
         return funcrst(false, fmt::format("mapping failed, cause there is not open, '{}'.",rst.explain));
     }
 
-    int node_size = _msize(node) / sizeof(float);
+    int node_size = int(_msize(node) / sizeof(float));
     if (node_size < 2) {
         return funcrst(false, "node.size < 2, mapping failed.");
     }
@@ -134,9 +375,9 @@ funcrst color_map_v2::mapping(float node_min, float node_max)
     return funcrst(true,"mapping success.");
 }
 
-rgba color_map_v2::mapping_color(float value)
+rgba color_map::mapping_color(float value)
 {
-    int node_size = _msize(node) / sizeof(float);
+    int node_size = int(_msize(node) / sizeof(float));
     if (value <= node[0])return color[0];
     if (value > node[node_size - 1])return color[node_size];
     for (int i = 0; i < node_size - 1; i++) {
@@ -147,20 +388,22 @@ rgba color_map_v2::mapping_color(float value)
     return rgba(0, 0, 0, 0);
 }
 
-void color_map_v2::print_colormap()
+void color_map::print_colormap()
 {
-    int node_size = _msize(node) / sizeof(float);
-    std::cout << "node:\n";
-    for (int i = 0; i < node_size; i++) {
-        std::cout<<" node["<<i<<"]:" << node[i] << "\n";
+    int node_size =int(_msize(node) / sizeof(float));
+
+    auto rgba_to_str = [](rgba c){
+        return fmt::format("{},{},{},{}", c.red, c.green, c.blue, c.alpha);
+    };
+    for(int i=0; i< node_size; i++)
+    {
+        std::cout<<fmt::format("color[{}]: {:>20}\n", i, rgba_to_str(color[i]));
+        std::cout<<fmt::format("node[{}] : {:<20}\n", i, node[i]);
     }
-    std::cout << "\ncolor:\n";
-    for (int i = 0; i < node_size+1; i++) {
-        std::cout << " color[" << i << "]:" << color[i].red<<"," << color[i].green << "," << color[i].blue << "," << color[i].alpha  << "\n";
-    }
+    std::cout<<fmt::format("color[{}]: {:>20}\n", node_size, rgba_to_str(color[node_size]));
 }
 
-void color_map_v2::load_cm(const char* cm_path)
+void color_map::load_cm(const char* cm_path)
 {
     /// type:
     /// r g b
@@ -203,11 +446,12 @@ void color_map_v2::load_cm(const char* cm_path)
 
     return;
 }
-void color_map_v2::load_cpt(const char* cpt_path)
+void color_map::load_cpt(const char* cpt_path)
 {
     /// type:
-    /// #.....
-    /// value r g b value r g b
+    /// # COLOR_MODEL = RGB or hsv
+    /// # HARD_HINGE/SOFT_HINGE/CYCLIC/NULL
+    /// value r g b value r g b, spliter is " ", "/", or "-"
     /// ...
     
     std::ifstream ifs(cpt_path);
@@ -215,39 +459,209 @@ void color_map_v2::load_cpt(const char* cpt_path)
         return;
     }
     std::string str;
-    std::vector<std::tuple<float, rgba>> temp;
+    std::vector<std::string> cpt_list;
     while (std::getline(ifs, str)) {
-        if (str[0] == '#')
-            continue;
-        std::vector<std::string> vec_splited;
-        strSplit(str, vec_splited, " ");
-        if (vec_splited.size() < 4) {
-            continue;
-        }
-        else if (vec_splited.size() < 8) {
-            temp.push_back(std::make_tuple(stof(vec_splited[0]), rgba(stoi(vec_splited[1]), stoi(vec_splited[2]), stoi(vec_splited[3]))));
-        }
-        else {
-            temp.push_back(std::make_tuple(stof(vec_splited[0]), rgba(stoi(vec_splited[1]), stoi(vec_splited[2]), stoi(vec_splited[3]))));
-            temp.push_back(std::make_tuple(stof(vec_splited[4]), rgba(stoi(vec_splited[5]), stoi(vec_splited[6]), stoi(vec_splited[7]))));
-        }
+        std::transform(str.begin(), str.end(), str.begin(), ::tolower);
+        cpt_list.push_back(str);
     }
     ifs.close();
 
-    if (temp.size() == 0) {
+    // std::cout<<"cpt_list.size:"<<cpt_list.size()<<std::endl;
+
+    bool is_rgb =true;
+    std::string str_null = "";  /// null_color可能用不到
+    int line_start = -1, line_end = -1;
+    for(int i=0; i<cpt_list.size(); i++)
+    {
+        /// 确认RGB or HSV
+        if(cpt_list[i].find("color_model") != std::string::npos){
+            if(cpt_list[i].find("hsv") != std::string::npos)
+                is_rgb = false;
+        }
+
+        // /// null_color可能用不到
+        // if(cpt_list[i][0] == 'n'){
+        //     std::vector<std::string> tmp_str_vec;
+        //     strSplit(cpt_list[i], tmp_str_vec, " ");
+        //     if(tmp_str_vec.size()>1)
+        //         str_null = tmp_str_vec[1];
+        // }
+
+        /// 确认记录RGB(/HSV)值的起止区间行数
+        if(cpt_list[i][0] != '#' && line_start == -1){
+            line_start = i;
+        }
+
+        if(line_start != -1 && line_end == -1 && ( i + 1  == cpt_list.size() || 
+            (cpt_list[i+1][0] == '#' || cpt_list[i+1][0] == 'f' || cpt_list[i+1][0] == 'b' || cpt_list[i+1][0] == 'n'))){
+            line_end = i;
+            // std::cout<<"line_end:"<<cpt_list[i]<<std::endl;
+        }
+    }
+    std::string spliter = is_rgb ? "/" : "-";
+
+    // std::cout<<"is_rgb:"<<(is_rgb ? "true" : "false")<<std::endl;
+    // std::cout<<fmt::format("line_start:[{}], line_end:[{}]\n", line_start, line_end);
+
+    auto is_colorname = [](std::string str)->bool{
+        if(str[0] < 'a' || str[0] > 'z'){
+            return false;
+        }
+        return true;
+    };
+    auto colorname_to_rgb = [](std::string colorname, rgba& color)->bool{
+        auto rst = get_color_from_name(colorname);
+        if(!rst){
+            return false;
+        }
+        color = rgba(rst.explain);
+        return true;
+    };
+
+    auto colorstr_to_rgb = [is_rgb](std::string colorstr, std::string spliter, rgba& color)->bool{
+        std::vector<std::string> tmp_colorlist;
+        strSplit(colorstr, tmp_colorlist, spliter);
+        if(tmp_colorlist.size() < 3){
+            return false;
+        }
+        if(!is_rgb){
+            float h = std::stof(tmp_colorlist[0]);
+            float s = std::stof(tmp_colorlist[1]);
+            float v = std::stof(tmp_colorlist[2]);
+            rgba _rgb_ = hsv_to_rgb(hsv(h,s,v));
+            color = _rgb_;
+        }
+        else{
+            color.red = std::stoi(tmp_colorlist[0]);
+            color.green = std::stoi(tmp_colorlist[1]);
+            color.blue = std::stoi(tmp_colorlist[2]);
+        }
+        
+        
+        return true;
+    };
+
+    size_t splited_size; /// line_start行, 的列数
+    {
+        std::vector<std::string> tmp_strlist;
+        strSplits(cpt_list[line_start], tmp_strlist, {"\t", " "});
+        splited_size = tmp_strlist.size();
+    }
+    std::cout<<fmt::format("line_start:'{}', line_end:'{}'\n", line_start, line_end);
+    std::cout<<"cpt_list[line_start]:"<<cpt_list[line_start]<<std::endl;
+    std::cout<<"splited_size:"<<splited_size<<std::endl;
+
+    if(splited_size == 2){
+        node = new float[line_end - line_start + 1];
+        color = new rgba[line_end - line_start + 2];
+        for(int i=line_start; i<=line_end; i++)
+        {
+            std::vector<std::string> tmp_strlist;
+            strSplits(cpt_list[i], tmp_strlist, {"\t", " "});
+            float node_i = std::stof(tmp_strlist[0]);
+            rgba color_i;
+            if(is_colorname(tmp_strlist[1])){
+                if(!colorname_to_rgb(tmp_strlist[1], color_i)){
+                    /// explain:   eror_str = "...unknown colorname:{}..., tmp_strlist[1]";
+                    delete[] node; node = nullptr;
+                    delete[] color; color = nullptr;
+                    return;
+                }
+            }else{
+                if(!colorstr_to_rgb(tmp_strlist[1], spliter, color_i)){
+                    /// explain
+                    delete[] node; node = nullptr;
+                    delete[] color; color = nullptr;
+                    return ;
+                }
+            }
+            node[i - line_start] = node_i;
+            color[i - line_start] = color_i;
+            if(i == line_end){
+                color[i - line_start + 1] = color_i;
+            }
+        }
+    }
+    else if(splited_size == 4)
+    {
+        node = new float[line_end - line_start + 2];
+        color = new rgba[line_end - line_start + 3];
+        for(int i=line_start; i<=line_end; i++)
+        {
+            std::vector<std::string> tmp_strlist;
+            strSplits(cpt_list[i], tmp_strlist, {" ", "\t"});
+            float node_i = std::stof(tmp_strlist[0]);
+            rgba color_i;
+            if(is_colorname(tmp_strlist[1])){
+                if(!colorname_to_rgb(tmp_strlist[1], color_i)){
+                    /// explain:   eror_str = "...unknown colorname:{}..., tmp_strlist[1]";
+                    delete[] node; node = nullptr;
+                    delete[] color; color = nullptr;
+                    return;
+                }
+            }else{
+                if(!colorstr_to_rgb(tmp_strlist[1], spliter, color_i)){
+                    /// explain
+                    delete[] node; node = nullptr;
+                    delete[] color; color = nullptr;
+                    return ;
+                }
+            }
+            node[i - line_start] = node_i;
+            color[i - line_start + 1] = color_i;
+            if(i == line_start){
+                color[i - line_start] = color_i;
+            }
+            if(i == line_end){
+                rgba color_i2;
+                if(is_colorname(tmp_strlist[3])){
+                    if(!colorname_to_rgb(tmp_strlist[3], color_i2)){
+                        /// explain:   eror_str = "...unknown colorname:{}..., tmp_strlist[1]";
+                        delete[] node; node = nullptr;
+                        delete[] color; color = nullptr;
+                        return;
+                    }
+                }else{
+                    if(!colorstr_to_rgb(tmp_strlist[3], spliter, color_i2)){
+                        /// explain
+                        delete[] node; node = nullptr;
+                        delete[] color; color = nullptr;
+                        return ;
+                    }
+                }
+                node[i - line_start + 1] = std::stof(tmp_strlist[2]);
+                color[i - line_start + 2] = color_i2;
+            }
+        }
+    }
+    else{
+        /// explain
         return;
     }
 
-    node = new float[temp.size()];
-    color = new rgba[temp.size() + 1];
+    return;
+    /// 以空格为分隔符, 可能出现以下几种情况
+    /// 1. 0.1  255/255/255 0.2 0/0/255     -> size == 4            常规
+    /// 2. 0.1  white       0.2 0/0/255     -> size == 4            abyss.cpt
+    /// xxxxx 3. 0.1  255 255 255 0.2 0 0 255     -> size == 8
+    /// xxxxx 4. 0.1  white       0.2 0 0 255     -> size == 6
+    /// xxxxx 5. 0.1  255 255 255 0.2 blue        -> size == 6
+    /// 6. 0.1  white       0.2 blue        -> size == 4
+    /// 7. 0.1 white                        -> size == 2            categorical.cpt
+    /// 8. 0.1 255/255/255                  -> size == 2            actonS.cpt  bamakoS.cpt
+    /// 9. 0.1 255 255 255                  -> size == 4
+    /// 其中1.2.6.可使用同种方式处理, 3.使用另一种方式处理, 但4.5.有点麻烦, 需要判断第一个rgb或第二个rgb哪个使用单词代替
+    /// Note 1.: hsv: 0.1 0-1-1 1 360-1-1
+    /// Note 2.: 涛哥提供的最新cpt中, 不再有以空格为分隔符的情况, 所以3.4.5.9.四种情况都不存在
 
-    
+    /// cpt parser
 
-    for (size_t i = 0; i < temp.size(); i++) {
-        node[i] = std::get<0>(temp[i]);
-        color[i] = std::get<1>(temp[i]);
-    }
-    color[temp.size()] = color[temp.size() - 1];
+    ///  hsv对应分割符是"-", rgb的分割符大部分是"/", 但也见过空格" "
+    /// 有三行数字B F N 分别对应background, foreground, nan
+    /// 确认rgb or hsv
+
+    /// 获取有效数据区间(不带#的行数)
+
 }
 
 

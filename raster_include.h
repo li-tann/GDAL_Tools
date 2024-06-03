@@ -43,3 +43,7 @@ int trans_geoinformation(argparse::ArgumentParser* args,std::shared_ptr<spdlog::
 int image_cut_by_pixel(argparse::ArgumentParser* args,std::shared_ptr<spdlog::logger> logger);
 
 int image_overlay(argparse::ArgumentParser* args,std::shared_ptr<spdlog::logger> logger);
+
+int image_set_colortable(argparse::ArgumentParser* args,std::shared_ptr<spdlog::logger> logger);
+
+int data_convert_to_byte(argparse::ArgumentParser* args,std::shared_ptr<spdlog::logger> logger);

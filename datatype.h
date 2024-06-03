@@ -31,6 +31,8 @@ struct funcrst{
 
 
 void strSplit(std::string input, std::vector<std::string>& output, std::string split, bool clearVector = true);
+void strSplits(std::string input, std::vector<std::string>& output, std::vector<std::string> splitters, bool clearVector = true);
+
 double spend_time(decltype (std::chrono::system_clock::now()) start);
 double spend_time(decltype (std::chrono::system_clock::now()) start, decltype (std::chrono::system_clock::now()) end);
 void strTrim(string &s);
@@ -42,28 +44,56 @@ inline size_t dynamic_array_size(_Ty* array)
     return _msize(array) / sizeof(*array);
 }
 
+struct hsv;
 /// @brief RGBA
-/// r,g,b: 0~255, a:0~255(0是全透明, 255是实心)
+/// r,g,b: [0,255], a: [0,255]
 struct rgba {
 	int red, green, blue, alpha;
-	rgba():red(0), green(0), blue(0), alpha(0) {};
-	rgba(int r, int g, int b, int a) :
-		red(r > 255 ? 255 : (r < 0 ? 0 : r)), 
-		green(g > 255 ? 255 : (g < 0 ? 0 : g)),
-		blue(b > 255 ? 255 : (b < 0 ? 0 : b)),
-		alpha(a > 255 ? 255 : (a < 0 ? 0 : a)) {}
-	rgba(int r, int g, int b) :
-		red(r > 255 ? 255 : (r < 0 ? 0 : r)),
-		green(g > 255 ? 255 : (g < 0 ? 0 : g)),
-		blue(b > 255 ? 255 : (b < 0 ? 0 : b)),
-		alpha(255) {}
+	rgba();
+	rgba(int r, int g, int b, int a);
+	rgba(int r, int g, int b);
+	rgba(std::string hex);
+
+	std::string rgb_to_hex();
+	std::string rgba_to_hex();
+
+	hsv to_hsv();
+	void from_hsv(hsv);
 };
 
-class color_map_v2
+/// @brief hsv
+/// hue: [0,360], saturation, value:[0, 1], alpha [0,255]
+struct hsv{
+	double hue, saturation, value;
+	int alpha;
+	hsv();
+	hsv(double hue, double saturation, double value);
+
+	rgba to_rgb();
+	void from_rgb(rgba);
+};
+
+rgba hsv_to_rgb(hsv );
+
+hsv rgb_to_hsv(rgba );
+
+
+/// @brief print a color name, return a hex-color code (#RRGGBB)
+/// @param  color_name
+/// @return return funcrst(false,"#000000") or funcrst(true, "#ffffff"(the true color code)) 
+funcrst get_color_from_name(std::string color_name);
+
+enum class color_map_type{ 
+	cm,	/*255line: R G B*/
+	cpt	/*float R G B float R G B*/
+};
+
+class color_map
 {
 public:
-	color_map_v2(const char* color_map_filepath);
-	~color_map_v2();
+	color_map(const char* color_map_filepath);
+	color_map(const char* color_map_filepath, color_map_type);
+	~color_map();
 
 	/// @brief  如果node, color 数组异常, 返回false, 否则为true
 	/// @return 
@@ -90,6 +120,7 @@ public:
 private:
 	void load_cm(const char* cm_path);
 	void load_cpt(const char* cpt_path);
+
 };
 
 /// @brief 通过创建直方图, 对影像进行百分比拉伸, 并获取拉伸后的最值

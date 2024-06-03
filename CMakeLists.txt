@@ -40,6 +40,8 @@ add_executable(gdal_tool_raster
         transmit_geoinformation.cpp # 传递地理坐标
         image_cut_pixel.cpp         # 基于像素的影像裁剪
         image_overlay.cpp           # 影像叠加
+        image_set_colortable.cpp    # 影像添加color table (only for 8bit data)
+        data_convert_to_byte.cpp    # 影像转8bit图
         #获取图像在某条直线上的值
         )
 target_link_libraries(gdal_tool_raster PRIVATE GDAL::GDAL)

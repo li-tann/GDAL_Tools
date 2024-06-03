@@ -196,6 +196,29 @@ int main(int argc, char* argv[])
             .choices("normal","premultiple","mask","additive","multiple","screen");
     }
 
+    argparse::ArgumentParser sub_image_set_colortable("image_color");
+    sub_image_set_colortable.add_description("set colortable (only support 8bit data) to image");
+    {
+        sub_image_set_colortable.add_argument("img_path")
+            .help("image filepath (1 band, 8bit best)");
+
+        sub_image_set_colortable.add_argument("ct_path")
+            .help("color table filepath (cm or cpt), set 'clear' if you want clear color table within image");
+    }
+
+    argparse::ArgumentParser sub_data_to_8bit("data_to_8bit");
+    sub_data_to_8bit.add_description("convert data to 8bit");
+    {
+        sub_data_to_8bit.add_argument("img_path")
+            .help("image filepath (support byte, (u)short, (u)int, float, double)");
+
+        sub_data_to_8bit.add_argument("out_path")
+            .help("out_path, which extension could be changed if it's diff with 'enxtension' par");
+
+        sub_data_to_8bit.add_argument("extension")
+            .help("extension, support jpg, png, bmp and tif");
+    }
+
 
     std::map<argparse::ArgumentParser* , 
             std::function<int(argparse::ArgumentParser* args,std::shared_ptr<spdlog::logger>)>> 
@@ -211,6 +234,8 @@ int main(int argc, char* argv[])
         {&sub_trans_geoinfo,        trans_geoinformation},
         {&sub_image_cut_pixel,      image_cut_by_pixel},
         {&sub_image_overlay,        image_overlay},
+        {&sub_image_set_colortable, image_set_colortable},
+        {&sub_data_to_8bit,         data_convert_to_byte},
     };
 
     for(auto prog_map : parser_map_func){

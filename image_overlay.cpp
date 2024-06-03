@@ -2,18 +2,6 @@
 
 #include <omp.h>
 
-#define VAR_NAME(a)(#a)
-
-#define DYNAMIC_VAR_2(A,B) A##_##B
-#define DYNAMIC_VAR_3(A,B,C) A##_##B##_##C
-
-int rb_r = 1;
-int rb_g = 2;
-int rb_b = 3;
-int rb_a = 4;
-
-int x = DYNAMIC_VAR_2(rb,r);
-
 /// @brief 普通透明度混合, 融合后的图像看起来是前景图像和背景图像的平滑过渡
 /// @param up 
 /// @param low 

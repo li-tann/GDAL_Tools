@@ -73,7 +73,7 @@ funcrst rasterband_histogram_stretch(GDALRasterBand* rb, int band, int xsize, in
     rb->RasterIO(GF_Write, 0, 0, xsize, ysize, arr, xsize, ysize,datatype,0,0);
     delete[] arr;
 
-    return funcrst(true, fmt::format("band[{}].rasterband_histogram_stretch failed.", band));
+    return funcrst(true, fmt::format("band[{}].rasterband_histogram_stretch success.", band));
 }
 
 
