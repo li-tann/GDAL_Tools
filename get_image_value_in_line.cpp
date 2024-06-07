@@ -73,7 +73,7 @@ int main(int argc, char* argv[])
     float end_y = stof(splited_vec[3]);
     int temp_len = 0;
     if(splited_vec.size()>= 5){
-         temp_len = stoi(splited_vec[4]);
+        temp_len = stoi(splited_vec[4]);
     }
 
     int len = (int)sqrt(pow(start_x-end_x,2)+pow(start_y-end_y,2));

@@ -92,9 +92,9 @@ add_executable(unified_geoimage_merging unified_GeoImage_merging.cpp datatype.h 
 target_link_libraries(unified_geoimage_merging PRIVATE GDAL::GDAL)
 target_link_libraries(unified_geoimage_merging PRIVATE spdlog::spdlog spdlog::spdlog_header_only)
 if(OpenMP_FOUND)
-    target_link_libraries(unified_geoimage_merging PRIVATE OpenMP::OpenMP_CXX)
+        target_link_libraries(unified_geoimage_merging PRIVATE OpenMP::OpenMP_CXX)
 else()
-    message(FATAL_ERROR "openmp not found!")
+        message(FATAL_ERROR "openmp not found!")
 endif()
 set(EXE_LIST ${EXE_LIST} unified_geoimage_merging)
 

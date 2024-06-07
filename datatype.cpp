@@ -915,7 +915,7 @@ funcrst egm2008::write_height_anomaly_txt(const char* input_filepath, const char
             ofs<<", the coordinate is not a valid value."<<endl;
             continue;
         }
-  
+
         float abnormal = calcluate_height_anomaly_single_point(lon, lat);
         float corrected_height = get_corrected_height(hei, abnormal, sys);
         ofs<<fmt::format(", {}, {}", abnormal, corrected_height)<<std::endl;

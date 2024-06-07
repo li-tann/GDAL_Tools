@@ -10,10 +10,10 @@ if(len(sys.argv)>=3):
     end=sys.argv[3]
 else:
     print('''
-          argv[1]: imgpath;
-          argv[2]: start_point, x,y;
-          argv[3]:   end_point, x,y;
-          ''')
+        argv[1]: imgpath;
+        argv[2]: start_point, x,y;
+        argv[3]:   end_point, x,y;
+        ''')
 
 gdal.UseExceptions()
 

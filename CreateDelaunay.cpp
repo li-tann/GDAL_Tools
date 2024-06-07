@@ -80,7 +80,7 @@ int main(int argc, char* argv[])
 
     double* x = new double[vec_x.size()];
     double* y = new double[vec_x.size()];
-   
+
     for(int i=0; i<vec_x.size(); i++){
         x[i] = vec_x[i];
         y[i] = vec_y[i];

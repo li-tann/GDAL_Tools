@@ -114,7 +114,7 @@ public:
 	/// color[0]: out_of_range(left) ; 
 	/// color[n+1]: out_of_range(right)
 	/// 向上兼容关系, 即 if( node[0] < value  && value <= node[1] ) color = color[1]
-	 
+
 	void print_colormap();
 
 private:
