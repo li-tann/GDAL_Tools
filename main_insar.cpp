@@ -61,7 +61,7 @@ int main(int argc, char* argv[])
     }
 
     argparse::ArgumentParser sub_pseudo_correlation("pseudo");
-    sub_pseudo_correlation.add_description("filter insar data like int(cfloat32), with method baran-filter.");
+    sub_pseudo_correlation.add_description("calculate the pseudo correlation data, from complex data.");
     {
         sub_pseudo_correlation.add_argument("input_path")
             .help("input int file path, with fcomplex datatype.");
@@ -73,6 +73,27 @@ int main(int argc, char* argv[])
             .help("the window size used to calculate pseudo correlation, odd integer, default is 5.")
             .scan<'i',int>()
             .default_value("5"); 
+    }
+
+    argparse::ArgumentParser sub_interf("interf");
+    sub_pseudo_correlation.add_description("conjugate multiplication of data and filtering along azimuth and slant range direction.");
+    {
+        sub_pseudo_correlation.add_argument("master_data_path")
+            .help("master fcomplex data, with fcomplex datatype.");
+
+        sub_pseudo_correlation.add_argument("slave_data_path")
+            .help("slave fcomplex data, with float datatype.");
+        
+        sub_pseudo_correlation.add_argument("output_interf_path")
+            .help("output interf data (hase been conjugate multiplicated)."); 
+
+        sub_pseudo_correlation.add_argument("-a","--azimuth_pars")
+            .help("azimuth parameters in the following order: mas_az_bw mas_az_freq sla_az_bw sla_az_freq.");
+
+        sub_pseudo_correlation.add_argument("-r","--range_pars")
+            .help("slant-range parameters in the following order: mas_rg_bw mas_rg_freq sla_rg_bw sla_rg_freq.");
+
+    /// TODO: 创建相关的函数
     }
 
     std::map<argparse::ArgumentParser* , 

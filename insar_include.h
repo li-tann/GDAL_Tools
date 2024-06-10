@@ -35,4 +35,6 @@ int filter_goldstein_zhao(argparse::ArgumentParser* args, std::shared_ptr<spdlog
 
 int filter_goldstein_baran(argparse::ArgumentParser* args, std::shared_ptr<spdlog::logger> logger);
 
+int pseudo_correlation(argparse::ArgumentParser* args, std::shared_ptr<spdlog::logger> logger);
+
 #endif
