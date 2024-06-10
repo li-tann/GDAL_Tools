@@ -1,6 +1,6 @@
 /**
  * @file main_vector.cpp
- * @author your name (you@domain.com)
+ * @author li-tann (li-tann@github.com)
  * @brief 
  * @version 0.1
  * @date 2024-05-01

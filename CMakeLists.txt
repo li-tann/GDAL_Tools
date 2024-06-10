@@ -65,6 +65,23 @@ target_link_libraries(gdal_tool_vector PRIVATE argparse::argparse)
 set(EXE_LIST ${EXE_LIST} gdal_tool_vector)
 
 
+add_executable(gdal_tool_insar
+        main_insar.cpp
+        datatype.h
+        datatype.cpp
+        insar_include.h
+        goldstein.cpp                   # goldstein 滤波        
+        goldstein_zhao.cpp              # goldstein-zhao 滤波
+        goldstein_baran.cpp             # goldstrin-baran 滤波
+        pseudo_correlation.cpp          # 伪相干性计算
+        )
+target_link_libraries(gdal_tool_insar PRIVATE GDAL::GDAL)
+target_link_libraries(gdal_tool_insar PRIVATE spdlog::spdlog spdlog::spdlog_header_only)
+target_link_libraries(gdal_tool_insar PRIVATE argparse::argparse)
+target_link_libraries(gdal_tool_insar PRIVATE FFTW3::fftw3f)
+target_link_libraries(gdal_tool_insar PRIVATE OpenMP::OpenMP_CXX)
+set(EXE_LIST ${EXE_LIST} gdal_tool_insar)
+
 #debug config 测试
 add_executable(debug_config_test debug_config_test.cpp)
 
