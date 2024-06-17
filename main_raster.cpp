@@ -139,7 +139,7 @@ int main(int argc, char* argv[])
             .help("scale of over-resample.")
             .scan<'g',double>();
 
-         sub_over_resample.add_argument("method")
+        sub_over_resample.add_argument("method")
             .help("over-resample method, use int to represent method : 0,nearst; 1,bilinear; 2,cubic; 3,cubicSpline; 4,lanczos(sinc).; 5,average.")
             .scan<'i',int>()
             .default_value("1")
@@ -271,7 +271,7 @@ int main(int argc, char* argv[])
         config += std::string(argv[i]) + " ";
     }
     PRINT_LOGGER(my_logger, info, "gdal_tool_raster start");
-    PRINT_LOGGER(my_logger, info, fmt::format("config:[{}]",config));
+    PRINT_LOGGER(my_logger, info, fmt::format("config:\n[{}]",config));
     auto time_start = std::chrono::system_clock::now();
 
     for(auto& iter : parser_map_func){

@@ -115,7 +115,7 @@ int main(int argc, char* argv[])
         config += std::string(argv[i]) + " ";
     }
     PRINT_LOGGER(my_logger, info, "gdal_tool_vector start");
-    PRINT_LOGGER(my_logger, info, fmt::format("config:[{}]",config));
+    PRINT_LOGGER(my_logger, info, fmt::format("config:\n[{}]",config));
     auto time_start = std::chrono::system_clock::now();
 
     for(auto& iter : parser_map_func){

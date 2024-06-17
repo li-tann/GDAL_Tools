@@ -76,25 +76,52 @@ int main(int argc, char* argv[])
     }
 
     argparse::ArgumentParser sub_interf("interf");
-    sub_pseudo_correlation.add_description("conjugate multiplication of data and filtering along azimuth and slant range direction.");
+    sub_interf.add_description("conjugate multiplication of data and filtering along azimuth and slant range direction.");
     {
-        sub_pseudo_correlation.add_argument("master_data_path")
+        sub_interf.add_argument("master_data_path")
             .help("master fcomplex data, with fcomplex datatype.");
 
-        sub_pseudo_correlation.add_argument("slave_data_path")
+        sub_interf.add_argument("slave_data_path")
             .help("slave fcomplex data, with float datatype.");
         
-        sub_pseudo_correlation.add_argument("output_interf_path")
+        sub_interf.add_argument("output_interf_path")
             .help("output interf data (hase been conjugate multiplicated)."); 
 
-        sub_pseudo_correlation.add_argument("-a","--azimuth_pars")
+        sub_interf.add_argument("-a","--azimuth_pars")
             .help("azimuth parameters in the following order: mas_az_bw mas_az_freq sla_az_bw sla_az_freq.");
 
-        sub_pseudo_correlation.add_argument("-r","--range_pars")
+        sub_interf.add_argument("-r","--range_pars")
             .help("slant-range parameters in the following order: mas_rg_bw mas_rg_freq sla_rg_bw sla_rg_freq.");
 
     /// TODO: 创建相关的函数
     }
+
+    argparse::ArgumentParser sub_8bitdata("8bitdata");
+    sub_8bitdata.add_description("create 8-bit data, base on slc or mli data.");
+    {
+        sub_8bitdata.add_argument("input_path")
+            .help("valid datatype include short, float, scomplex, fcomplex.");
+
+        sub_8bitdata.add_argument("output_path")
+            .help(" valid extension include, .tif(1b+ct), .bmp(1b+ct), .jpg(4b), .png(4b)."); 
+
+        sub_8bitdata.add_argument("scale")
+            .help("dst_value = scale * (src_value - average)^ ex")
+            .scan<'g',double>()
+            .default_value("1");
+
+        sub_8bitdata.add_argument("ex")
+            .help("dst_value = scale * (src_value - average)^ ex")
+            .scan<'g',double>()
+            .default_value("0.35");
+
+        sub_8bitdata.add_argument("-t","--type")
+            .help("this parameter is useful, only when datatype of input_path is complex.")
+            .choices("power","phase");
+
+    /// TODO: 创建相关的函数
+    }
+
 
     std::map<argparse::ArgumentParser* , 
             std::function<int(argparse::ArgumentParser* args,std::shared_ptr<spdlog::logger>)>> 
@@ -136,7 +163,7 @@ int main(int argc, char* argv[])
         config += std::string(argv[i]) + " ";
     }
     PRINT_LOGGER(my_logger, info, "gdal_tool_insar start");
-    PRINT_LOGGER(my_logger, info, fmt::format("config:[{}]",config));
+    PRINT_LOGGER(my_logger, info, fmt::format("config:\n[{}]",config));
     auto time_start = std::chrono::system_clock::now();
 
     for(auto& iter : parser_map_func){
