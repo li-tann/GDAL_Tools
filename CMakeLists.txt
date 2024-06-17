@@ -23,25 +23,25 @@ set(EXE_LIST)
 
 # main_vector & main_raster
 add_executable(gdal_tool_raster
-        main_raster.cpp
-        datatype.h
-        datatype.cpp
-        raster_include.h     
-        value_translate.cpp         # A转换为B
-        template_nan_convert_to.h       # template A转换为B
-        set_nodata_value.cpp        # 设置NoData值
-        statistics.cpp              # 栅格信息统计
-        histogram_stretch.cpp       # 栅格百分比拉伸
-        histogram_statistics.cpp    # 直方图统计
-        template_stretch.h              # template 栅格百分比拉伸 & 直方图统计
-        vrt_trans.cpp               # vrt与tif格式相互转换
-        binary_write.h                  # template vrt与tif格式相互转换
-        over_resample.cpp           # 过采样
-        transmit_geoinformation.cpp # 传递地理坐标
-        image_cut_pixel.cpp         # 基于像素的影像裁剪
-        image_overlay.cpp           # 影像叠加
-        image_set_colortable.cpp    # 影像添加color table (only for 8bit data)
-        data_convert_to_byte.cpp    # 影像转8bit图
+        src/main_raster.cpp
+        src/datatype.h
+        src/datatype.cpp
+        src/raster_include.h     
+        src/value_translate.cpp         # A转换为B
+        src/template_nan_convert_to.h       # template A转换为B
+        src/set_nodata_value.cpp        # 设置NoData值
+        src/statistics.cpp              # 栅格信息统计
+        src/histogram_stretch.cpp       # 栅格百分比拉伸
+        src/histogram_statistics.cpp    # 直方图统计
+        src/template_stretch.h              # template 栅格百分比拉伸 & 直方图统计
+        src/vrt_trans.cpp               # vrt与tif格式相互转换
+        src/binary_write.h                  # template vrt与tif格式相互转换
+        src/over_resample.cpp           # 过采样
+        src/transmit_geoinformation.cpp # 传递地理坐标
+        src/image_cut_pixel.cpp         # 基于像素的影像裁剪
+        src/image_overlay.cpp           # 影像叠加
+        src/image_set_colortable.cpp    # 影像添加color table (only for 8bit data)
+        src/data_convert_to_byte.cpp    # 影像转8bit图
         #获取图像在某条直线上的值
         )
 target_link_libraries(gdal_tool_raster PRIVATE GDAL::GDAL)
@@ -51,13 +51,13 @@ target_link_libraries(gdal_tool_raster PRIVATE OpenMP::OpenMP_CXX)
 set(EXE_LIST ${EXE_LIST} gdal_tool_raster)
 
 add_executable(gdal_tool_vector
-        main_vector.cpp
-        datatype.h
-        datatype.cpp
-        vector_include.h
-        point_with_shapefile.cpp        # 判断点是否在shp文件中
-        create_polygon_shapefile.cpp    # 创建多边形shp文件
-        create_point_shapefile.cpp      # 创建点shp文件  创建3维点shp文件
+        src/main_vector.cpp
+        src/datatype.h
+        src/datatype.cpp
+        src/vector_include.h
+        src/point_with_shapefile.cpp        # 判断点是否在shp文件中
+        src/create_polygon_shapefile.cpp    # 创建多边形shp文件
+        src/create_point_shapefile.cpp      # 创建点shp文件  创建3维点shp文件
         )
 target_link_libraries(gdal_tool_vector PRIVATE GDAL::GDAL)
 target_link_libraries(gdal_tool_vector PRIVATE spdlog::spdlog spdlog::spdlog_header_only)
@@ -66,14 +66,14 @@ set(EXE_LIST ${EXE_LIST} gdal_tool_vector)
 
 
 add_executable(gdal_tool_insar
-        main_insar.cpp
-        datatype.h
-        datatype.cpp
-        insar_include.h
-        goldstein.cpp                   # goldstein 滤波        
-        goldstein_zhao.cpp              # goldstein-zhao 滤波
-        goldstein_baran.cpp             # goldstrin-baran 滤波
-        pseudo_correlation.cpp          # 伪相干性计算
+        src/main_insar.cpp
+        src/datatype.h
+        src/datatype.cpp
+        src/insar_include.h
+        src/goldstein.cpp                   # goldstein 滤波        
+        src/goldstein_zhao.cpp              # goldstein-zhao 滤波
+        src/goldstein_baran.cpp             # goldstrin-baran 滤波
+        src/pseudo_correlation.cpp          # 伪相干性计算
         )
 target_link_libraries(gdal_tool_insar PRIVATE GDAL::GDAL)
 target_link_libraries(gdal_tool_insar PRIVATE spdlog::spdlog spdlog::spdlog_header_only)
@@ -83,18 +83,18 @@ target_link_libraries(gdal_tool_insar PRIVATE OpenMP::OpenMP_CXX)
 set(EXE_LIST ${EXE_LIST} gdal_tool_insar)
 
 #debug config 测试
-add_executable(debug_config_test debug_config_test.cpp)
+add_executable(debug_config_test src/debug_config_test.cpp)
 
 
 #创建delaunay
-add_executable(create_delaunay CreateDelaunay.cpp datatype.h datatype.cpp)
+add_executable(create_delaunay src/CreateDelaunay.cpp src/datatype.h src/datatype.cpp)
 target_link_libraries(create_delaunay PRIVATE GDAL::GDAL)
 target_link_libraries(create_delaunay PRIVATE spdlog::spdlog spdlog::spdlog_header_only)
 target_link_libraries(create_delaunay PRIVATE argparse::argparse)
 set(EXE_LIST ${EXE_LIST} create_delaunay)
 
 # duqu EGM2008文件, 并写出
-add_executable(read_egm2008 read_egm2008.cpp datatype.cpp)
+add_executable(read_egm2008 src/read_egm2008.cpp src/datatype.cpp)
 target_include_directories( read_egm2008 
                                 INTERFACE 
                                 ${CMAKE_CURRENT_SOURCE_DIR})
@@ -105,7 +105,7 @@ target_link_libraries(read_egm2008 PRIVATE argparse::argparse)
 set(EXE_LIST ${EXE_LIST} read_egm2008)
 
 # 同一坐标系统的分块数据拼接
-add_executable(unified_geoimage_merging unified_GeoImage_merging.cpp datatype.h datatype.cpp)
+add_executable(unified_geoimage_merging src/unified_GeoImage_merging.cpp src/datatype.h src/datatype.cpp)
 target_link_libraries(unified_geoimage_merging PRIVATE GDAL::GDAL)
 target_link_libraries(unified_geoimage_merging PRIVATE spdlog::spdlog spdlog::spdlog_header_only)
 if(OpenMP_FOUND)
@@ -116,14 +116,14 @@ endif()
 set(EXE_LIST ${EXE_LIST} unified_geoimage_merging)
 
 #获取图像在某条直线上的值
-add_executable(get_image_value_in_line get_image_value_in_line.cpp datatype.h datatype.cpp)
+add_executable(get_image_value_in_line src/get_image_value_in_line.cpp src/datatype.h src/datatype.cpp)
 target_link_libraries(get_image_value_in_line PRIVATE GDAL::GDAL)
 target_link_libraries(get_image_value_in_line PRIVATE spdlog::spdlog spdlog::spdlog_header_only)
 target_link_libraries(get_image_value_in_line PRIVATE fmt::fmt)
 set(EXE_LIST ${EXE_LIST} get_image_value_in_line)
 
 #GDAL虚拟文件系统测试
-add_executable(virtual_files_system_test virtual_files_system_test.cpp datatype.h datatype.cpp)
+add_executable(virtual_files_system_test src/virtual_files_system_test.cpp src/datatype.h src/datatype.cpp)
 target_link_libraries(virtual_files_system_test PRIVATE GDAL::GDAL)
 target_link_libraries(virtual_files_system_test PRIVATE spdlog::spdlog spdlog::spdlog_header_only)
 target_link_libraries(virtual_files_system_test PRIVATE fmt::fmt)
@@ -132,7 +132,7 @@ target_link_libraries(virtual_files_system_test PRIVATE fmt::fmt)
 
 
 #LandSAR 将存储PS点的tif转换为栅格图tif
-add_executable(landsar_ps_points_transto_tif landsar_ps_points_transto_tif.cpp)
+add_executable(landsar_ps_points_transto_tif src/landsar_ps_points_transto_tif.cpp)
 target_link_libraries(landsar_ps_points_transto_tif PRIVATE GDAL::GDAL)
 # set(EXE_LIST ${EXE_LIST} landsar_ps_points_transto_tif)
 

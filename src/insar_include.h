@@ -28,6 +28,7 @@ using std::cout, std::cin, std::endl, std::string, std::vector, std::map;
     spdlog::TYPE(MASSAGE);                   
 #endif
 
+funcrst conv_2d(float* arr_in, int width, int height, float* arr_out, float* kernel, int size);
 
 int filter_goldstein(argparse::ArgumentParser* args, std::shared_ptr<spdlog::logger> logger);
 
