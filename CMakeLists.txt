@@ -42,6 +42,7 @@ add_executable(gdal_tool_raster
         src/image_overlay.cpp           # 影像叠加
         src/image_set_colortable.cpp    # 影像添加color table (only for 8bit data)
         src/data_convert_to_byte.cpp    # 影像转8bit图
+        src/grid_interp.cpp             # 基于离散点生成栅格图
         #获取图像在某条直线上的值
         )
 target_link_libraries(gdal_tool_raster PRIVATE GDAL::GDAL)
