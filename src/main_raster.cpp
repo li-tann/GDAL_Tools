@@ -219,6 +219,20 @@ int main(int argc, char* argv[])
             .help("extension, support jpg, png, bmp and tif");
     }
 
+    argparse::ArgumentParser sub_grid_interp("grid_interp");
+    sub_grid_interp.add_description("create a grid raster by some discrete points");
+    {
+        sub_grid_interp.add_argument("points_path")
+            .help("points filepath, print x,y,z in per line");
+
+        sub_grid_interp.add_argument("spacing")
+            .help("spacing(resolution) of output raster image.")
+            .scan<'g',double>();
+
+        sub_grid_interp.add_argument("raster_path")
+            .help("output raster filepath, which is a tiff image with 1 band, in float datatype.");
+    }
+
 
     std::map<argparse::ArgumentParser* , 
             std::function<int(argparse::ArgumentParser* args,std::shared_ptr<spdlog::logger>)>> 
@@ -236,6 +250,7 @@ int main(int argc, char* argv[])
         {&sub_image_overlay,        image_overlay},
         {&sub_image_set_colortable, image_set_colortable},
         {&sub_data_to_8bit,         data_convert_to_byte},
+        {&sub_grid_interp,          grid_interp},
     };
 
     for(auto prog_map : parser_map_func){

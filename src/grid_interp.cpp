@@ -51,14 +51,23 @@ int grid_interp(argparse::ArgumentParser* args, std::shared_ptr<spdlog::logger> 
         if(arr_y[i] < min_y) min_y = arr_y[i];
     }
     points.clear();
+    std::cout<<"points_num:"<<points_num<<std::endl;
+    // for(int i=0; i< points_num; i++){
+    //     std::cout<<fmt::format("[{}],{},{},{}\n",i,arr_x[i],arr_y[i],arr_z[i]);
+    // }
 
     max_x = floor(max_x);
     max_y = floor(max_y);
     min_x = ceil(min_x);
     min_y = ceil(min_y);
 
+    std::cout<<fmt::format("min_x:{}, max_x:{}, min_y:{}, max_y:{}\n", min_x, max_x, min_y, max_y);
+
+
     int height = (max_y - min_y) / spacing;
     int width  = (max_x - min_x) / spacing;
+
+    std::cout<<fmt::format("height:{}, width:{}\n", height, width);
 
     float* arr_out = new float[height * width];
 
@@ -73,12 +82,15 @@ int grid_interp(argparse::ArgumentParser* args, std::shared_ptr<spdlog::logger> 
 	}
 
 
+    PRINT_LOGGER(logger, info, "GDALGridCreate processing.");
+
     /// radius, 需要根据实际的DEM尺寸与SAR尺寸做对比
-	GDALGridInverseDistanceToAPowerOptions options;
-	options.dfPower = 2;
-	options.dfRadius1 = 20;
-	options.dfRadius2 = 15;
-	options.dfNoDataValue = NAN;
+	GDALGridInverseDistanceToAPowerOptions* options = new GDALGridInverseDistanceToAPowerOptions();
+	options->dfPower = 2;
+	options->dfRadius1 = 40;
+	options->dfRadius2 = 35;
+    options->nSizeOfStructure = sizeof(GDALGridInverseDistanceToAPowerOptions);
+	// options->dfNoDataValue = NAN;
 
 	int current_percentage = -1;
 	auto grid_process = [&](double dfComplete, const char *pszMessage, void *pProgressArg){
@@ -92,10 +104,11 @@ int grid_interp(argparse::ArgumentParser* args, std::shared_ptr<spdlog::logger> 
 	
 	/// lon在SAR坐标系下的分布
 	CPLErr err;
-	err = GDALGridCreate(GDALGridAlgorithm::GGA_InverseDistanceToAPower, &options, 
+	err = GDALGridCreate(GDALGridAlgorithm::GGA_InverseDistanceToAPower, options, 
 						points_num, arr_x, arr_y, arr_z,
-						min_x, max_x, min_y, max_y, width, height, GDT_Float32, arr_out, (GDALProgressFunc&)grid_process, NULL);
+						min_x, max_x, min_y, max_y, width, height, GDT_Float32, arr_out, /*(GDALProgressFunc&)grid_process*/ NULL, NULL);
 
+    delete options;
     delete[] arr_x, arr_y, arr_z;
 	if(err != CE_None){
 		delete[] arr_out;
@@ -104,7 +117,13 @@ int grid_interp(argparse::ArgumentParser* args, std::shared_ptr<spdlog::logger> 
         return -4;
 	}
 
+    PRINT_LOGGER(logger, info, "save GDALGridCreate result.");
+
     ds_out->GetRasterBand(1)->RasterIO(GF_Write, 0, 0, width, height, arr_out, width, height, GDT_Float32, 0, 0);
+    double gt[6];
+    gt[0] = min_x; gt[1] = spacing; gt[2] = 0;
+    gt[3] = -min_y; gt[4] = 0; gt[5] = -spacing;
+    ds_out->SetGeoTransform(gt);
     delete[] arr_out;
     GDALClose(ds_out);
 

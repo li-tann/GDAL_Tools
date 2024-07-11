@@ -47,3 +47,5 @@ int image_overlay(argparse::ArgumentParser* args,std::shared_ptr<spdlog::logger>
 int image_set_colortable(argparse::ArgumentParser* args,std::shared_ptr<spdlog::logger> logger);
 
 int data_convert_to_byte(argparse::ArgumentParser* args,std::shared_ptr<spdlog::logger> logger);
+
+int grid_interp(argparse::ArgumentParser* args, std::shared_ptr<spdlog::logger> logger);
