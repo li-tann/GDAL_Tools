@@ -12,3 +12,6 @@ vcruntime140_1d.dll
 /Testing
 
 install
+
+
+*/__pycache__
