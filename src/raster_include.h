@@ -49,3 +49,5 @@ int image_set_colortable(argparse::ArgumentParser* args,std::shared_ptr<spdlog::
 int data_convert_to_byte(argparse::ArgumentParser* args,std::shared_ptr<spdlog::logger> logger);
 
 int grid_interp(argparse::ArgumentParser* args, std::shared_ptr<spdlog::logger> logger);
+
+int band_extract(argparse::ArgumentParser* args, std::shared_ptr<spdlog::logger> logger);

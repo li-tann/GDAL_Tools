@@ -233,6 +233,19 @@ int main(int argc, char* argv[])
             .help("output raster filepath, which is a tiff image with 1 band, in float datatype.");
     }
 
+    argparse::ArgumentParser sub_band_extract("band_extract");
+    sub_band_extract.add_description("extract a single band and create a tif format data.");
+    {
+        sub_band_extract.add_argument("src")
+            .help("src image");
+
+        sub_band_extract.add_argument("bands")
+            .help("bands number list, like: 1 2 3... ")
+            .scan<'i',int>()
+            .nargs(argparse::nargs_pattern::at_least_one);
+    }
+    
+
 
     std::map<argparse::ArgumentParser* , 
             std::function<int(argparse::ArgumentParser* args,std::shared_ptr<spdlog::logger>)>> 
@@ -251,6 +264,7 @@ int main(int argc, char* argv[])
         {&sub_image_set_colortable, image_set_colortable},
         {&sub_data_to_8bit,         data_convert_to_byte},
         {&sub_grid_interp,          grid_interp},
+        {&sub_band_extract,         band_extract},
     };
 
     for(auto prog_map : parser_map_func){
