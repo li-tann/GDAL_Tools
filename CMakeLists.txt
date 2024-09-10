@@ -149,6 +149,8 @@ file(COPY_FILE
         ${CMAKE_CURRENT_LIST_DIR}/data/Und_min10x10_egm2008_isw=82_WGS84_TideFree_SE 
         ${CMAKE_CURRENT_LIST_DIR}/build/${CMAKE_BUILD_TYPE}/data/Und_min10x10_egm2008_isw=82_WGS84_TideFree_SE ONLY_IF_DIFFERENT)
 
+file(COPY_FILE ${CMAKE_CURRENT_LIST_DIR}/scripts/add_path_template.ps1 ${CMAKE_CURRENT_LIST_DIR}/build/${CMAKE_BUILD_TYPE}/add_path_template.ps1 ONLY_IF_DIFFERENT)
+
 # INSTALL
 
 set(CMAKE_INSTALL_PREFIX ${CMAKE_CURRENT_LIST_DIR}/install)
