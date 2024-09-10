@@ -1,5 +1,19 @@
 #include "raster_include.h"
 
+/*
+    argparse::ArgumentParser sub_band_extract("band_extract");
+    sub_band_extract.add_description("extract a single band and create a tif format data.");
+    {
+        sub_band_extract.add_argument("src")
+            .help("src image");
+
+        sub_band_extract.add_argument("bands")
+            .help("bands number list, like: 1 2 3... ")
+            .scan<'i',int>()
+            .nargs(argparse::nargs_pattern::at_least_one);
+    }
+*/
+
 int band_extract(argparse::ArgumentParser* args, std::shared_ptr<spdlog::logger> logger)
 {
     std::string src_path  = args->get<string>("src");
