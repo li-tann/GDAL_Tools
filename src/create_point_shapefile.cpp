@@ -4,6 +4,10 @@
     sub_create_point_shp.add_argument("output_shapefile")
         .help("output shapefile filepath");
 
+    sub_create_2dpoint_shp.add_argument("input_unit")
+            .help("pixel or geo")
+            .choices("pixel", "geo");
+
     sub_create_point_shp.add_argument("-p", "--points")
         .help("point like: 'lon,lat'.")
         .nargs(argparse::nargs_pattern::at_least_one);
@@ -16,7 +20,13 @@
 int create_2dpoint_shp(argparse::ArgumentParser* args, std::shared_ptr<spdlog::logger> logger)
 {
     string shp_file = args->get<string>("output_shapefile");
+    string unit = args->get<string>("input_unit");
     vector<xy> points;
+
+    double flag = 1;
+    if(unit == "pixel"){
+        flag = -1;
+    }
 
     if(args->is_used("--file")){
         string filepath = args->get<string>("--file");
@@ -35,7 +45,7 @@ int create_2dpoint_shp(argparse::ArgumentParser* args, std::shared_ptr<spdlog::l
                     strSplit(str, splited, ",", true);
                     if(splited.size() < 2)
                         continue;
-                    points.push_back(xy(stod(splited[0]), stod(splited[1])));
+                    points.push_back(xy(stod(splited[1]), stod(splited[0])));
                 }
             }
         }
@@ -49,7 +59,7 @@ int create_2dpoint_shp(argparse::ArgumentParser* args, std::shared_ptr<spdlog::l
         for(const auto& str : str_points){
             strSplit(str, splited, ",", true);
             if(splited.size()>1){
-                points.push_back(xy(stod(splited[0]), stod(splited[1])));
+                points.push_back(xy(stod(splited[1]), stod(splited[0])));
             }
         }
     }
@@ -101,7 +111,7 @@ int create_2dpoint_shp(argparse::ArgumentParser* args, std::shared_ptr<spdlog::l
         OGRFeature* poFeature = OGRFeature::CreateFeature(layer->GetLayerDefn());
         // std::cout<<fmt::format("[{}]:{},{}",i,p.x,p.y)<<std::endl;
         point.setX(p.x);
-        point.setY(p.y);
+        point.setY(p.y * flag);
         poFeature->SetField("ID", i++);
         poFeature->SetGeometry(&point);
         if (layer->CreateFeature(poFeature) != OGRERR_NONE) {

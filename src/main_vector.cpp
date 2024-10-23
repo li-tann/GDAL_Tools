@@ -52,13 +52,17 @@ int main(int argc, char* argv[])
     {
         sub_create_2dpoint_shp.add_argument("output_shapefile")
             .help("output shapefile filepath");
+        
+        sub_create_2dpoint_shp.add_argument("input_unit")
+            .help("pixel or geo")
+            .choices("pixel", "geo");
 
         sub_create_2dpoint_shp.add_argument("-p", "--points")
-            .help("point like: 'lon,lat'.")
+            .help("point like: 'lat,lon'.")
             .nargs(argparse::nargs_pattern::at_least_one);
 
         sub_create_2dpoint_shp.add_argument("-f", "--file")
-            .help("a file that records points, with each line representing a point like: 'lon,lat'.");
+            .help("a file that records points, with each line representing a point like: 'lat,lon'.");
     }
 
     argparse::ArgumentParser sub_create_3dpoint_shp("create_3dpoint_shp");
