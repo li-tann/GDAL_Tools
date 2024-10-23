@@ -244,6 +244,26 @@ int main(int argc, char* argv[])
             .scan<'i',int>()
             .nargs(argparse::nargs_pattern::at_least_one);
     }
+
+    argparse::ArgumentParser sub_points_extract("pnts_extract");
+    sub_points_extract.add_description("extract important points in the first band of raster image (DEM), with datatype like short or float. ");
+    {
+        sub_points_extract.add_argument("input")
+            .help("raster image (dem), with short or float datatype.");
+
+        sub_points_extract.add_argument("val_thres")
+            .help("value threshold, compare with the abs diff between the cur_point's value and mean of surrounding points's value.")
+            .scan<'g',double>();
+
+        sub_points_extract.add_argument("output_txt")
+            .help("txt output filepath, like: pos0.y, pos0.x\\n pos1.y, pos1.x\\n... ");
+
+        sub_points_extract.add_argument("output_type")
+            .help("the unit of output points, like pixel or degree (same with geotransform's unit) (input 'pixel' or 'geo').")
+            .choices("pixel","geo");
+
+        
+    }
     
 
 
@@ -265,6 +285,7 @@ int main(int argc, char* argv[])
         {&sub_data_to_8bit,         data_convert_to_byte},
         {&sub_grid_interp,          grid_interp},
         {&sub_band_extract,         band_extract},
+        {&sub_points_extract,       import_points_extract},
     };
 
     for(auto prog_map : parser_map_func){

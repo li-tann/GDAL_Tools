@@ -51,3 +51,5 @@ int data_convert_to_byte(argparse::ArgumentParser* args,std::shared_ptr<spdlog::
 int grid_interp(argparse::ArgumentParser* args, std::shared_ptr<spdlog::logger> logger);
 
 int band_extract(argparse::ArgumentParser* args, std::shared_ptr<spdlog::logger> logger);
+
+int import_points_extract(argparse::ArgumentParser* args, std::shared_ptr<spdlog::logger> logger);

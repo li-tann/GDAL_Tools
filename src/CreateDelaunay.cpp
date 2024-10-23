@@ -24,6 +24,10 @@ int main(int argc, char* argv[])
     program.add_argument("output")
         .help("output file, with one line representing a delaunay network, like:index:[i,j,k]; pos:[(x,y),(x,y),(x,y)])");
 
+    program.add_argument("output_type")
+        .help("output file type ('normal' or 'simple'), normal like, delaunay:[index]\\n index:[i,j,k]\\n pos:[(x,y),(x,y),(x,y)]\n; simple like, i,j,k\\n...")
+        .choices("simple", "normal");
+
     try {
         program.parse_args(argc, argv);
     }
@@ -54,6 +58,7 @@ int main(int argc, char* argv[])
 
     string input_filepath = program.get<string>("input");
     string output_filepath = program.get<string>("output");
+    string output_type = program.get<string>("output_type");
 
     ifstream ifs(input_filepath.c_str());
     if(!ifs.is_open()){
@@ -100,20 +105,36 @@ int main(int argc, char* argv[])
         return return_msg(-4,"'output' open failed.");
     }
 
-    for(int i=0; i<dst->nFacets; i++)
-    {
-        ofs<<"delaunay ["<<i<<"]:"<<endl;
-        string index = "index";
-        string pos = "pos";
+    if(output_type == "normal"){
+        for(int i=0; i<dst->nFacets; i++)
+        {
+            ofs<<"delaunay ["<<i<<"]:"<<endl;
+            string index = "index";
+            string pos = "pos";
 
-        auto facet = dst->pasFacets[i];
-        for(int j=0; j<3; j++){
-            index += ", " + to_string(facet.anVertexIdx[j]);
-            pos += ", (" + to_string(x[facet.anVertexIdx[j]]) + "," + to_string(y[facet.anVertexIdx[j]]) +")" ;
+            auto facet = dst->pasFacets[i];
+            for(int j=0; j<3; j++){
+                index += ", " + to_string(facet.anVertexIdx[j]);
+                pos += ", (" + to_string(x[facet.anVertexIdx[j]]) + "," + to_string(y[facet.anVertexIdx[j]]) +")" ;
+            }
+            ofs << index <<endl;
+            ofs << pos <<endl;
         }
-        ofs << index <<endl;
-        ofs << pos <<endl;
     }
+    else{
+        /// simple
+        for(int i=0; i<dst->nFacets; i++)
+        {
+            string index = "";
+
+            auto facet = dst->pasFacets[i];
+            for(int j=0; j<3; j++){
+                index += to_string(facet.anVertexIdx[j]) + ( j == 2 ? "" : ",");
+            }
+            ofs << index <<endl;
+        }
+    }
+    
     ofs.close();
 
 

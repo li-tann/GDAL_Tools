@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 
 p_in = []
 
-with open("in.txt", "r", encoding='utf-8') as f:  #打开文本
+with open("1.txt", "r", encoding='utf-8') as f:  #打开文本
     while  True:
         # Get next line from file
         line  =  f.readline()
@@ -15,16 +15,19 @@ with open("in.txt", "r", encoding='utf-8') as f:  #打开文本
 
 p_out = []
 
-with open("out-2.txt", "r", encoding='utf-8') as f:  #打开文本
+with open("1.delaunay.txt", "r", encoding='utf-8') as f:  #打开文本
     while  True:
         # Get next line from file
         line  =  f.readline()
         # If line is empty then end of file reached
         if  not  line  :
             break
+        if not line[0:5] == 'index':
+            continue
         # print(line.strip())
         x = line.strip().split(",")
-        p_out.append([int(x[0]),int(x[1]),int(x[2])])
+        # p_out.append([int(x[0]),int(x[1]),int(x[2])])
+        p_out.append([int(x[1]),int(x[2]),int(x[3])])
 
 # plot
 fig, ax = plt.subplots()

@@ -44,6 +44,7 @@ add_executable(gdal_tool_raster
         src/data_convert_to_byte.cpp    # 影像转8bit图
         src/grid_interp.cpp             # 基于离散点生成栅格图
         src/band_extract.cpp            # 波段提取/拆分
+        src/extract_import_points.cpp   # 从栅格图像中提取关键点
         #获取图像在某条直线上的值
         )
 target_link_libraries(gdal_tool_raster PRIVATE GDAL::GDAL)
