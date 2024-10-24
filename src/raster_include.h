@@ -53,3 +53,5 @@ int grid_interp(argparse::ArgumentParser* args, std::shared_ptr<spdlog::logger> 
 int band_extract(argparse::ArgumentParser* args, std::shared_ptr<spdlog::logger> logger);
 
 int import_points_extract(argparse::ArgumentParser* args, std::shared_ptr<spdlog::logger> logger);
+
+int create_quadtree(argparse::ArgumentParser* args, std::shared_ptr<spdlog::logger> logger);

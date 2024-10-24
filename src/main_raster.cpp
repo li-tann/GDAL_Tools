@@ -258,11 +258,33 @@ int main(int argc, char* argv[])
         sub_points_extract.add_argument("output_txt")
             .help("txt output filepath, like: pos0.y, pos0.x\\n pos1.y, pos1.x\\n... ");
 
+        sub_points_extract.add_argument("output_mask_tif")
+            .help("mask.tif with byte datatype, has the same coord with input tif.");
+
         sub_points_extract.add_argument("output_type")
             .help("the unit of output points, like pixel or degree (same with geotransform's unit) (input 'pixel' or 'geo').")
             .choices("pixel","geo");
 
-        
+    }
+
+
+    argparse::ArgumentParser sub_quadtree("quadtree");
+    sub_quadtree.add_description("create quadtree base on a raster mask with byte datatype.");
+    {
+        sub_quadtree.add_argument("input")
+            .help("raster image (dem), with short or float datatype.");
+
+        sub_quadtree.add_argument("depth")
+            .help("quadtree's max depth.")
+            .scan<'i',int>();
+
+        sub_quadtree.add_argument("output_jsonpath")
+            .help("output jsonpath. ");
+
+        sub_quadtree.add_argument("thres")
+            .help("2 pars , the 1st par is method, like 'percent' or 'count', the 2nd par is percent(double, 0~1) or count(int, >0)")
+            .nargs(2);        
+
     }
     
 
@@ -286,6 +308,7 @@ int main(int argc, char* argv[])
         {&sub_grid_interp,          grid_interp},
         {&sub_band_extract,         band_extract},
         {&sub_points_extract,       import_points_extract},
+        {&sub_quadtree,             create_quadtree},
     };
 
     for(auto prog_map : parser_map_func){

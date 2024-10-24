@@ -14,6 +14,8 @@ find_package(fmt CONFIG REQUIRED)
 find_package(argparse CONFIG REQUIRED)
 find_package(OpenMP REQUIRED)
 find_package(FFTW3f CONFIG REQUIRED)
+find_package(nlohmann_json CONFIG REQUIRED)
+set(nlohmann_json_IMPLICIT_CONVERSIONS OFF)
 
 set(CPACK_PROJECT_NAME ${PROJECT_NAME})
 set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})
@@ -45,12 +47,14 @@ add_executable(gdal_tool_raster
         src/grid_interp.cpp             # 基于离散点生成栅格图
         src/band_extract.cpp            # 波段提取/拆分
         src/extract_import_points.cpp   # 从栅格图像中提取关键点
+        src/quadtree.cpp                # 栅格图基于特定规则生成四叉树
         #获取图像在某条直线上的值
         )
 target_link_libraries(gdal_tool_raster PRIVATE GDAL::GDAL)
 target_link_libraries(gdal_tool_raster PRIVATE spdlog::spdlog spdlog::spdlog_header_only)
 target_link_libraries(gdal_tool_raster PRIVATE argparse::argparse)
 target_link_libraries(gdal_tool_raster PRIVATE OpenMP::OpenMP_CXX)
+target_link_libraries(gdal_tool_raster PRIVATE nlohmann_json::nlohmann_json)
 set(EXE_LIST ${EXE_LIST} gdal_tool_raster)
 
 add_executable(gdal_tool_vector
