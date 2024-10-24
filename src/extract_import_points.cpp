@@ -8,12 +8,15 @@
         .help("value threshold, compare with the abs diff between the cur_point's value and mean of surrounding points's value.")
         .scan<'g',double>();
 
+    sub_image_overlay.add_argument("output_txt")
+        .help("txt output filepath, like: pos0.y, pos0.x\\n pos1.y, pos1.x\\n... ");
+
+    sub_points_extract.add_argument("output_mask_tif")
+            .help("mask.tif with byte datatype, has the same coord with input tif.");
+    
     sub_image_overlay.add_argument("output_type")
         .help("the unit of output points, like pixel or degree (same with geotransform's unit).")
         .choices("pixel","geo");
-
-    sub_image_overlay.add_argument("output_txt")
-        .help("txt output filepath, like: pos0.y, pos0.x\\n pos1.y, pos1.x\\n... ");
 */
 
 int import_points_extract(argparse::ArgumentParser* args, std::shared_ptr<spdlog::logger> logger)
@@ -21,7 +24,8 @@ int import_points_extract(argparse::ArgumentParser* args, std::shared_ptr<spdlog
     std::string input_path  = args->get<string>("input");
 	double thres  = args->get<double>("val_thres");
     std::string output_type  = args->get<string>("output_type");
-    std::string output_path  = args->get<string>("output_txt");
+    std::string output_txtpath  = args->get<string>("output_txt");
+    std::string mask_path  = args->get<string>("output_mask_tif");
 
 
     GDALAllRegister();
@@ -84,17 +88,20 @@ int import_points_extract(argparse::ArgumentParser* args, std::shared_ptr<spdlog
     };
 
     vector<xyz> important_points;
+    char* mask = new char[height * width];
     for(int i=0; i<height; i++)
     {
         for(int j=0; j<width; j++)
         {
             int idx = i * width + j;
+            mask[idx] = 0;
             float current = arr[idx];
             auto pt = get_pos(j,i);
             if((i == 0 && j == 0) || (i == 0 && j == width - 1) || (i == height - 1 && j == 0) || (i == height - 1 && j == width - 1)){
                 /// corner
                 pt.z = current;
                 important_points.push_back(pt);
+                mask[idx] = 1;
                 continue;
             }
 
@@ -123,20 +130,34 @@ int import_points_extract(argparse::ArgumentParser* args, std::shared_ptr<spdlog
                 diff = abs(current - (upleft + up + upright + left + right + downleft + down + downright)/8);
             }
 
-            // if(i == j && i %15 == 0){
-            //     std::cout<<fmt::format("i:{},j:{},diff:{},current:{}",i,j,diff, current)<<std::endl;
-            // }
-
             if(diff >= thres){
                 pt.z = current;
                 important_points.push_back(pt);
+                mask[idx] = 1;
             }
         }
     }
     delete[] arr;
     std::cout<<fmt::format("important points.size: {}\n",important_points.size());
 
-    std::ofstream ofs(output_path);
+    /// write mask
+    do{
+        GDALDriver* dri_tiff = GetGDALDriverManager()->GetDriverByName("GTiff");
+        auto ds_out = dri_tiff->Create(mask_path.c_str(), width, height, 1, GDT_Byte, NULL);
+        if(!ds_out){
+            PRINT_LOGGER(logger, error, "ds_out(mask) is nullptr.");
+            break;
+        }
+        auto bd_out = ds_out->GetRasterBand(1);
+        bd_out->RasterIO(GF_Write, 0, 0, width, height, mask, width, height, GDT_Byte, 0, 0);
+        if(output_type == "geo"){
+            ds_out->SetGeoTransform(gt);
+            ds_out->SetProjection(dataset->GetProjectionRef());
+        }
+        GDALClose(ds_out);
+    }while(false);
+
+    std::ofstream ofs(output_txtpath);
     if(!ofs.is_open()){
         PRINT_LOGGER(logger, error, "datatype is not both float and short.");
         return -2;
