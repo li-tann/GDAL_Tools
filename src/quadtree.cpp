@@ -15,6 +15,9 @@ struct quadtree{
     quadtree* qd_downleft = nullptr;
     quadtree* qd_downright = nullptr;
 
+    /// @brief create a quad-tree in current struct.
+    /// @param max_depth create the quad-tree will failed when depth is bigger than max_depth
+    /// @return true or false
     bool new_quad(int max_depth){
         if(width < 2 || height < 2 || depth >= max_depth){
             return false;
@@ -33,12 +36,14 @@ struct quadtree{
         return true;
     }
 
-    void iter(int max_depth, double thres, char** mask, std::function<bool(char**,int, int, int, int, double)> func){
-        // std::cout<<fmt::format("iter_before_func: depth:{}; topleft:{},{}; size:{},{}; \n", depth, start_y, start_x, height, width);
+    /// @brief use func to determine if the quadtree needs to be created
+    /// @param max_depth used when create a new quadtree
+    /// @param thres combo with func
+    /// @param mask 1D array in byte format, that storaged all mask values of the root quadtree
+    /// @param func function pointer, like: bool func()
+    void iter(int max_depth, double thres, char** mask, std::function<bool(char** mask,int sx, int xy, int w, int h, double thres)> func){
         if(func(mask, start_x, start_y, width, height, thres)){
-            // std::cout<<fmt::format("iter_after_func: depth:{}; topleft:{},{}; size:{},{}; \n", depth, start_y, start_x, height, width);
             if(new_quad(max_depth)){
-                // std::cout<<fmt::format("iter_after_new_quad: depth:{}; topleft:{},{}; size:{},{}; \n", depth, start_y, start_x, height, width);
                 qd_topleft->iter(max_depth, thres, mask, func);
                 qd_topright->iter(max_depth, thres, mask, func);
                 qd_downleft->iter(max_depth, thres, mask, func);
@@ -47,6 +52,7 @@ struct quadtree{
         }
     }
 
+    /// @brief delete the children's pointer.
     void close(){
         if(qd_topleft){
             qd_topleft->close();
@@ -66,6 +72,8 @@ struct quadtree{
         }
     }
 
+    /// @brief calcualte the max_depth in this quadtree.
+    /// @return max depth (the root quad is 1)
     int max_depth(){
         int max_dep = depth;
         if(qd_topleft){
@@ -87,6 +95,8 @@ struct quadtree{
         return depth;
     }
 
+    /// @brief recursively calculate the sum of sub-quadtree.tree_count(), and the no-sub-quadtree.tree_count() is 1.
+    /// @return sum of sub-quad's count.
     int tree_count()
     {
         if(!qd_topleft) /// 有一个指针为空, 说明四个都为空
@@ -95,6 +105,8 @@ struct quadtree{
         return qd_topleft->tree_count() + qd_topright->tree_count() + qd_downleft->tree_count() + qd_downright->tree_count();
     }
 
+    /// @brief trans to ordered_json
+    /// @return 
     nlohmann::ordered_json to_json()
     {
         nlohmann::ordered_json j;
@@ -110,6 +122,9 @@ struct quadtree{
         return std::move(j);
     }
 
+    /// @brief write json
+    /// @param jsonpath 
+    /// @return 
     bool json_write(const char* jsonpath){
         nlohmann::ordered_json j = to_json();
         std::ofstream ofs(jsonpath);
@@ -124,6 +139,8 @@ struct quadtree{
 
 enum class method{ percent, count};
 
+/// @brief calculate the percentage of valid_data in mask[sx,sy,w,h], and compare with t(hreshold)
+/// @return true if percentage >= t, false if percentage < t
 bool cal_percent(char** mask,int sx, int sy, int w, int h, double t){
     int valid_count = 0;
     for(int i=0; i < h; i++){
@@ -134,6 +151,8 @@ bool cal_percent(char** mask,int sx, int sy, int w, int h, double t){
     return double(valid_count) / (w*h) >= t;
 }
 
+/// @brief calculate the count of valid_data in mask[sx,sy,w,h], and compare with t(hreshold)
+/// @return true if count >= t, false if count < t
 bool cal_count(char** mask,int sx, int sy, int w, int h, double t){
     int valid_count = 0;
     for(int i=0; i < h; i++){
@@ -141,7 +160,6 @@ bool cal_count(char** mask,int sx, int sy, int w, int h, double t){
             valid_count += mask[i+sy][j+sx];
         }
     }
-    // std::cout<<fmt::format("tl:{},{}; size:{},{}, valid_count:{}, thres:{}\n", sy, sx, h, w, valid_count, t);
     return valid_count >= t;
 }
 
