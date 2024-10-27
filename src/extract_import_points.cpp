@@ -87,6 +87,14 @@ int import_points_extract(argparse::ArgumentParser* args, std::shared_ptr<spdlog
         return xyz(pos_x, pos_y, 0);
     };
 
+    /// geo to pixel
+    auto anti_pos = [&](double x, double y){
+        double pos_x = (x - gt[0]) / gt[1];
+        double pos_y = (y - gt[3]) / gt[5];
+        return xyz(pos_x, pos_y, 0);
+    };
+
+    /// 预筛选
     vector<xyz> important_points;
     char* mask = new char[height * width];
     for(int i=0; i<height; i++)
@@ -97,9 +105,9 @@ int import_points_extract(argparse::ArgumentParser* args, std::shared_ptr<spdlog
             mask[idx] = 0;
             float current = arr[idx];
             auto pt = get_pos(j,i);
+            pt.z = current;
             if((i == 0 && j == 0) || (i == 0 && j == width - 1) || (i == height - 1 && j == 0) || (i == height - 1 && j == width - 1)){
                 /// corner
-                pt.z = current;
                 important_points.push_back(pt);
                 mask[idx] = 1;
                 continue;
@@ -131,14 +139,61 @@ int import_points_extract(argparse::ArgumentParser* args, std::shared_ptr<spdlog
             }
 
             if(diff >= thres){
-                pt.z = current;
                 important_points.push_back(pt);
                 mask[idx] = 1;
             }
         }
     }
+    std::cout<<fmt::format("very important points.size: {}\n",important_points.size());
+
+#if 0
+    /// second filter
+    vector<xyz> filtered_points;
+    char* filtered_mask = new char[height * width];
+    for(int i=0; i<height; i++)
+    {
+        for(int j=0; j<width; j++)
+        {
+            int idx = i * width + j;
+            filtered_mask[idx] = 0;
+            float current = arr[idx];
+            auto pt = get_pos(j,i);
+            pt.z = current;
+
+            if(mask[idx] == 0)
+                continue;
+
+            if(i==0 || j==0 || i==height-1 || j==width-1){
+                
+                filtered_points.push_back(pt);
+                filtered_mask[idx] = 1;
+                continue;
+            }
+
+            char upleft = mask[idx - width - 1];
+            char up     = mask[idx - width];
+            char upright = mask[idx - width + 1];
+            char left = mask[idx - 1];
+            char right = mask[idx + 1];
+            char downleft = mask[idx + width - 1];
+            char down     = mask[idx + width];
+            char downright = mask[idx + width + 1];
+            if(upleft + downright == 2 || up + down == 2 || upright + downleft == 2 || left + right == 2){
+                /// is not important points
+                continue;
+            }else{
+                filtered_points.push_back(pt);
+                filtered_mask[idx] = 1;
+            }
+        }
+    }
     delete[] arr;
-    std::cout<<fmt::format("important points.size: {}\n",important_points.size());
+    delete[] mask;
+    mask = filtered_mask;
+    important_points.clear();
+    important_points = filtered_points;
+    std::cout<<fmt::format("filterd points.size: {}\n",filtered_points.size());
+#endif
 
     /// write mask
     do{
