@@ -103,8 +103,10 @@ rgba::rgba(std::string hex){
 
     std::transform(hex.begin(), hex.end(), hex.begin(), ::toupper);
     int offset = (hex[0] == '#') ? 1 : 0;
-    if(hex.size() < 6 + offset)
+    if(hex.size() < 6 + offset){
+        red = green = blue = alpha = 0;
         return ;
+    }
     red   = hex_to_int(hex[offset + 0]) * 16 + hex_to_int(hex[offset + 1]);
     green = hex_to_int(hex[offset + 2]) * 16 + hex_to_int(hex[offset + 3]);
     blue  = hex_to_int(hex[offset + 4]) * 16 + hex_to_int(hex[offset + 5]);
@@ -141,6 +143,12 @@ std::string rgba::rgba_to_hex(){
         s += int_to_hex(c % 16);
     }
     return s;
+}
+
+bool rgba::operator==(rgba src){
+    if(red == src.red && blue == src.blue && green == src.green && alpha == src.alpha)
+        return true;
+    return false;
 }
 
 hsv rgba::to_hsv()

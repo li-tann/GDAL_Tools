@@ -57,6 +57,8 @@ struct rgba {
 	std::string rgb_to_hex();
 	std::string rgba_to_hex();
 
+	bool operator==(rgba src);
+
 	hsv to_hsv();
 	void from_hsv(hsv);
 };

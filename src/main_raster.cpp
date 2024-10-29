@@ -286,6 +286,21 @@ int main(int argc, char* argv[])
             .nargs(2);        
 
     }
+
+    argparse::ArgumentParser sub_jpg2png("jpg2png");
+    sub_jpg2png.add_description("tranlate jpg to png.");
+    {
+        sub_jpg2png.add_argument("jpg")
+            .help("jpg filepath with byte format.");
+
+        sub_jpg2png.add_argument("png")
+            .help("png filepath with byte format.");
+
+        sub_jpg2png.add_argument("-a","--alpha")
+            .help("the alpha band, the second parameter is the nodata-value map with RGB. ")
+            .nargs(1);
+       
+    }
     
 
 
@@ -309,6 +324,7 @@ int main(int argc, char* argv[])
         {&sub_band_extract,         band_extract},
         {&sub_points_extract,       import_points_extract},
         {&sub_quadtree,             create_quadtree},
+        {&sub_jpg2png,              jpg_to_png},
     };
 
     for(auto prog_map : parser_map_func){

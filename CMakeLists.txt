@@ -48,6 +48,7 @@ add_executable(gdal_tool_raster
         src/band_extract.cpp            # 波段提取/拆分
         src/extract_import_points.cpp   # 从栅格图像中提取关键点
         src/quadtree.cpp                # 栅格图基于特定规则生成四叉树
+        src/jpg_to_png.cpp              # jpg栅格图转png栅格图
         #获取图像在某条直线上的值
         )
 target_link_libraries(gdal_tool_raster PRIVATE GDAL::GDAL)
