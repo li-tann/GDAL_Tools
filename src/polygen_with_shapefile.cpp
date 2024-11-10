@@ -191,6 +191,6 @@ int polygen_with_shp(argparse::ArgumentParser* args, std::shared_ptr<spdlog::log
         }
     }
 
-    PRINT_LOGGER(logger, info, "point_with_shp success.");
+    PRINT_LOGGER(logger, info, "polygen_with_shp success.");
     return 1;
 }
