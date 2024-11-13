@@ -145,6 +145,15 @@ add_executable(landsar_ps_points_transto_tif src/landsar_ps_points_transto_tif.c
 target_link_libraries(landsar_ps_points_transto_tif PRIVATE GDAL::GDAL)
 # set(EXE_LIST ${EXE_LIST} landsar_ps_points_transto_tif)
 
+# 读写hdf5文件-测试
+find_package(hdf5 CONFIG REQUIRED)
+
+add_executable(io_hdf5 src/temp_hdf5.cpp)
+target_link_libraries(io_hdf5 PRIVATE fmt::fmt)
+target_link_libraries(io_hdf5 PRIVATE GDAL::GDAL)
+target_link_libraries(io_hdf5 PRIVATE spdlog::spdlog spdlog::spdlog_header_only)
+target_link_libraries(io_hdf5 PRIVATE hdf5::hdf5-shared hdf5::hdf5_hl-shared hdf5::hdf5_cpp-shared hdf5::hdf5_hl_cpp-shared)
+
 
 # add "cmake.configureSettings": {"CMAKE_BUILD_TYPE":"${buildType}"} in setting.json, when ${CMAKE_BUILD_TYPE} is ""
 message(STATUS "cmake build type: " ${CMAKE_BUILD_TYPE})
