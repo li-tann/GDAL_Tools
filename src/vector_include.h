@@ -25,6 +25,8 @@ using std::cout, std::cin, std::endl, std::string, std::vector, std::map;
 
 int point_with_shp(argparse::ArgumentParser* args, std::shared_ptr<spdlog::logger> logger);
 
+int polygen_with_shp(argparse::ArgumentParser* args, std::shared_ptr<spdlog::logger> logger);
+
 int create_polygon_shp(argparse::ArgumentParser* args, std::shared_ptr<spdlog::logger> logger);
 
 int create_2dpoint_shp(argparse::ArgumentParser* args, std::shared_ptr<spdlog::logger> logger);

@@ -33,6 +33,23 @@ int main(int argc, char* argv[])
             .help("save result as a file, default is print at terminal.");    
     }
 
+    argparse::ArgumentParser sub_polygen_with_shp("polygen_with_shp");
+    sub_polygen_with_shp.add_description("determine relationship between polygen and shapefile.");
+    {
+        sub_polygen_with_shp.add_argument("shapefile_path")
+            .help("polygon shapefile.");
+        
+        sub_polygen_with_shp.add_argument("-p","--polygen")
+            .help("polygen like: 'lon_0,lat_0;lon_1,lat_1;lon_2,lat_2;lon_3,lat_3;lon_0,lat_0'.")
+            .nargs(argparse::nargs_pattern::at_least_one);
+
+        sub_polygen_with_shp.add_argument("-f","--file")
+            .help("a file that records points, with each line representing a point like: 'lon_0,lat_0;lon_1,lat_1;lon_2,lat_2;lon_0,lat_0'.");  
+
+        sub_polygen_with_shp.add_argument("-s","--save")
+            .help("save result as a file, default is print at terminal.");    
+    }
+
     argparse::ArgumentParser sub_create_polygon_shp("create_polygon_shp");
     sub_create_polygon_shp.add_description("create a polygon shapefile on WGS84 coordination,  base on points(file or cin).");
     {
@@ -83,6 +100,7 @@ int main(int argc, char* argv[])
             std::function<int(argparse::ArgumentParser* args,std::shared_ptr<spdlog::logger>)>> 
     parser_map_func = {
         {&sub_point_with_shp,      point_with_shp},
+        {&sub_polygen_with_shp,    polygen_with_shp},
         {&sub_create_polygon_shp,  create_polygon_shp},
         {&sub_create_2dpoint_shp,  create_2dpoint_shp},
         {&sub_create_3dpoint_shp,  create_3dpoint_shp},

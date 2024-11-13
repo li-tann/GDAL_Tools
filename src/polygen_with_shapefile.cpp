@@ -31,17 +31,18 @@ int polygen_with_shp(argparse::ArgumentParser* args, std::shared_ptr<spdlog::log
     struct polygen_pos : vector<pos_xy>{
         bool within = false;
         std::string to_str(){
-            std::string dst;
+            std::string dst = "";
             for(int i=0; i<size(); i++){
-                dst += this->at(i).to_str() + (i < size()-1 ? ";" : "\n");
+                dst += data()[i].to_str() + (i < size()-1 ? ";" : "");
             }
+            return dst;
         }
     };
 
     vector<polygen_pos> polygens;
-    if(args->is_used("--point"))
+    if(args->is_used("--polygen"))
     {
-        vector<string> str_points = args->get<vector<string>>("--points");
+        vector<string> str_points = args->get<vector<string>>("--polygen");
         vector<string> splited;
         for(const auto& str : str_points)
         {
@@ -98,6 +99,7 @@ int polygen_with_shp(argparse::ArgumentParser* args, std::shared_ptr<spdlog::log
         }
     }
 
+    std::cout<<fmt::format("polygen.size: {}", polygens.size())<<std::endl;
     if(polygens.size()<1){
         PRINT_LOGGER(logger, error, "the number of valid polygens is 0.");
         return -2;
@@ -108,22 +110,6 @@ int polygen_with_shp(argparse::ArgumentParser* args, std::shared_ptr<spdlog::log
     CPLSetConfigOption("GDAL_FILENAME_IS_UTF8", "NO");
     
     OGRPoint point;
-    OGRLinearRing ring;
-    OGRPolygon target_polygen;
-
-    // OGRPolygon* polygen = (OGRPolygon*)OGRGeometryFactory::createGeometry(wkbPolygon);
-    // OGRLinearRing* ring = (OGRLinearRing*)OGRGeometryFactory::createGeometry(wkbLinearRing);
-    // OGRPoint point;
-
-    // for(auto& iter : points)
-    // {
-    //     point.setX(iter.x); point.setY(iter.y);
-    //     ring->addPoint(&point);
-    // }
-    // point.setX(points[0].x); point.setY(points[0].y);
-    // ring->addPoint(&point);
-    // ring->closeRings();
-    // polygen->addRing(ring);
 
     GDALDataset* dataset = (GDALDataset*)GDALOpenEx(shp_path.c_str(), GDAL_OF_VECTOR, NULL, NULL, NULL);
     if(!dataset){
@@ -142,6 +128,8 @@ int polygen_with_shp(argparse::ArgumentParser* args, std::shared_ptr<spdlog::log
         {
             for(auto& poly : polygens)
             {
+                OGRLinearRing ring;
+                OGRPolygon target_polygen;
                 for(auto& pnt : poly)
                 {
                     point.setX(pnt.x); point.setY(pnt.y);
@@ -149,10 +137,10 @@ int polygen_with_shp(argparse::ArgumentParser* args, std::shared_ptr<spdlog::log
                 }
                 ring.closeRings();
                 target_polygen.addRing(&ring);
-
-                if (geometry->Contains(&target_polygen)){
+                if (geometry->Intersect(&target_polygen)){
                     poly.within = true;
                 }
+                std::cout<<fmt::format("poly.within? {}",(poly.within ? "true" : "false"))<<std::endl;
             }
         }
 
