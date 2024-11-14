@@ -2,6 +2,7 @@
 #include <iostream>
 #include <H5Cpp.h>
 #include <fmt/format.h>
+#include <filesystem>
 
 int gdal_open_hdf5();
 int h5cpp_open_hdf5();
@@ -105,9 +106,43 @@ int gdal_open_hdf5()
 
 int h5cpp_open_hdf5()
 {
-    // const char* hdf5_file = "d:/1_Data/MintPy/WellsEnvD2T399/mintpy/timeseries.h5";
+    H5::Exception::dontPrint();
+
     const char* hdf5_file = "d:/1_Data/MintPy/WellsEnvD2T399/mintpy/timeseries.h5";
-    H5::H5File file(hdf5_file, H5F_ACC_RDONLY);
+    // const char* hdf5_file = "d:/1_Data/MintPy/WellsEnvD2T399/mintpy/pbaseHistory.pdf";
+
+    H5::H5File file;
+    
+    try
+    {
+        file.openFile(hdf5_file, H5F_ACC_RDONLY);
+    }
+    catch (H5::Exception& error) {
+        // 捕获文件相关的异常
+        // error.printError();
+        
+        std::cerr << "Failed to open file: " << hdf5_file << std::endl;
+        std::cerr << "detail msg: "<<error.getDetailMsg()<<std::endl;
+    }
+    catch(const std::exception& e)
+    {
+        std::cerr << e.what() << '\n';
+    }
+    
+    // return 0;
+
+    // if(!std::filesystem::exists(hdf5_file) || !std::filesystem::is_regular_file(hdf5_file)){
+    //     std::cout<<"hdf5_file is not existed or not ragular file."<<std::endl;
+    //     return 0;
+    // }   
+
+    // if(!H5::H5File::isHdf5(hdf5_file)){
+    //     std::cout<<"hdf5_file is not a hdf5 file\n";
+    //     return 0;
+    // }
+
+    
+    // H5::H5File file(hdf5_file, H5F_ACC_RDONLY);
 
     // file.openGroup()
     std::cout<<"file.getNumObjs(): "<<file.getNumObjs()<<std::endl;
@@ -196,60 +231,60 @@ int h5cpp_open_hdf5()
             delete[] dims;
         }
 
-        // if(i == 0){
-        //     /// 针对 space 1
-        //     auto dataset = file.openDataSet(objName);
-        //     auto space = dataset.getSpace();
-        //     auto Ndims = space.getSimpleExtentNdims();      /// 1
+        if(i == 0){
+            /// 针对 space 1
+            auto dataset = file.openDataSet(objName);
+            auto space = dataset.getSpace();
+            auto Ndims = space.getSimpleExtentNdims();      /// 1
 
-        //     hsize_t dims[1];
-        //     space.getSimpleExtentDims(dims);
-        //     hsize_t offset_dims[1];
-        //     offset_dims[0] = 5;
-        //     hsize_t mem_dims[1];
-        //     mem_dims[0] = 2;
+            hsize_t dims[1];
+            space.getSimpleExtentDims(dims);
+            hsize_t offset_dims[1];
+            offset_dims[0] = 5;
+            hsize_t mem_dims[1];
+            mem_dims[0] = 2;
 
-        //     H5::DataSpace memspace(1, mem_dims); // 创建内存空间
-        //     space.selectHyperslab(H5S_SELECT_SET, mem_dims, offset_dims);
+            H5::DataSpace memspace(1, mem_dims); // 创建内存空间
+            space.selectHyperslab(H5S_SELECT_SET, mem_dims, offset_dims);
 
-        //     float data_out[2]; // 用于存储读取数据的缓冲区
-        //     dataset.read(data_out, H5::PredType::NATIVE_FLOAT, memspace, space);
+            float data_out[2]; // 用于存储读取数据的缓冲区
+            dataset.read(data_out, H5::PredType::NATIVE_FLOAT, memspace, space);
 
-        //     std::cout<<data_out[0]<<","<<data_out[1]<<std::endl;
-        // }
+            std::cout<<data_out[0]<<","<<data_out[1]<<std::endl;
+        }
 
-        // if(i == 2){
-        //     /// 针对 space 3
-        //     auto dataset = file.openDataSet(objName);
-        //     auto space = dataset.getSpace();
-        //     auto Ndims = space.getSimpleExtentNdims();      /// 3
+        if(i == 2){
+            /// 针对 space 3
+            auto dataset = file.openDataSet(objName);
+            auto space = dataset.getSpace();
+            auto Ndims = space.getSimpleExtentNdims();      /// 3
 
-        //     hsize_t dims[3];
-        //     space.getSimpleExtentDims(dims);
-        //     hsize_t offset_dims[3];
-        //     offset_dims[0] = 1;offset_dims[1] = 0;offset_dims[2] = 4;
-        //     hsize_t mem_dims[3];
-        //     mem_dims[0] = 1;mem_dims[1] = 4;mem_dims[2] = 2;
+            hsize_t dims[3];
+            space.getSimpleExtentDims(dims);
+            hsize_t offset_dims[3];
+            offset_dims[0] = 1;offset_dims[1] = 0;offset_dims[2] = 4;
+            hsize_t mem_dims[3];
+            mem_dims[0] = 1;mem_dims[1] = 4;mem_dims[2] = 2;
 
-        //     H5::DataSpace memspace(Ndims, mem_dims); // 创建内存空间
-        //     space.selectHyperslab(H5S_SELECT_SET, mem_dims, offset_dims);
+            H5::DataSpace memspace(Ndims, mem_dims); // 创建内存空间
+            space.selectHyperslab(H5S_SELECT_SET, mem_dims, offset_dims);
 
-        //     float data_out[1][4][2]; // 用于存储读取数据的缓冲区
-        //     dataset.read(data_out, H5::PredType::NATIVE_FLOAT, memspace, space);
+            float data_out[1][4][2]; // 用于存储读取数据的缓冲区
+            dataset.read(data_out, H5::PredType::NATIVE_FLOAT, memspace, space);
 
-        //     for(int b=0; b<1; b++)
-        //     {
-        //         for(int i=0; i<4; i++)
-        //         {
-        //             for(int j=0; j<2; j++)
-        //             {
-        //                 std::cout<<data_out[b][i][j]<<",";
-        //             }
-        //             std::cout<<std::endl;
-        //         }
-        //         std::cout<<std::endl;
-        //     }
-        // }
+            for(int b=0; b<1; b++)
+            {
+                for(int i=0; i<4; i++)
+                {
+                    for(int j=0; j<2; j++)
+                    {
+                        std::cout<<data_out[b][i][j]<<",";
+                    }
+                    std::cout<<std::endl;
+                }
+                std::cout<<std::endl;
+            }
+        }
     }
 
 
@@ -260,13 +295,13 @@ int h5cpp_open_hdf5()
 
 int h5cpp_write_hdf5()
 {
-    // H5::Exception::dontPrint();
+    H5::Exception::dontPrint();
 
     GDALAllRegister();
     CPLSetConfigOption("GDAL_FILENAME_IS_UTF8","NO");
 
     const char* dem_filepath = "d:\\1_Data\\AP_15996_FBS_F0610_RT1.dem.tif";
-    const char* h5_filepath = "d:\\1_Data\\AP_15996_FBS_F0610_RT1.dem.h5";
+    const char* h5_filepath = "d:\\1_Data\\AP_15996_FBS_F0610_RT1.dem2.h5";
 
     GDALDataset* ds = (GDALDataset*)GDALOpen(dem_filepath, GA_ReadOnly);
     GDALRasterBand* rb = ds->GetRasterBand(1);
@@ -291,14 +326,33 @@ int h5cpp_write_hdf5()
     }
 
 
-    // 创建HDF5文件
-    H5::H5File file(h5_filepath, H5F_ACC_TRUNC);
+    // // 创建HDF5文件
+    // H5::H5File file(h5_filepath, H5F_ACC_TRUNC);
+
+
+    H5::H5File* file = nullptr;
+    try
+    {
+        file = new H5::H5File(h5_filepath, H5F_ACC_TRUNC);
+    }
+    catch (H5::Exception& error) {
+        std::cerr << "Failed to open file: " << h5_filepath << std::endl;
+        std::cerr << "detail msg: "<<error.getDetailMsg()<<std::endl;
+    }
+    catch(const std::exception& e)
+    {
+        std::cerr << e.what() << '\n';
+    }
     
+    if(!file){
+        std::cout<<"create h5file failed.\n";
+        return 1;
+    }
 
     // 定义数据集的维度
     hsize_t dims[2] = {size, size};
     H5::DataSpace dataspace(2, dims);
-
+    
     // 定义数据类型
     H5::DataType datatype(H5::PredType::NATIVE_SHORT);
 
@@ -308,14 +362,14 @@ int h5cpp_write_hdf5()
 
     hsize_t file_attrDims[1] = {6};
     H5::DataSpace file_attrSpace(1, file_attrDims);
-    H5::Attribute attr_gt = file.createAttribute("geotransform", H5::PredType::NATIVE_DOUBLE, file_attrSpace);
+    H5::Attribute attr_gt = file->createAttribute("geotransform", H5::PredType::NATIVE_DOUBLE, file_attrSpace);
     attr_gt.write(H5::PredType::NATIVE_DOUBLE, &gt);
     attr_gt.close();
 
 
     H5::DataType attrType_proj = H5::StrType(H5::PredType::C_S1, projectRef.size() + 1); // 字符串类型
     H5::DataSpace attrSpace_proj(H5S_SCALAR); // 标量空间
-    H5::Attribute attr_proj = file.createAttribute("project", attrType_proj, attrSpace_proj);
+    H5::Attribute attr_proj = file->createAttribute("project", attrType_proj, attrSpace_proj);
     attr_proj.write(attrType_proj, projectRef);
     attr_proj.close();
 
@@ -341,7 +395,7 @@ int h5cpp_write_hdf5()
             std::string block_name = fmt::format("block-{:0>4}",idx);
 
             /// 创建dataset
-            H5::DataSet tmp_dataset = file.createDataSet(block_name, H5::PredType::NATIVE_SHORT, dataspace, cpl);
+            H5::DataSet tmp_dataset = file->createDataSet(block_name, H5::PredType::NATIVE_SHORT, dataspace, cpl);
             tmp_dataset.write(block, H5::PredType::NATIVE_SHORT);
             
 
@@ -362,7 +416,9 @@ int h5cpp_write_hdf5()
         }
     }
 
-    file.close();
+    // file.close();
+    file->close();
+    delete file;
 
     
 
