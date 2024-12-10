@@ -13,6 +13,8 @@
 
 int main(int argc, char* argv[])
 {
+    OGRPolygon pol;
+    pol.get_Area();
     argparse::ArgumentParser program("gdal_tool_vector","1.0");
     program.add_description("gdal_tools about vector data, ...");
 
@@ -48,6 +50,16 @@ int main(int argc, char* argv[])
 
         sub_polygen_with_shp.add_argument("-s","--save")
             .help("save result as a file, default is print at terminal.");    
+    }
+
+    argparse::ArgumentParser sub_overlap_rate("overlap_rate");
+    sub_overlap_rate.add_description("determine relationship between polygen and shapefile.");
+    {
+        sub_overlap_rate.add_argument("shp1")
+            .help("polygon shapefile.");
+        
+        sub_overlap_rate.add_argument("shp2")
+            .help("polygon shapefile.");
     }
 
     argparse::ArgumentParser sub_create_polygon_shp("create_polygon_shp");
@@ -101,9 +113,11 @@ int main(int argc, char* argv[])
     parser_map_func = {
         {&sub_point_with_shp,      point_with_shp},
         {&sub_polygen_with_shp,    polygen_with_shp},
+        {&sub_overlap_rate,        polygen_overlap_rate},
         {&sub_create_polygon_shp,  create_polygon_shp},
         {&sub_create_2dpoint_shp,  create_2dpoint_shp},
         {&sub_create_3dpoint_shp,  create_3dpoint_shp},
+        
     };
 
     for(auto prog_map : parser_map_func){

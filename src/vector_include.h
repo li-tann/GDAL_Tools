@@ -27,6 +27,8 @@ int point_with_shp(argparse::ArgumentParser* args, std::shared_ptr<spdlog::logge
 
 int polygen_with_shp(argparse::ArgumentParser* args, std::shared_ptr<spdlog::logger> logger);
 
+int polygen_overlap_rate(argparse::ArgumentParser* args, std::shared_ptr<spdlog::logger> logger);
+
 int create_polygon_shp(argparse::ArgumentParser* args, std::shared_ptr<spdlog::logger> logger);
 
 int create_2dpoint_shp(argparse::ArgumentParser* args, std::shared_ptr<spdlog::logger> logger);

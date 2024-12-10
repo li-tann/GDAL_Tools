@@ -182,3 +182,95 @@ int polygen_with_shp(argparse::ArgumentParser* args, std::shared_ptr<spdlog::log
     PRINT_LOGGER(logger, info, "polygen_with_shp success.");
     return 1;
 }
+
+
+int polygen_overlap_rate(argparse::ArgumentParser* args, std::shared_ptr<spdlog::logger> logger)
+{
+    string shp2 = args->get<string>("shp1");
+    string shp1 = args->get<string>("shp2");
+
+    GDALAllRegister();
+    OGRRegisterAll();
+    CPLSetConfigOption("GDAL_FILENAME_IS_UTF8", "NO");
+    
+    OGRPoint point;
+
+    OGRGeometry* geometry1 = nullptr;
+    {
+        GDALDataset* dataset = (GDALDataset*)GDALOpenEx(shp1.c_str(), GDAL_OF_VECTOR, NULL, NULL, NULL);
+        if(!dataset){
+            PRINT_LOGGER(logger, error, "dataset is nullptr.");
+            return -3;
+        }
+        OGRLayer* layer = dataset->GetLayer(0);
+        layer->ResetReading();
+
+        OGRFeature* feature;
+        // bool within = false;
+        
+        while ((feature = layer->GetNextFeature()) != NULL)
+        {
+            OGRGeometry* tmp_geometry1 = feature->GetGeometryRef();
+            if(tmp_geometry1 != NULL){
+                std::cout<<"area1:"<<tmp_geometry1->toPolygon()->get_Area()<<std::endl;
+                geometry1 = tmp_geometry1->clone();
+                break;
+            }
+            // OGRFeature::DestroyFeature(feature);
+        }
+        // GDALClose(dataset);
+    }
+    if(!geometry1){
+        PRINT_LOGGER(logger, error, "geometry1 is nullptr.");
+        return -3;
+    }
+
+    OGRGeometry* geometry2 = nullptr;
+    {
+        GDALDataset* dataset2 = (GDALDataset*)GDALOpenEx(shp2.c_str(), GDAL_OF_VECTOR, NULL, NULL, NULL);
+        if(!dataset2){
+            PRINT_LOGGER(logger, error, "dataset2 is nullptr.");
+            return -3;
+        }
+        OGRLayer* layer2= dataset2->GetLayer(0);
+        layer2->ResetReading();
+
+        OGRFeature* feature2;
+        // bool within = false;
+        
+        while ((feature2 = layer2->GetNextFeature()) != NULL)
+        {
+            OGRGeometry* tmp_geometry2 = feature2->GetGeometryRef();
+            if(tmp_geometry2 != NULL){
+                std::cout<<"area2:"<<tmp_geometry2->toPolygon()->get_Area()<<std::endl;
+                geometry2 = tmp_geometry2->clone();
+                break;
+            }
+            // OGRFeature::DestroyFeature(feature);
+        }
+        // GDALClose(dataset);
+    }
+    if(!geometry2){
+        PRINT_LOGGER(logger, error, "geometry2 is nullptr.");
+        return -3;
+    }
+
+    auto intersection = geometry1->Intersection(geometry2);
+    if(intersection->IsEmpty()){
+        PRINT_LOGGER(logger, error, "intersection is empty.");
+        return -3;
+    }
+
+    double area1 = geometry1->toPolygon()->get_Area();
+    double area2 = geometry1->toPolygon()->get_Area();
+    double area_i = intersection->toPolygon()->get_Area();
+    PRINT_LOGGER(logger, info, fmt::format("geometry1. area: {}.", area1));
+    PRINT_LOGGER(logger, info, fmt::format("geometry2. area: {}.", area2));
+    PRINT_LOGGER(logger, info, fmt::format("intersection. area: {}.", area_i));
+
+    PRINT_LOGGER(logger, info, fmt::format("overlap.rate: {}.", area_i / MIN(area1, area2)));
+
+
+    PRINT_LOGGER(logger, info, "overlay rate finished.");
+    return 1;
+}
