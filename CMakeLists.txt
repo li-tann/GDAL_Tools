@@ -16,6 +16,7 @@ find_package(OpenMP REQUIRED)
 find_package(FFTW3f CONFIG REQUIRED)
 find_package(nlohmann_json CONFIG REQUIRED)
 set(nlohmann_json_IMPLICIT_CONVERSIONS OFF)
+find_package(triangle CONFIG REQUIRED)
 
 set(CPACK_PROJECT_NAME ${PROJECT_NAME})
 set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})
@@ -49,6 +50,7 @@ add_executable(gdal_tool_raster
         src/extract_import_points.cpp   # 从栅格图像中提取关键点
         src/quadtree.cpp                # 栅格图基于特定规则生成四叉树
         src/jpg_to_png.cpp              # jpg栅格图转png栅格图
+        src/triangle_network.cpp        # 调用trignaleLib执行构网操作, 对输入输出进行修改
         #获取图像在某条直线上的值
         )
 target_link_libraries(gdal_tool_raster PRIVATE GDAL::GDAL)
@@ -56,6 +58,7 @@ target_link_libraries(gdal_tool_raster PRIVATE spdlog::spdlog spdlog::spdlog_hea
 target_link_libraries(gdal_tool_raster PRIVATE argparse::argparse)
 target_link_libraries(gdal_tool_raster PRIVATE OpenMP::OpenMP_CXX)
 target_link_libraries(gdal_tool_raster PRIVATE nlohmann_json::nlohmann_json)
+target_link_libraries(gdal_tool_raster PRIVATE triangle::triangleLib)
 set(EXE_LIST ${EXE_LIST} gdal_tool_raster)
 
 add_executable(gdal_tool_vector
@@ -131,13 +134,13 @@ target_link_libraries(get_image_value_in_line PRIVATE spdlog::spdlog spdlog::spd
 target_link_libraries(get_image_value_in_line PRIVATE fmt::fmt)
 set(EXE_LIST ${EXE_LIST} get_image_value_in_line)
 
+
 #GDAL虚拟文件系统测试
 add_executable(virtual_files_system_test src/virtual_files_system_test.cpp src/datatype.h src/datatype.cpp)
 target_link_libraries(virtual_files_system_test PRIVATE GDAL::GDAL)
 target_link_libraries(virtual_files_system_test PRIVATE spdlog::spdlog spdlog::spdlog_header_only)
 target_link_libraries(virtual_files_system_test PRIVATE fmt::fmt)
 # set(EXE_LIST ${EXE_LIST} virtual_files_system_test)
-
 
 
 #LandSAR 将存储PS点的tif转换为栅格图tif

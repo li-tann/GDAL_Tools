@@ -251,15 +251,15 @@ int main(int argc, char* argv[])
         sub_points_extract.add_argument("input")
             .help("raster image (dem), with short or float datatype.");
 
-        sub_points_extract.add_argument("val_thres")
-            .help("value threshold, compare with the abs diff between the cur_point's value and mean of surrounding points's value.")
-            .scan<'g',double>();
-
-        sub_points_extract.add_argument("output_txt")
-            .help("txt output filepath, like: pos0.y, pos0.x\\n pos1.y, pos1.x\\n... ");
+        // sub_points_extract.add_argument("output_txt")
+        //     .help("txt output filepath, like: pos0.y, pos0.x\\n pos1.y, pos1.x\\n... ");
 
         sub_points_extract.add_argument("output_mask_tif")
             .help("mask.tif with byte datatype, has the same coord with input tif.");
+        
+        sub_points_extract.add_argument("val_thres")
+            .help("value threshold, compare with the abs diff between the cur_point's value and mean of surrounding points's value.")
+            .scan<'g',double>();
 
         sub_points_extract.add_argument("output_type")
             .help("the unit of output points, like pixel or degree (same with geotransform's unit) (input 'pixel' or 'geo').")
@@ -300,6 +300,13 @@ int main(int argc, char* argv[])
             .help("the alpha band, the second parameter is the nodata-value map with RGB. ")
             .nargs(1);
        
+    }
+
+    argparse::ArgumentParser sub_triangle("triangle");
+    sub_triangle.add_description("tranlate jpg to png.");
+    {
+        sub_triangle.add_argument("mask")
+            .help("8bit mask tif.");
     }
     
 
