@@ -57,3 +57,5 @@ int import_points_extract(argparse::ArgumentParser* args, std::shared_ptr<spdlog
 int create_quadtree(argparse::ArgumentParser* args, std::shared_ptr<spdlog::logger> logger);
 
 int jpg_to_png(argparse::ArgumentParser* args, std::shared_ptr<spdlog::logger> logger);
+
+int triangle_newwork(argparse::ArgumentParser* args, std::shared_ptr<spdlog::logger> logger);
