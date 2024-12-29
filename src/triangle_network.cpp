@@ -83,7 +83,7 @@ int triangle_newwork(argparse::ArgumentParser* args, std::shared_ptr<spdlog::log
 /*      ignored.  */
 
 
-
+if(true)
 {
     using REAL = double;
 
@@ -94,9 +94,7 @@ int triangle_newwork(argparse::ArgumentParser* args, std::shared_ptr<spdlog::log
 
     /* Define input points. */
 
-
     in.numberofpoints = 4;
-    in.numberofpointattributes = 1;
     in.pointlist = (REAL *)malloc(in.numberofpoints * 2 * sizeof(REAL));
     in.pointlist[0] = 0.0;
     in.pointlist[1] = 0.0;
@@ -106,6 +104,8 @@ int triangle_newwork(argparse::ArgumentParser* args, std::shared_ptr<spdlog::log
     in.pointlist[5] = 10.0;
     in.pointlist[6] = 0.0;
     in.pointlist[7] = 10.0;
+    /// @note in.numberofpointattributes 可以改成0, pointattributelist 不申请内存
+    in.numberofpointattributes = 1;
     in.pointattributelist = (REAL *)malloc(in.numberofpoints *
         in.numberofpointattributes *
         sizeof(REAL));
@@ -113,21 +113,23 @@ int triangle_newwork(argparse::ArgumentParser* args, std::shared_ptr<spdlog::log
     in.pointattributelist[1] = 1.0;
     in.pointattributelist[2] = 11.0;
     in.pointattributelist[3] = 10.0;
-    in.pointmarkerlist = (int *)malloc(in.numberofpoints * sizeof(int));
-    in.pointmarkerlist[0] = 0;
-    in.pointmarkerlist[1] = 2;
-    in.pointmarkerlist[2] = 0;
-    in.pointmarkerlist[3] = 0;
+    /// @note pointmarkerlist 注释后就会报错
+    in.pointmarkerlist = (int *)NULL;
+    // in.pointmarkerlist = (int *)malloc(in.numberofpoints * sizeof(int));
+    // in.pointmarkerlist[0] = 0;
+    // in.pointmarkerlist[1] = 2;
+    // in.pointmarkerlist[2] = 0;
+    // in.pointmarkerlist[3] = 0;
 
 
     in.numberofsegments = 0;
     in.numberofholes = 0;
-    in.numberofregions = 1;
-    in.regionlist = (REAL *)malloc(in.numberofregions * 4 * sizeof(REAL));
-    in.regionlist[0] = 0.5;
-    in.regionlist[1] = 5.0;
-    in.regionlist[2] = 7.0;            /* Regional attribute (for whole mesh). */
-    in.regionlist[3] = 0.1;          /* Area constraint that will not be used. */
+    in.numberofregions = 0;
+    // in.regionlist = (REAL *)malloc(in.numberofregions * 4 * sizeof(REAL));
+    // in.regionlist[0] = 0.5;
+    // in.regionlist[1] = 5.0;
+    // in.regionlist[2] = 7.0;            /* Regional attribute (for whole mesh). */
+    // in.regionlist[3] = 0.1;          /* Area constraint that will not be used. */
 
 
     printf("Input point set:\n\n");
