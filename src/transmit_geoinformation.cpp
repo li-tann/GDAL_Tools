@@ -29,7 +29,14 @@ int trans_geoinformation(argparse::ArgumentParser* args,std::shared_ptr<spdlog::
     }
     
     double gt[6];
-    ds_in->GetGeoTransform(gt);
+    auto err = ds_in->GetGeoTransform(gt);
+    // std::cout<<fmt::format("gt: {:>8f}, {:>8f}, {:>8f}, {:>8f}, {:>8f}, {:>8f}", gt[0], gt[1], gt[2], gt[3], gt[4], gt[5])<<std::endl;
+    // std::cout<<"GetGeoTransform return :"<<err<<std::endl;
+    if(err != CPLErr::CE_None){
+        std::cout<<"err != CPLErr::CE_None\n";
+        PRINT_LOGGER(logger, info, "ds_in.GetGeoTransform failed, so ds_out.SetGeoTransform({0,0,0,0,0,0}).");
+        gt[0]=0; gt[1]=0; gt[2]=0; gt[3]=0; gt[4]=0; gt[5]=0; 
+    }
     ds_out->SetGeoTransform(gt);
 
     ds_out->SetProjection(ds_in->GetProjectionRef());
