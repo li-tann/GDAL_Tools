@@ -34,3 +34,5 @@ int create_polygon_shp(argparse::ArgumentParser* args, std::shared_ptr<spdlog::l
 int create_2dpoint_shp(argparse::ArgumentParser* args, std::shared_ptr<spdlog::logger> logger);
 
 int create_3dpoint_shp(argparse::ArgumentParser* args, std::shared_ptr<spdlog::logger> logger);
+
+int create_linestring_shp(argparse::ArgumentParser* args, std::shared_ptr<spdlog::logger> logger);

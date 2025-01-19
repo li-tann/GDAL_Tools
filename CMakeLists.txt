@@ -69,6 +69,7 @@ add_executable(gdal_tool_vector
         src/point_with_shapefile.cpp            # 判断点是否在shp文件中
         src/create_polygon_shapefile.cpp        # 创建多边形shp文件
         src/create_point_shapefile.cpp          # 创建点shp文件  创建3维点shp文件
+        src/create_linstring_shapefile.cpp      # 创建多端线shp
         src/polygen_with_shapefile.cpp          # 判断多边形与shp是否相交
         )
 target_link_libraries(gdal_tool_vector PRIVATE GDAL::GDAL)

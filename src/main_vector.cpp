@@ -62,7 +62,7 @@ int main(int argc, char* argv[])
             .help("polygon shapefile.");
     }
 
-    argparse::ArgumentParser sub_create_polygon_shp("create_polygon_shp");
+    argparse::ArgumentParser sub_create_polygon_shp("shp_polygon");
     sub_create_polygon_shp.add_description("create a polygon shapefile on WGS84 coordination,  base on points(file or cin).");
     {
         sub_create_polygon_shp.add_argument("output_shapefile")
@@ -76,7 +76,7 @@ int main(int argc, char* argv[])
             .help("a file that records points, with each line representing a point like: 'lon,lat'. (--file will covered --points)");
     }
 
-    argparse::ArgumentParser sub_create_2dpoint_shp("create_2dpoint_shp");
+    argparse::ArgumentParser sub_create_2dpoint_shp("shp_2dpoint");
     sub_create_2dpoint_shp.add_description("create a 2d-point shapefile on WGS84 coordination, base on points(file or cin).");
     {
         sub_create_2dpoint_shp.add_argument("output_shapefile")
@@ -94,7 +94,7 @@ int main(int argc, char* argv[])
             .help("a file that records points, with each line representing a point like: 'lat,lon'.");
     }
 
-    argparse::ArgumentParser sub_create_3dpoint_shp("create_3dpoint_shp");
+    argparse::ArgumentParser sub_create_3dpoint_shp("shp_3dpoint");
     sub_create_3dpoint_shp.add_description("create a 3d-point shapefile on WGS84 coordination, base on points(file or cin).");
     {
         sub_create_3dpoint_shp.add_argument("output_shapefile")
@@ -108,16 +108,33 @@ int main(int argc, char* argv[])
             .help("a file that records points, with each line representing a point like: 'lon,lat,val'.");
     }
 
+     argparse::ArgumentParser sub_create_linestr_shp("shp_linestring");
+    sub_create_linestr_shp.add_description("create a linestring shapefile, base on points and arcs.");
+    {
+        sub_create_linestr_shp.add_argument("points_file")
+            .help("input points file with size of num_point*2(h*w), and format of int or double.");
+
+        sub_create_linestr_shp.add_argument("arcs_file")
+            .help("input arcs file with size of num_arc*2(h*w), and format of int.");
+
+        sub_create_linestr_shp.add_argument("shp_file")
+            .help("output linestring shapefile.");
+
+        sub_create_linestr_shp.add_argument("-w", "--wgs84")
+            .help("geo-coordination.")
+            .flag();
+    }
+
     std::map<argparse::ArgumentParser* , 
             std::function<int(argparse::ArgumentParser* args,std::shared_ptr<spdlog::logger>)>> 
     parser_map_func = {
-        {&sub_point_with_shp,      point_with_shp},
-        {&sub_polygen_with_shp,    polygen_with_shp},
-        {&sub_overlap_rate,        polygen_overlap_rate},
-        {&sub_create_polygon_shp,  create_polygon_shp},
-        {&sub_create_2dpoint_shp,  create_2dpoint_shp},
-        {&sub_create_3dpoint_shp,  create_3dpoint_shp},
-        
+        {&sub_point_with_shp,       point_with_shp},
+        {&sub_polygen_with_shp,     polygen_with_shp},
+        {&sub_overlap_rate,         polygen_overlap_rate},
+        {&sub_create_polygon_shp,   create_polygon_shp},
+        {&sub_create_2dpoint_shp,   create_2dpoint_shp},
+        {&sub_create_3dpoint_shp,   create_3dpoint_shp},
+        {&sub_create_linestr_shp,   create_linestring_shp},
     };
 
     for(auto prog_map : parser_map_func){
