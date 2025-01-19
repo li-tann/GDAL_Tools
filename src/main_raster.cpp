@@ -34,7 +34,7 @@ int main(int argc, char* argv[])
     argparse::ArgumentParser program("gdal_tool_raster","1.0");
     program.add_description("gdal_tools about raster data, ...");
     
-    argparse::ArgumentParser sub_value_translate("trans_val");
+    argparse::ArgumentParser sub_value_translate("trans_val", "", argparse::default_arguments::help);
     sub_value_translate.add_description("translate the source value in input image to  target value in output image.");
     {
         sub_value_translate.add_argument("input_imgpath")
@@ -47,12 +47,12 @@ int main(int argc, char* argv[])
             .help("source_value")
             .scan<'g',double>();
         
-        sub_value_translate.add_argument("target_value")
+        sub_value_translate.add_argument("target_value", "")
             .help("target_value")
             .scan<'g',double>();
     }
 
-    argparse::ArgumentParser sub_set_nodata("set_nodata");
+    argparse::ArgumentParser sub_set_nodata("set_nodata", "", argparse::default_arguments::help);
     sub_set_nodata.add_description("set 'nodata value' metadata within image.");
     {
         sub_set_nodata.add_argument("img_filepath")
@@ -63,7 +63,7 @@ int main(int argc, char* argv[])
             .scan<'g',double>();
     }
 
-    argparse::ArgumentParser sub_statistics("stat_minmax");
+    argparse::ArgumentParser sub_statistics("stat_minmax", "", argparse::default_arguments::help);
     sub_statistics.add_description("statistics min, max, ave, std of the specified band of a image.");
     {
         sub_statistics.add_argument("img_filepath")
@@ -75,7 +75,7 @@ int main(int argc, char* argv[])
             .default_value("1");
     }
 
-    argparse::ArgumentParser sub_histogram_stretch("stretch_hist");
+    argparse::ArgumentParser sub_histogram_stretch("stretch_hist", "", argparse::default_arguments::help);
     sub_histogram_stretch.add_description("remove the extreme values at both ends of the image based on proportion.");
     {
         sub_histogram_stretch.add_argument("input_imgpath")
@@ -90,7 +90,7 @@ int main(int argc, char* argv[])
             .default_value("0.02");    
     }
 
-    argparse::ArgumentParser sub_histogram_statistics("stat_hist");
+    argparse::ArgumentParser sub_histogram_statistics("stat_hist", "", argparse::default_arguments::help);
     sub_histogram_statistics.add_description("histogram statistics.");
     {
         sub_histogram_statistics.add_argument("input_imgpath")
@@ -102,7 +102,7 @@ int main(int argc, char* argv[])
             .default_value("256");    
     }
 
-    argparse::ArgumentParser sub_vrt_to_tif("vrt2tif");
+    argparse::ArgumentParser sub_vrt_to_tif("vrt2tif", "", argparse::default_arguments::help);
     sub_vrt_to_tif.add_description("vrt image trans to tif");
     {
         sub_vrt_to_tif.add_argument("vrt")
@@ -112,7 +112,7 @@ int main(int argc, char* argv[])
             .help("output image filepath (*.tif)");    
     }
 
-    argparse::ArgumentParser sub_tif_to_vrt("tif2vrt");
+    argparse::ArgumentParser sub_tif_to_vrt("tif2vrt", "", argparse::default_arguments::help);
     sub_tif_to_vrt.add_description("tif image trans to vrt(binary), only trans the first band.");
     {
         sub_tif_to_vrt.add_argument("tif")
@@ -126,7 +126,7 @@ int main(int argc, char* argv[])
             .default_value("MSB");
     }
 
-    argparse::ArgumentParser sub_over_resample("resample");
+    argparse::ArgumentParser sub_over_resample("resample", "", argparse::default_arguments::help);
     sub_over_resample.add_description("over resample by gdalwarp.");
     {
         sub_over_resample.add_argument("input_imgpath")
@@ -146,7 +146,7 @@ int main(int argc, char* argv[])
             .choices("0","1","2","3","4","5");       
     }
 
-    argparse::ArgumentParser sub_trans_geoinfo("trans_geo");
+    argparse::ArgumentParser sub_trans_geoinfo("trans_geo", "", argparse::default_arguments::help);
     sub_trans_geoinfo.add_description("copy source's geoinformation to target");
     {
         sub_trans_geoinfo.add_argument("source")
@@ -156,7 +156,7 @@ int main(int argc, char* argv[])
             .help("target image");    
     }
 
-    argparse::ArgumentParser sub_image_cut_pixel("image_cut");
+    argparse::ArgumentParser sub_image_cut_pixel("image_cut", "", argparse::default_arguments::help);
     sub_image_cut_pixel.add_description("cut image by pixel, such as: input.tif output.tif 0 0 500 200");
     {
         sub_image_cut_pixel.add_argument("input_imgpath")
@@ -171,7 +171,7 @@ int main(int argc, char* argv[])
             .nargs(4);        
     }
 
-    argparse::ArgumentParser sub_image_overlay("image_overlay");
+    argparse::ArgumentParser sub_image_overlay("image_overlay", "", argparse::default_arguments::help);
     sub_image_overlay.add_description("image_overlay, such as: upper.png lower.png overlay.png 0.5 0.9 normal");
     {
         sub_image_overlay.add_argument("upper_imgpath")
@@ -196,7 +196,7 @@ int main(int argc, char* argv[])
             .choices("normal","premultiple","mask","additive","multiple","screen");
     }
 
-    argparse::ArgumentParser sub_image_set_colortable("image_color");
+    argparse::ArgumentParser sub_image_set_colortable("image_color", "", argparse::default_arguments::help);
     sub_image_set_colortable.add_description("set colortable to byte image, not supporting 'CreateCopy' data");
     {
         sub_image_set_colortable.add_argument("img_path")
@@ -206,7 +206,7 @@ int main(int argc, char* argv[])
             .help("color table filepath (cm or cpt), set 'clear' if you want clear color table within image");
     }
 
-    argparse::ArgumentParser sub_data_to_8bit("data_to_8bit");
+    argparse::ArgumentParser sub_data_to_8bit("data_to_8bit", "", argparse::default_arguments::help);
     sub_data_to_8bit.add_description("convert data to 8bit");
     {
         sub_data_to_8bit.add_argument("img_path")
@@ -219,7 +219,7 @@ int main(int argc, char* argv[])
             .help("extension, support jpg, png, bmp and tif");
     }
 
-    argparse::ArgumentParser sub_grid_interp("grid_interp");
+    argparse::ArgumentParser sub_grid_interp("grid_interp", "", argparse::default_arguments::help);
     sub_grid_interp.add_description("create a grid raster by some discrete points");
     {
         sub_grid_interp.add_argument("points_path")
@@ -233,7 +233,7 @@ int main(int argc, char* argv[])
             .help("output raster filepath, which is a tiff image with 1 band, in float datatype.");
     }
 
-    argparse::ArgumentParser sub_band_extract("band_extract");
+    argparse::ArgumentParser sub_band_extract("band_extract", "", argparse::default_arguments::help);
     sub_band_extract.add_description("extract a single band and create a tif format data.");
     {
         sub_band_extract.add_argument("src")
@@ -245,7 +245,7 @@ int main(int argc, char* argv[])
             .nargs(argparse::nargs_pattern::at_least_one);
     }
 
-    argparse::ArgumentParser sub_vip_points("vip_points");
+    argparse::ArgumentParser sub_vip_points("vip_points", "", argparse::default_arguments::help);
     sub_vip_points.add_description("extract important points in the first band of raster image (DEM), with datatype like short or float. ");
     {
         sub_vip_points.add_argument("input")
@@ -268,7 +268,7 @@ int main(int argc, char* argv[])
     }
 
 
-    argparse::ArgumentParser sub_quadtree("quadtree");
+    argparse::ArgumentParser sub_quadtree("quadtree", "", argparse::default_arguments::help);
     sub_quadtree.add_description("create quadtree base on a raster mask with byte datatype.");
     {
         sub_quadtree.add_argument("input")
@@ -287,7 +287,7 @@ int main(int argc, char* argv[])
 
     }
 
-    argparse::ArgumentParser sub_jpg2png("jpg2png");
+    argparse::ArgumentParser sub_jpg2png("jpg2png", "", argparse::default_arguments::help);
     sub_jpg2png.add_description("tranlate jpg to png.");
     {
         sub_jpg2png.add_argument("jpg")
@@ -302,11 +302,29 @@ int main(int argc, char* argv[])
        
     }
 
-    argparse::ArgumentParser sub_triangle("triangle");
-    sub_triangle.add_description("tranlate jpg to png.");
+    argparse::ArgumentParser sub_triangle("triangle", "", argparse::default_arguments::help);
+    sub_triangle.add_description("input mask image to generate triangle, and output with specify format.");
     {
         sub_triangle.add_argument("mask")
-            .help("8bit mask tif.");
+            .help("GDT_byte tif, with valid points marked as 1 and others marked as 0.");
+        
+        sub_triangle.add_argument("-f","--format")
+            .help("output format, 'txt', 'tif', or 'bin'.")
+            .default_value("txt")
+            .choices("txt", "tif", "bin")
+            .nargs(1);
+
+        sub_triangle.add_argument("-p","--pointlist")
+            .help("point list file with spcify format (*.txt, *.tif, *.pnts)")
+            .nargs(1);
+
+        sub_triangle.add_argument("-e","--edgelist")
+            .help("edge list file with spcify format (*.txt, *.tif, *.edges)")
+            .nargs(1);
+
+        sub_triangle.add_argument("-t","--trianglelist")
+            .help("-triangle list file with spcify format (*.txt, *.tif, *.tris)")
+            .nargs(1);
     }
     
 
@@ -330,7 +348,7 @@ int main(int argc, char* argv[])
         {&sub_grid_interp,          grid_interp},
         {&sub_band_extract,         band_extract},
         {&sub_vip_points,           import_points_extract},
-        {&sub_triangle,             triangle_newwork},
+        {&sub_triangle,             triangle_network},
         {&sub_quadtree,             create_quadtree},
         {&sub_jpg2png,              jpg_to_png},
     };

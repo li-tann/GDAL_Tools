@@ -58,4 +58,4 @@ int create_quadtree(argparse::ArgumentParser* args, std::shared_ptr<spdlog::logg
 
 int jpg_to_png(argparse::ArgumentParser* args, std::shared_ptr<spdlog::logger> logger);
 
-int triangle_newwork(argparse::ArgumentParser* args, std::shared_ptr<spdlog::logger> logger);
+int triangle_network(argparse::ArgumentParser* args, std::shared_ptr<spdlog::logger> logger);
