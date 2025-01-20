@@ -163,9 +163,14 @@ int triangle_network(argparse::ArgumentParser* args, std::shared_ptr<spdlog::log
     triangulate("pczAevnQ", &in, &mid, &vorout);
 
     /*
+    p: 如果输入的是点, 一般需要加上p用来生成poly线段
+    c: 允许在凸包(convex hull)上创建线段 
     z: zero, 所有数据都是从零开始编号
+    A: 为triangle提供一个浮点熟悉(不知道有啥用), -A只有在使用了-p但没有使用-r时才会生效
+    e: 输出edge
+    v: 输出Voronoi图(此处好像没用)
+    n: 输出neighbor(此处好像没用)
     Q: quiet, 静默模式, 不打印任何信息
-    c: convex hull
     */
 
     int num_vertices = mid.numberofpoints;
