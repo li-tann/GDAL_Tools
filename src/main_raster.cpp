@@ -327,7 +327,29 @@ int main(int argc, char* argv[])
             .nargs(1);
     }
     
+    argparse::ArgumentParser sub_geo2pix("cal_geo2pix", "", argparse::default_arguments::help);
+    sub_geo2pix.add_description("input geo_img, geo-coord points (one or more), and print corresponding pix-coord points.");
+    {
+        sub_geo2pix.add_argument("geo_img")
+            .help("image with valid geotransform");
+        
+        sub_geo2pix.add_argument("-p","--pointlist")
+            .help("geo point list, like 'lon1,lat1 lon2,lat2'")
+            .nargs(argparse::nargs_pattern::at_least_one);
 
+    }
+
+    argparse::ArgumentParser sub_pix2geo("cal_pix2geo", "", argparse::default_arguments::help);
+    sub_pix2geo.add_description("input geo_img, pix-coord points (one or more), and print corresponding geo-coord points.");
+    {
+        sub_pix2geo.add_argument("geo_img")
+            .help("image with valid geotransform");
+        
+        sub_pix2geo.add_argument("-p","--pointlist")
+            .help("pixel point list, like 'y1,x1 y2,x2'")
+            .nargs(argparse::nargs_pattern::at_least_one);
+
+    }
 
     std::map<argparse::ArgumentParser* , 
             std::function<int(argparse::ArgumentParser* args,std::shared_ptr<spdlog::logger>)>> 
@@ -351,6 +373,8 @@ int main(int argc, char* argv[])
         {&sub_triangle,             triangle_network},
         {&sub_quadtree,             create_quadtree},
         {&sub_jpg2png,              jpg_to_png},
+        {&sub_geo2pix,              cal_geo2pix},
+        {&sub_pix2geo,              cal_pix2geo},
     };
 
     for(auto prog_map : parser_map_func){
