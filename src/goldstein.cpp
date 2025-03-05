@@ -3,6 +3,59 @@
 funcrst goldstein(std::complex<float>* arr_in, int height, int width, float alpha, std::complex<float>* arr_out);
 funcrst goldstein_single(std::complex<float>* arr_in, int height, int width, float alpha, std::complex<float>* arr_out);
 
+/// @note 创建sinc窗口, 应该只适用于偶数
+float* sinc_window(int height, int width)
+{
+    float* dst = new float[height*width];
+    float* arr_x = new float[width];
+    float* arr_y = new float[height];
+
+    for(int i=0; i<width; i++){
+        float x = (i - width/2 + 0.5)/(width/2);
+        arr_x[i] = sin(M_PI*x) / (M_PI*x);
+        if(isnan(arr_x[i])) arr_x[i] = 1;
+    }
+
+    for(int i=0; i<height; i++){
+        float y = (i - height/2 + 0.5)/(height/2);
+        arr_y[i] = sin(M_PI*y) / (M_PI*y);
+        if(isnan(arr_y[i])) arr_y[i] = 1;
+    }
+
+    for(int i=0; i<height; i++){
+        for(int j=0; j<width; j++){
+            dst[i*width+j] = arr_x[j] * arr_y[i]; 
+        }
+    }
+    delete[] arr_x;
+    delete[] arr_y;
+
+    return dst;
+}
+
+/// @note 同样的 应该只适用于偶数
+void arr_2d_shift(float* arr, int height, int width)
+{
+    float tmp;
+    /// 水平对调
+    for(int i=0; i<height; i++){
+        for(int j=0; j<width/2; j++){
+            tmp = arr[i*width+j];
+            arr[i*width+j] = arr[i*width+j+width/2];
+            arr[i*width+j+width/2] = tmp;
+        }
+    }
+
+    /// 垂直对调
+    for(int j=0; j<width; j++){
+        for(int i=0; i<height/2; i++){
+            tmp = arr[i*width+j];
+            arr[i*width+j] = arr[(i+height/2)*width+j];
+            arr[(i+height/2)*width+j] = tmp;
+        }
+    }
+}
+
 /*
 	argparse::ArgumentParser sub_goldstein("goldstein");
     sub_goldstein.add_description("determine relationship between point and shapefile.");
@@ -233,9 +286,33 @@ funcrst goldstein(std::complex<float>* arr_in, int height, int width, float alph
 			/// abs
 			float* block_abs = new float[size*size];
 			for(int k=0; k<size*size; k++){
+				frequency_arrs[thread_idx][k][0] /= size*size;
+                frequency_arrs[thread_idx][k][1] /= size*size;
 				block_abs[k] = sqrtf(powf(frequency_arrs[thread_idx][k][0],2) + powf(frequency_arrs[thread_idx][k][1],2));
 			}
+#if true
+			/// @note create sinc window
+            float* sinc = sinc_window(size, size);
+            /// @note sinc window shift
+			arr_2d_shift(sinc, size, size);
+            /// @note filtered = sinc_win * freq_amp 
+			float* filtered_arrs = new float[size*size];
+            for(int i=0; i<size*size; i++){
+                filtered_arrs[i] = sinc[i]*block_abs[i];
+            }
 
+			delete[] block_abs;
+			delete[] sinc;
+
+
+			/// filtered^alpha * spatial_arrs -> frequency_arrs
+			for(int k=0; k< size*size; k++){
+                float scale = pow(filtered_arrs[k], alpha);
+				frequency_arrs[thread_idx][k][0] = scale * frequency_arrs[thread_idx][k][0];
+				frequency_arrs[thread_idx][k][1] = scale * frequency_arrs[thread_idx][k][1];
+			}
+			delete[] filtered_arrs;
+#else			
 			/// smooth
 			float* smooth_spatial = new float[25];
 			for(int k = 0; k<25; k++)
@@ -250,14 +327,12 @@ funcrst goldstein(std::complex<float>* arr_in, int height, int width, float alph
 
 			/// block_smooth^alpha * spatial_arrs -> frequency_arrs
 			for(int k=0; k< size*size; k++){
-				// frequency_arrs[thread_idx][k][0] = block_smooth[k] * alpha * frequency_arrs[thread_idx][k][0];
-				// frequency_arrs[thread_idx][k][1] = block_smooth[k] * alpha * frequency_arrs[thread_idx][k][1];
 				frequency_arrs[thread_idx][k][0] = pow(block_smooth[k],alpha) * frequency_arrs[thread_idx][k][0];
 				frequency_arrs[thread_idx][k][1] = pow(block_smooth[k],alpha) * frequency_arrs[thread_idx][k][1];
 			}
 
 			delete[] block_smooth;
-
+#endif
 
 			/// ifft
 			fftwf_execute(backward_plans[thread_idx]);
@@ -405,9 +480,33 @@ funcrst goldstein_single(std::complex<float>* arr_in, int height, int width, flo
 			/// abs
 			float* block_abs = new float[size*size];
 			for(int k=0; k<size*size; k++){
+				frequency_arr[k][0] /= size*size;
+                frequency_arr[k][1] /= size*size;
 				block_abs[k] = sqrtf(powf(frequency_arr[k][0],2) + powf(frequency_arr[k][1],2));
 			}
 
+#if true
+			/// @note create sinc window
+            float* sinc = sinc_window(size, size);
+            /// @note sinc window shift
+			arr_2d_shift(sinc, size, size);
+            /// @note filtered = sinc_win * freq_amp 
+			float* filtered_arrs = new float[size*size];
+            for(int i=0; i<size*size; i++){
+                filtered_arrs[i] = sinc[i]*block_abs[i];
+            }
+
+			delete[] block_abs;
+			delete[] sinc;
+
+			/// filtered^alpha * spatial_arrs -> frequency_arrs
+			for(int k=0; k< size*size; k++){
+                float scale = pow(filtered_arrs[k], alpha);
+				frequency_arr[k][0] = scale * frequency_arr[k][0];
+				frequency_arr[k][1] = scale * frequency_arr[k][1];
+			}
+			delete[] filtered_arrs;
+#else			
 			/// smooth
 			float* block_smooth = new float[size*size];
 			// conv_2d(block_abs, size, size, block_smooth, smooth_frequency, 5);
@@ -424,6 +523,11 @@ funcrst goldstein_single(std::complex<float>* arr_in, int height, int width, flo
 				frequency_arr[k][1] = pow(block_smooth[k],alpha) * frequency_arr[k][1];
 			}
 
+			delete[] block_smooth;
+#endif
+
+			
+
 
 			/// ifft
 			fftwf_execute(backward);
@@ -436,6 +540,253 @@ funcrst goldstein_single(std::complex<float>* arr_in, int height, int width, flo
                         continue;
 					arr_out[(i+m)*width+(j+n)].real(spatial_arr[m*size+n][0] / size / size);
 					arr_out[(i+m)*width+(j+n)].imag(spatial_arr[m*size+n][1] / size / size);
+				}
+			}
+
+
+		}
+	}
+
+
+    fftwf_destroy_plan(forward);
+    fftwf_destroy_plan(backward);
+    fftwf_free(spatial_arr);
+    fftwf_free(frequency_arr);
+
+    double spend_sec = spend_time(start_time);
+    cout<<"glodstein_single spend_time: "<<spend_sec<<endl;
+
+	return funcrst(true, "filter::goldstein finished.");
+}
+
+
+
+
+
+
+
+funcrst goldstein_single_float(float* arr_in, int height, int width, float alpha, float* arr_out);
+
+int filter_goldstein_float(argparse::ArgumentParser* args, std::shared_ptr<spdlog::logger> logger)
+{
+	std::string input_path  = args->get<string>("input_path");
+	std::string output_path = args->get<string>("output_path");
+	double alpha = args->get<double>("--alpha");
+
+	if(alpha < 0 || alpha >1){
+		PRINT_LOGGER(logger, warn, fmt::format("alpha input is a invalid data ({}) which has been replaced by default ({})",alpha, 0.5));
+		alpha = 0.5;
+	}
+
+	GDALAllRegister();
+    CPLSetConfigOption("GDAL_FILENAME_IS_UTF8", "NO");
+
+    GDALDataset* ds = (GDALDataset*)GDALOpen(input_path.c_str(), GA_ReadOnly);
+    if(!ds){
+        PRINT_LOGGER(logger, error, "filter_goldstein_float failed, ds is nullptr");
+		return -1;
+    }
+	int width = ds->GetRasterXSize();
+    int height= ds->GetRasterYSize();
+    GDALRasterBand* rb = ds->GetRasterBand(1);
+    GDALDataType datatype = rb->GetRasterDataType();
+
+	if(datatype != GDT_Float32){
+		PRINT_LOGGER(logger, error, "filter_goldstein_float failed, datatype is diff with float.");
+		return -2;
+	}
+
+	float* arr = new float[width * height];
+	rb->RasterIO(GF_Read, 0, 0, width, height, arr, width, height, datatype, 0, 0);
+
+
+	float* arr_out = new float[width * height];
+	
+	PRINT_LOGGER(logger, info, "Preparation completed, start filtering with goldstein.");
+
+	funcrst rst = goldstein_single_float(arr, height, width, alpha, arr_out);
+	if(!rst){
+		PRINT_LOGGER(logger, error, fmt::format("filter_goldstein_float failed. ({})", rst.explain));
+		return -3;
+	}
+
+    delete[] arr;
+	GDALClose(ds);
+
+	GDALDriver* dv = GetGDALDriverManager()->GetDriverByName("GTiff");
+    GDALDataset* ds_out = dv->Create(output_path.c_str(), width, height, 1, datatype, NULL);
+    if(!ds_out){
+		delete[] arr_out;
+        PRINT_LOGGER(logger, error, "filter_goldstein_float failed, ds_out is nullptr.");
+		return -3;
+    }
+    GDALRasterBand* rb_out = ds_out->GetRasterBand(1);
+	rb_out->RasterIO(GF_Write, 0, 0, width, height, arr_out, width, height, datatype, 0, 0);
+
+	delete[] arr_out;
+	GDALClose(ds_out);
+
+	PRINT_LOGGER(logger, info, "filter_goldstein_float finished.");
+	return 1;
+}
+
+funcrst goldstein_single_float(float* arr_in, int height, int width, float alpha, float* arr_out)
+{
+    auto start_time = std::chrono::system_clock::now();
+
+	int size = 32;
+	int overlap = 24;
+	int step = size - overlap;
+
+	/// 避免多线程时多线程同时调用一个plan出现异常
+    float* spatial_arr =  new float[size*size];
+	fftwf_complex* frequency_arr = fftwf_alloc_complex(size*size);
+	fftwf_plan forward  = fftwf_plan_dft_r2c_2d(size, size, spatial_arr, frequency_arr, FFTW_ESTIMATE);
+	fftwf_plan backward = fftwf_plan_dft_c2r_2d(size, size, frequency_arr, spatial_arr, FFTW_ESTIMATE);
+
+	if(arr_out == nullptr){
+		arr_out = new float[height * width];
+	}
+	else if(dynamic_array_size(arr_out) != height * width){
+		delete[] arr_out;
+		arr_out = new float[height * width];
+	}
+
+    auto print_fftwf_arr = [](fftwf_complex* arr, int size){
+        cout<<endl;
+        for(int i=0; i< size; i++){
+            cout<<arr[i][0]<<","<<arr[i][1]<<";";
+        }
+        cout<<endl;
+    };
+
+    auto print_fcpx_arr = [](std::complex<float>* arr, int size){
+        cout<<endl;
+        for(int i=0; i< size; i++){
+            cout<<arr[i].real()<<","<<arr[i].imag()<<";";
+        }
+        cout<<endl;
+    };
+
+    auto print_flt_arr = [](float* arr, int size){
+        cout<<endl;
+        for(int i=0; i< size; i++){
+            cout<<arr[i]<<",";
+        }
+        cout<<endl;
+    };
+
+#ifdef DEBUG
+    print_flt_arr(smooth_spatial, 25);
+    print_flt_arr(smooth_frequency, 25);
+#endif
+
+	for(int i=0; i < height; i+=step)
+	{
+		/// out_i_start, out_i_end, 控制block数组内需要赋值到arr_out的行数, 保证输出数据没有"黑框"
+		int out_i_start, out_i_end;
+		if(i == 0){
+			out_i_start = 0; out_i_end = size - overlap / 2 - 1;
+		}
+		else if(i + step - 1 > height - 1){
+			out_i_start = overlap / 2; out_i_end = height - 1 - i;
+		}
+		else{
+			out_i_start = overlap / 2; out_i_end = size - overlap / 2 - 1;
+		}
+		
+		int thread_idx = omp_get_thread_num();
+		for(int j=0; j < width; j+=step)
+		{
+			/// out_j_start, out_j_end, 控制block数组内需要赋值到arr_out的列数, 保证输出数据没有"黑框"
+			int out_j_start, out_j_end;
+			if(j == 0){
+				out_j_start = 0; out_j_end = size - overlap / 2 - 1;
+			}
+			else if(j + step - 1 > width - 1){
+				out_j_start = overlap / 2; out_j_end = width - 1 - j;
+			}
+			else{
+				out_j_start = overlap / 2; out_j_end = size - overlap / 2 - 1;
+			}
+
+			/// spatial_arr init
+			for(int k = 0; k< size*size; k++){
+				int block_i = k / size + i;
+				int block_j = k % size + j;
+				if(block_j > width - 1 || block_i > height - 1){
+					/// 说明超界, 需要补零
+					spatial_arr[k]=0;
+				}
+				else{
+					spatial_arr[k]=arr_in[block_i * width + block_j];
+				}
+			}
+
+			///  fft
+			fftwf_execute(forward);
+
+
+			/// abs
+			float* block_abs = new float[size*size];
+			for(int k=0; k<size*size; k++){
+				frequency_arr[k][0] /= size*size;
+                frequency_arr[k][1] /= size*size;
+				block_abs[k] = sqrtf(powf(frequency_arr[k][0],2) + powf(frequency_arr[k][1],2));
+			}
+
+#if true
+			/// @note create sinc window
+            float* sinc = sinc_window(size, size);
+            /// @note sinc window shift
+			arr_2d_shift(sinc, size, size);
+            /// @note filtered = sinc_win * freq_amp 
+			float* filtered_arrs = new float[size*size];
+            for(int i=0; i<size*size; i++){
+                filtered_arrs[i] = sinc[i]*block_abs[i];
+            }
+
+			delete[] block_abs;
+			delete[] sinc;
+
+			/// filtered^alpha * spatial_arrs -> frequency_arrs
+			for(int k=0; k< size*size; k++){
+                float scale = pow(filtered_arrs[k], alpha);
+				frequency_arr[k][0] = scale * frequency_arr[k][0];
+				frequency_arr[k][1] = scale * frequency_arr[k][1];
+			}
+			delete[] filtered_arrs;
+#else			
+			/// smooth
+			float* block_smooth = new float[size*size];
+			// conv_2d(block_abs, size, size, block_smooth, smooth_frequency, 5);
+            auto rst = conv_2d(block_abs, size, size, block_smooth, smooth_spatial, 5);
+
+			delete[] block_abs;
+
+
+			/// block_smooth^alpha * spatial_arrs -> frequency_arrs
+			for(int k=0; k< size*size; k++){
+				// frequency_arr[k][0] = block_smooth[k] * alpha * frequency_arr[k][0];
+				// frequency_arr[k][1] = block_smooth[k] * alpha * frequency_arr[k][1];
+				frequency_arr[k][0] = pow(block_smooth[k],alpha) * frequency_arr[k][0];
+				frequency_arr[k][1] = pow(block_smooth[k],alpha) * frequency_arr[k][1];
+			}
+
+			delete[] block_smooth;
+#endif
+
+
+			/// ifft
+			fftwf_execute(backward);
+
+
+			/// 赋值
+			for(int m = out_i_start; m <= out_i_end; m++){
+				for(int n = out_j_start; n <= out_j_end; n++){
+                    if(i + m < 0 || i + m > height - 1 || j + n < 0 || j + n > width - 1)
+                        continue;
+					arr_out[(i+m)*width+(j+n)] = (spatial_arr[m*size+n] / size / size);
 				}
 			}
 

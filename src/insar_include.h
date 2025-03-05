@@ -32,6 +32,8 @@ funcrst conv_2d(float* arr_in, int width, int height, float* arr_out, float* ker
 
 int filter_goldstein(argparse::ArgumentParser* args, std::shared_ptr<spdlog::logger> logger);
 
+int filter_goldstein_float(argparse::ArgumentParser* args, std::shared_ptr<spdlog::logger> logger);
+
 int filter_goldstein_zhao(argparse::ArgumentParser* args, std::shared_ptr<spdlog::logger> logger);
 
 int filter_goldstein_baran(argparse::ArgumentParser* args, std::shared_ptr<spdlog::logger> logger);

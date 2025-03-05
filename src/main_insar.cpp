@@ -31,6 +31,21 @@ int main(int argc, char* argv[])
             .default_value("0.5");   
     }
 
+    argparse::ArgumentParser sub_goldstein_f("goldstein_f");
+    sub_goldstein_f.add_description("filter float data, with method goldstein.");
+    {
+        sub_goldstein_f.add_argument("input_path")
+            .help("input file path, support float.");
+        
+        sub_goldstein_f.add_argument("output_path")
+            .help("filterd output file path, with same datatype with input_path.");
+
+        sub_goldstein_f.add_argument("-a","--alpha")
+            .help("the power of window, within range [0,1], , default is 0.5. The higher the power, the more pronounced the filtering effect.")
+            .scan<'g',double>()
+            .default_value("0.5");   
+    }
+
     argparse::ArgumentParser sub_goldstein_zhao("zhao");
     sub_goldstein_zhao.add_description("filter insar data like int(cfloat32), with method zhao-filter.");
     {
@@ -127,6 +142,7 @@ int main(int argc, char* argv[])
             std::function<int(argparse::ArgumentParser* args,std::shared_ptr<spdlog::logger>)>> 
     parser_map_func = {
         {&sub_goldstein,            filter_goldstein},
+        {&sub_goldstein_f,          filter_goldstein_float},
         {&sub_goldstein_zhao,       filter_goldstein_zhao},
         {&sub_goldstein_baran,      filter_goldstein_baran},
         {&sub_pseudo_correlation,   pseudo_correlation},
