@@ -108,7 +108,7 @@ int main(int argc, char* argv[])
             .help("a file that records points, with each line representing a point like: 'lon,lat,val'.");
     }
 
-     argparse::ArgumentParser sub_create_linestr_shp("shp_linestring");
+    argparse::ArgumentParser sub_create_linestr_shp("shp_linestring");
     sub_create_linestr_shp.add_description("create a linestring shapefile, base on points and arcs.");
     {
         sub_create_linestr_shp.add_argument("points_file")
@@ -125,6 +125,20 @@ int main(int argc, char* argv[])
             .flag();
     }
 
+    argparse::ArgumentParser sub_point_shp_dilution("shp_dilution");
+    sub_point_shp_dilution.add_description("create a linestring shapefile, base on points and arcs.");
+    {
+        sub_point_shp_dilution.add_argument("point_shapefile")
+            .help("input points shapefile.");
+
+        sub_point_shp_dilution.add_argument("ref_dem")
+            .help("reference DEM.");
+
+        sub_point_shp_dilution.add_argument("diluted_shapefile")
+            .help("diluted point shapefile.");
+
+    }
+
     std::map<argparse::ArgumentParser* , 
             std::function<int(argparse::ArgumentParser* args,std::shared_ptr<spdlog::logger>)>> 
     parser_map_func = {
@@ -135,6 +149,7 @@ int main(int argc, char* argv[])
         {&sub_create_2dpoint_shp,   create_2dpoint_shp},
         {&sub_create_3dpoint_shp,   create_3dpoint_shp},
         {&sub_create_linestr_shp,   create_linestring_shp},
+        {&sub_point_shp_dilution,   points_shapefile_dilution},
     };
 
     for(auto prog_map : parser_map_func){
