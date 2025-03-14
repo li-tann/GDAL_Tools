@@ -7,6 +7,9 @@
     sub_point_shp_dilution.add_argument("ref_dem")
         .help("reference DEM.");
 
+    sub_point_shp_dilution.add_argument("target_defn")
+            .help("target FieldDefn.");    
+
     sub_point_shp_dilution.add_argument("diluted_shapefile")
         .help("diluted point shapefile.");
 */
@@ -14,15 +17,33 @@ int points_shapefile_dilution(argparse::ArgumentParser* args, std::shared_ptr<sp
 {
     string shp_in = args->get<string>("point_shapefile");
     string ref_dem = args->get<string>("ref_dem");
+    string target_defn = args->get<string>("target_defn");
     string shp_out = args->get<string>("diluted_shapefile");
 
     std::cout<<fmt::format("shapefile  in: '{}'", shp_in)<<std::endl;
-    std::cout<<fmt::format("reference dem: '{}'", ref_dem)<<std::endl;
     std::cout<<fmt::format("shapefile out: '{}'", shp_out)<<std::endl;
+    std::cout<<fmt::format("reference dem: '{}'", ref_dem)<<std::endl;
+    std::cout<<fmt::format(" target  defn: '{}'", target_defn)<<std::endl;
 
     GDALAllRegister();
     CPLSetConfigOption("GDAL_FILENAME_IS_UTF8", "NO");
 
+    /// @note 加载DEM基本信息
+    int dem_h, dem_w;
+    double gt[6];
+    {
+        GDALDataset* ds_dem = (GDALDataset*)GDALOpen(ref_dem.c_str(), GA_ReadOnly);
+        if(!ds_dem){
+            PRINT_LOGGER(logger, error, "points_shapefile_dilution failed, ds_dem is nullptr.");
+            return -1;
+        }
+        dem_h = ds_dem->GetRasterYSize();
+        dem_w = ds_dem->GetRasterXSize();
+        ds_dem->GetGeoTransform(gt);
+        GDALClose(ds_dem);
+    }
+
+    /// @note 检查输入shp的基本信息
     GDALDataset* ds = (GDALDataset*)GDALOpenEx(shp_in.c_str(), GDAL_OF_VECTOR, nullptr, nullptr, nullptr);
     if(!ds){
         PRINT_LOGGER(logger, error, "points_shapefile_dilution failed, ds is nullptr.");
@@ -39,71 +60,113 @@ int points_shapefile_dilution(argparse::ArgumentParser* args, std::shared_ptr<sp
         return -1;
     }
 
+    
+    /// @note 搜索指定的Defn对应的索引值
+    int target_defn_idx = -1;
     OGRFeatureDefn* defn = layer->GetLayerDefn();
-    /// @note field数量
-    int fieldCount = defn->GetFieldCount();
-
-    std::cout << "Fields:" << std::endl;
-    for (int i = 0; i < fieldCount; ++i) {
+    for (int i = 0; i < defn->GetFieldCount(); ++i) {
         OGRFieldDefn* fieldDefn = defn->GetFieldDefn(i);
-        std::cout << "  " << fieldDefn->GetNameRef() << std::endl;
-        std::cout << "  " << OGRFieldDefn::GetFieldTypeName(fieldDefn->GetType()) << std::endl;
+        std::string name = fieldDefn->GetNameRef();
+        if(name == target_defn && fieldDefn->GetType() == OGRFieldType::OFTReal){
+            target_defn_idx = i;
+            break;
+        }
     }
 
-    // 获取Feature数量
-    int featureCount = layer->GetFeatureCount();
-    std::cout << "Total Features: " << featureCount << std::endl;
-
-    int feature_iter = 0;
-    OGRFeature* poFeature;
-    while ((poFeature = layer->GetNextFeature()) != nullptr && feature_iter < 10)
+    if(target_defn_idx < 0){
+        PRINT_LOGGER(logger, error, fmt::format("points_shapefile_dilution failed, there is no valid defn in layer (no same with name or type(real))."));
+        GDALClose(ds);
+        return -1;
+    }
+    
+    double* arr_val = new double[dem_h*dem_w];
+    double* arr_num = new double[dem_h*dem_w];
+    std::fill(arr_val, arr_val+dem_h*dem_w, 0);
+    std::fill(arr_num, arr_num+dem_h*dem_w, 0);
+    
+    /// @note 更新arr_val, arr_num
+    int origin_feature_num = layer->GetFeatureCount();
+    OGRFeature* feature;
+    while ((feature = layer->GetNextFeature()))
     {
-        ++feature_iter;
-
-        
-        OGRGeometry* poGeometry = poFeature->GetGeometryRef();
+        OGRGeometry* poGeometry = feature->GetGeometryRef();
         if (poGeometry == nullptr || wkbFlatten(poGeometry->getGeometryType()) != wkbPoint){
             continue;
         }
 
-        OGRPoint* poPoint = (OGRPoint*)poGeometry;
-        std::cout << "Point: (" << poPoint->getX() << ", " << poPoint->getY() << ")" << std::endl;
+        OGRPoint* point = (OGRPoint*)poGeometry;
+        double lon = point->getX();
+        double lat = point->getY();
 
-        // 遍历所有字段并获取字段值
-        for (int iField = 0; iField < fieldCount; ++iField)
-        {
-            OGRFieldDefn* poFieldDefn = defn->GetFieldDefn(iField);
-            std::string fieldName = poFieldDefn->GetNameRef();
+        int pix_x = int(0.5 + (lon - gt[0]) / gt[1]);
+        int pix_y = int(0.5 + (lat - gt[3]) / gt[5]);
 
-            if (!poFeature->IsFieldSet(iField)) {
-                std::cout << "  " << fieldName << ": (unset)" << std::endl;
-                continue;
-            }
-
-            switch (poFieldDefn->GetType()) {
-                case OFTInteger:
-                    std::cout << "  " << fieldName << ": " << poFeature->GetFieldAsInteger(iField) << std::endl;
-                    break;
-                case OFTInteger64:
-                    std::cout << "  " << fieldName << ": " << poFeature->GetFieldAsInteger64(iField) << std::endl;
-                    break;
-                case OFTReal:
-                    std::cout << "  " << fieldName << ": " << poFeature->GetFieldAsDouble(iField) << std::endl;
-                    break;
-                case OFTString:
-                    std::cout << "  " << fieldName << ": " << poFeature->GetFieldAsString(iField) << std::endl;
-                    break;
-                default:
-                    std::cout << "  " << fieldName << ": " << poFeature->GetFieldAsString(iField) << std::endl;
-                    break;
-            }
+        if(pix_x < 0 || pix_x >= dem_w || pix_y < 0 || pix_y >= dem_h){
+            continue;
         }
 
+        int arr_idx = pix_y * dem_w + pix_x;
+        double val = feature->GetFieldAsDouble(target_defn_idx);
+
+        arr_val[arr_idx] += val;
+        arr_num[arr_idx] ++;
+        
+        // 释放Feature
+        OGRFeature::DestroyFeature(feature);
     }
-    // 释放Feature
-    OGRFeature::DestroyFeature(poFeature);
-    
+
+    GDALDriver* driver = GetGDALDriverManager()->GetDriverByName("ESRI Shapefile");
+    GDALDataset* ds_out = driver->Create(shp_out.c_str(), 0, 0, 0, GDT_Unknown, NULL);
+    if(!ds_out){
+        GDALClose(ds);
+        delete[] arr_val;
+        delete[] arr_num;
+        PRINT_LOGGER(logger, error, fmt::format("points_shapefile_dilution failed, ds_out is nullptr."));
+        return -2;
+    }
+
+    OGRLayer* layer_out = ds_out->CreateLayer("points", layer->GetSpatialRef(), wkbPoint, NULL);
+    /// @note 使用完shp_in的GetSpatialRef, 就可以删除了
     GDALClose(ds);
+
+    OGRFieldDefn field_defn_val(target_defn.c_str(), OFTReal);
+    field_defn_val.SetPrecision(3);
+    layer_out->CreateField(&field_defn_val);
+
+    OGRPoint point;
+    int dilutioned_feature_num = 0;
+    for(int i=0; i<dem_h; i++)
+    {
+        double lat = gt[3] + gt[5] * i;
+        for(int j=0; j<dem_w; j++)
+        {
+            double lon = gt[0] + gt[1] * j;
+            if(arr_num[i*dem_w+j]==0){
+                continue;
+            }
+            double val = arr_val[i*dem_w+j] / arr_num[i*dem_w+j];
+
+            point.setX(lon);
+            point.setY(lat);
+
+            OGRFeature* tmp_feature = OGRFeature::CreateFeature(layer_out->GetLayerDefn());
+            tmp_feature->SetGeometry(&point);
+            tmp_feature->SetField(target_defn.c_str(), val);
+
+            layer_out->CreateFeature(tmp_feature);
+            ++dilutioned_feature_num;
+
+            OGRFeature::DestroyFeature(tmp_feature);
+        }
+    }
+
+    std::cout<<fmt::format("  original feature count: {}", origin_feature_num)<<std::endl;
+    std::cout<<fmt::format("dilutioned feature count: {}", dilutioned_feature_num)<<std::endl;
+
+    GDALClose(ds_out);
+    delete[] arr_val;
+    delete[] arr_num;
+
     PRINT_LOGGER(logger, info, "points_shapefile_dilution finished.");
     return 1;
 }

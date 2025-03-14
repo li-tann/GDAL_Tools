@@ -134,6 +134,9 @@ int main(int argc, char* argv[])
         sub_point_shp_dilution.add_argument("ref_dem")
             .help("reference DEM.");
 
+        sub_point_shp_dilution.add_argument("target_defn")
+            .help("target FieldDefn.");    
+
         sub_point_shp_dilution.add_argument("diluted_shapefile")
             .help("diluted point shapefile.");
 
