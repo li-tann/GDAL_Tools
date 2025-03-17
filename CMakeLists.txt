@@ -60,6 +60,7 @@ target_link_libraries(gdal_tool_raster PRIVATE argparse::argparse)
 target_link_libraries(gdal_tool_raster PRIVATE OpenMP::OpenMP_CXX)
 target_link_libraries(gdal_tool_raster PRIVATE nlohmann_json::nlohmann_json)
 target_link_libraries(gdal_tool_raster PRIVATE triangle::triangleLib)
+
 set(EXE_LIST ${EXE_LIST} gdal_tool_raster)
 
 add_executable(gdal_tool_vector
@@ -159,6 +160,19 @@ target_link_libraries(io_hdf5 PRIVATE fmt::fmt)
 target_link_libraries(io_hdf5 PRIVATE GDAL::GDAL)
 target_link_libraries(io_hdf5 PRIVATE spdlog::spdlog spdlog::spdlog_header_only)
 target_link_libraries(io_hdf5 PRIVATE hdf5::hdf5-shared hdf5::hdf5_hl-shared hdf5::hdf5_cpp-shared hdf5::hdf5_hl_cpp-shared)
+
+
+ # float32与float16相互转换
+add_executable(float32_16
+                src/float32_to_float16.cpp 
+                src/datatype.h
+                src/datatype.cpp)
+target_link_libraries(float32_16 PRIVATE fmt::fmt)
+target_link_libraries(float32_16 PRIVATE GDAL::GDAL)
+target_link_libraries(float32_16 PRIVATE spdlog::spdlog spdlog::spdlog_header_only)
+
+find_path(HALF_INCLUDE_DIRS "half.hpp")
+target_include_directories(float32_16 PRIVATE ${HALF_INCLUDE_DIRS})
 
 
 # add "cmake.configureSettings": {"CMAKE_BUILD_TYPE":"${buildType}"} in setting.json, when ${CMAKE_BUILD_TYPE} is ""
