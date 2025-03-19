@@ -26,8 +26,8 @@ float* load_float16_binary_to_float32(const char* binary_path, size_t size);
 int float32_tif_to_float16_binary(argparse::ArgumentParser* args, std::shared_ptr<spdlog::logger> logger);
 int float16_binary_to_float32_tif(argparse::ArgumentParser* args, std::shared_ptr<spdlog::logger> logger);
 
-int save_float32_tif_to_float16_binary(const char* float32_path, const char* float16_path, const char* float16_info_text);
-int save_float16_binary_to_float32_tif(const char* float16_path, const char* float16_info_text, const char* float32_path);
+int save_tif_info_as_vrt(GDALDataset* ds, const char* vrt);
+int load_tif_info_from_vrt(const char* vrt, int &height, int &width, double* gt, std::string &proj);
 
 int main(int argc, char* argv[])
 {
@@ -285,30 +285,30 @@ int float32_tif_to_float16_binary(argparse::ArgumentParser* args, std::shared_pt
     }
 
     ds->GetRasterBand(1)->RasterIO(GF_Read, 0, 0, width, height, arr, width, height, datatype, 0, 0);
-    GDALClose(ds);
 
     spdlog::info("save float32(arr) to float16(binary).");
 
     auto rst = save_float32_to_float16_binary(arr, width*height, float16_path.c_str());
     if(rst != 0){
         spdlog::error("ofs(float16) open failed.");
+        GDALClose(ds);
         delete[] arr;
         return 4;
     }
     delete[] arr;
 
-    spdlog::info("save float32(tif) info as text.");
+    spdlog::info("save float32(tif) info as vrt.");
 
-    std::ofstream ofs(float16_info_text);
-    if(!ofs.is_open()){
-        spdlog::error("ofs(float16 info) open failed.");
+    GDALDriver* driver = GetGDALDriverManager()->GetDriverByName("VRT");
+    GDALDataset* ds_vrt = driver->CreateCopy(float16_info_text.c_str(), ds, false, nullptr, nullptr, nullptr);
+    if(!ds_vrt){
+        GDALClose(ds);
+        spdlog::error("ds_vrt is nullptr.");
         return 5;
     }
 
-    ofs<<"width: "<<width<<std::endl;
-    ofs<<"height:"<<height<<std::endl;
-    ofs.close();
-
+    GDALClose(ds_vrt);
+    GDALClose(ds);
     return 0;
 }
 
@@ -333,51 +333,61 @@ int float16_binary_to_float32_tif(argparse::ArgumentParser* args, std::shared_pt
 
     spdlog::info("load float16 info from 'float16_info_text'.");
 
-    std::ifstream ifs(float16_info_text);
-    if(!ifs.is_open()){
-        spdlog::error("ifs(float16 info) open failed.");
+    GDALDataset* ds_vrt = (GDALDataset*)GDALOpen(float16_info_text.c_str(), GA_ReadOnly);
+    if(!ds_vrt){
+        spdlog::error("ds_vrt is nullptr.");
         return 1;
     }
+    int width = ds_vrt->GetRasterXSize();
+    int height= ds_vrt->GetRasterYSize();
 
-    std::string tmp_str;
-    int width = -1;
-    int height= -1;
-    std::vector<std::string> splited_str;
-    while (std::getline(ifs, tmp_str))
-    {
-        // std::cout<<"tmp_str:"<<tmp_str<<std::endl;
-        strSplit(tmp_str, splited_str, ":");
-        if(tmp_str.find("width")!=std::string::npos && splited_str.size() > 1){
-            width = std::stoi(splited_str[1]);
-        }
-        else if(tmp_str.find("height")!=std::string::npos && splited_str.size() > 1){
-            height = std::stoi(splited_str[1]);
-        }
-
-        
-    }
-    ifs.close();
+    spdlog::info(fmt::format("width: {}", width));
+    spdlog::info(fmt::format("height:{}", height));
 
     if(width <= 0 || height <= 0){
         spdlog::error("there is no 'width' or 'height' in ifs(float16 info).");
+        GDALClose(ds_vrt);
         return 2;
     }
 
     float* float32_arr = load_float16_binary_to_float32(float16_path.c_str(), width*height);
     if(!float32_arr){
+        GDALClose(ds_vrt);
         spdlog::error("float32_arr is nullptr.");
         return 3;
     }
+
+    spdlog::info("create dataset & rasterio...");
 
     GDALDriver* driver = GetGDALDriverManager()->GetDriverByName("GTiff");
     GDALDataset* ds = driver->Create(float32_path.c_str(), width, height, 1, GDT_Float32, NULL);
     if(!ds){
         delete[] float32_arr;
+        GDALClose(ds_vrt);
         spdlog::error("ds is nullptr.");
         return 4;
     }
 
     ds->GetRasterBand(1)->RasterIO(GF_Write, 0, 0, width, height, float32_arr, width, height, GDT_Float32, 0, 0);
+
+    /// @note 赋值
+    double gt[6];
+    if(ds_vrt->GetGeoTransform(gt) == CE_None){
+        spdlog::info(fmt::format("set geoTransform: [{:.6f}, {:.6f}, {:.6f}, {:.6f}, {:.6f}, {:.6f}]",gt[0],gt[1],gt[2],gt[3],gt[4],gt[5]));
+        ds->SetGeoTransform(gt);
+    }
+
+    spdlog::info(fmt::format("set projection..."));
+    ds->SetProjection(ds_vrt->GetProjectionRef());
+
+    int nodata_value_success;
+    double nodata_value = ds_vrt->GetRasterBand(1)->GetNoDataValue(&nodata_value_success);
+    if(nodata_value_success){
+        spdlog::info(fmt::format("set SetNoDataValue:{}",nodata_value));
+        ds->GetRasterBand(1)->SetNoDataValue(nodata_value);
+    }
+    
+    GDALClose(ds_vrt);
     GDALClose(ds);
     delete[] float32_arr;
 
@@ -387,116 +397,25 @@ int float16_binary_to_float32_tif(argparse::ArgumentParser* args, std::shared_pt
 }
 
 
-int save_float32_tif_to_float16_binary(const char* float32_path, const char* float16_path, const char* float16_info_text)
+int load_tif_info_from_vrt(const char* vrt, int &height, int &width, double* gt, std::string &proj)
 {
     GDALAllRegister();
-    CPLSetConfigOption("GDAL_FILENAME_IS_UTF8", "NO");
-
-    spdlog::info("load float32(tif)...");
-
-    GDALDataset* ds = (GDALDataset*)GDALOpen(float32_path, GA_ReadOnly);
+    GDALDataset* ds = (GDALDataset*)GDALOpen(vrt, GA_ReadOnly);
     if(!ds){
-        spdlog::error("ds(float32) is nullptr.");
         return 1;
     }
 
-    int width = ds->GetRasterXSize();
-    int height= ds->GetRasterYSize();
-    auto datatype = ds->GetRasterBand(1)->GetRasterDataType();
+    height = ds->GetRasterYSize();
+    width = ds->GetRasterXSize();
 
-    if(datatype != GDT_Float32){
-        spdlog::error("datatype(float32) is not gdt_float32.");
-        GDALClose(ds);
-        return 2;
+    double tmp_gt[6];
+    ds->GetGeoTransform(tmp_gt);
+    for(int i=0; i<6; i++){
+        gt[i] = tmp_gt[i];
     }
 
-    float* arr = new (std::nothrow)float[width * height];
-    if(!arr){
-        spdlog::error("arr(float32) is nullptr.");
-        GDALClose(ds);
-        return 3;
-    }
+    proj = ds->GetProjectionRef();
 
-    ds->GetRasterBand(1)->RasterIO(GF_Read, 0, 0, width, height, arr, width, height, datatype, 0, 0);
     GDALClose(ds);
-
-    spdlog::info("save float32(arr) to float16(binary).");
-
-    auto rst = save_float32_to_float16_binary(arr, width*height, float16_path);
-    if(rst != 0){
-        spdlog::error("ofs(float16) open failed.");
-        delete[] arr;
-        return 4;
-    }
-    delete[] arr;
-
-    spdlog::info("save float32(tif) info as text.");
-
-    std::ofstream ofs(float16_info_text);
-    if(!ofs.is_open()){
-        spdlog::error("ofs(float16 info) open failed.");
-        return 5;
-    }
-
-    ofs<<"width: "<<width<<std::endl;
-    ofs<<"height:"<<height<<std::endl;
-    ofs.close();
-
-    return 0;
-}
-
-int save_float16_binary_to_float32_tif(const char* float16_path, const char* float16_info_text, const char* float32_path)
-{
-    GDALAllRegister();
-    CPLSetConfigOption("GDAL_FILENAME_IS_UTF8", "NO");
-
-    spdlog::info("load float16 info from 'float16_info_text'.");
-
-    std::ifstream ifs(float16_info_text);
-    if(!ifs.is_open()){
-        spdlog::error("ifs(float16 info) open failed.");
-        return 1;
-    }
-
-    std::string tmp_str;
-    int width = -1;
-    int height= -1;
-    std::vector<std::string> splited_str;
-    while (std::getline(ifs, tmp_str));
-    {
-        strSplit(tmp_str, splited_str, " ");
-        if(tmp_str.find("width") && splited_str.size() > 1){
-            width = std::stoi(splited_str[1]);
-        }
-        else if(tmp_str.find("height") && splited_str.size() > 1){
-            height = std::stoi(splited_str[1]);
-        }
-    }
-    ifs.close();
-
-    if(width <= 0 || height <= 0){
-        spdlog::error("there is no 'width' or 'height' in ifs(float16 info).");
-        return 2;
-    }
-
-    float* float32_arr = load_float16_binary_to_float32(float16_path, width*height);
-    if(!float32_arr){
-        spdlog::error("float32_arr is nullptr.");
-        return 3;
-    }
-
-    GDALDriver* driver = GetGDALDriverManager()->GetDriverByName("GTiff");
-    GDALDataset* ds = driver->Create(float32_path, width, height, 1, GDT_Float32, NULL);
-    if(!ds){
-        delete[] float32_arr;
-        spdlog::error("ds is nullptr.");
-        return 4;
-    }
-
-    ds->GetRasterBand(1)->RasterIO(GF_Write, 0, 0, width, height, float32_arr, width, height, GDT_Float32, 0, 0);
-    GDALClose(ds);
-    delete[] float32_arr;
-
-
     return 0;
 }
