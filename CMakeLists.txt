@@ -18,6 +18,8 @@ find_package(nlohmann_json CONFIG REQUIRED)
 set(nlohmann_json_IMPLICIT_CONVERSIONS OFF)
 find_package(triangle CONFIG REQUIRED)
 
+find_package(Boost REQUIRED COMPONENTS graph)
+
 set(CPACK_PROJECT_NAME ${PROJECT_NAME})
 set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})
 include(CPack)
@@ -74,10 +76,12 @@ add_executable(gdal_tool_vector
         src/create_linstring_shapefile.cpp      # 创建多端线shp
         src/polygen_with_shapefile.cpp          # 判断多边形与shp是否相交
         src/shapefile_points_dilution.cpp       # 点shp文件抽稀
+        src/find_nearest_point_from_shp.cpp     # 从点shp文件中搜索与指定目标最接近的点
         )
 target_link_libraries(gdal_tool_vector PRIVATE GDAL::GDAL)
 target_link_libraries(gdal_tool_vector PRIVATE spdlog::spdlog spdlog::spdlog_header_only)
 target_link_libraries(gdal_tool_vector PRIVATE argparse::argparse)
+target_link_libraries(gdal_tool_vector PRIVATE Boost::boost Boost::graph)
 set(EXE_LIST ${EXE_LIST} gdal_tool_vector)
 
 
