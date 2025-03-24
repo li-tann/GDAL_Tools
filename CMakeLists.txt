@@ -18,7 +18,7 @@ find_package(nlohmann_json CONFIG REQUIRED)
 set(nlohmann_json_IMPLICIT_CONVERSIONS OFF)
 find_package(triangle CONFIG REQUIRED)
 
-find_package(Boost REQUIRED COMPONENTS graph)
+# find_package(Boost REQUIRED COMPONENTS graph)
 
 set(CPACK_PROJECT_NAME ${PROJECT_NAME})
 set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})
@@ -81,7 +81,7 @@ add_executable(gdal_tool_vector
 target_link_libraries(gdal_tool_vector PRIVATE GDAL::GDAL)
 target_link_libraries(gdal_tool_vector PRIVATE spdlog::spdlog spdlog::spdlog_header_only)
 target_link_libraries(gdal_tool_vector PRIVATE argparse::argparse)
-target_link_libraries(gdal_tool_vector PRIVATE Boost::boost Boost::graph)
+# target_link_libraries(gdal_tool_vector PRIVATE Boost::boost Boost::graph)
 set(EXE_LIST ${EXE_LIST} gdal_tool_vector)
 
 
@@ -167,6 +167,8 @@ target_link_libraries(io_hdf5 PRIVATE hdf5::hdf5-shared hdf5::hdf5_hl-shared hdf
 
 
  # float32与float16相互转换
+find_path(HALF_INCLUDE_DIRS "half.hpp")
+if(HALF_INCLUDE_DIRS)
 add_executable(float32_16
                 src/float32_to_float16.cpp 
                 src/datatype.h
@@ -175,9 +177,10 @@ target_link_libraries(float32_16 PRIVATE fmt::fmt)
 target_link_libraries(float32_16 PRIVATE GDAL::GDAL)
 target_link_libraries(float32_16 PRIVATE spdlog::spdlog spdlog::spdlog_header_only)
 
-find_path(HALF_INCLUDE_DIRS "half.hpp")
 target_include_directories(float32_16 PRIVATE ${HALF_INCLUDE_DIRS})
-
+else()
+message(STATUS "there is not found half.hpp")
+endif()
 
 # add "cmake.configureSettings": {"CMAKE_BUILD_TYPE":"${buildType}"} in setting.json, when ${CMAKE_BUILD_TYPE} is ""
 message(STATUS "cmake build type: " ${CMAKE_BUILD_TYPE})
