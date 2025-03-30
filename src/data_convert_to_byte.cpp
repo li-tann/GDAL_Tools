@@ -20,11 +20,14 @@ int data_convert_to_byte(argparse::ArgumentParser* args,std::shared_ptr<spdlog::
     }
 
     std::string gdal_driver_str = "";
+    int bandCount = 1;
     if(extension == "png"){
         gdal_driver_str = "PNG";
+        bandCount = 3;
     }
     else if(extension == "jpg"){
         gdal_driver_str = "JPEG";
+        bandCount = 3;
     }
     else if(extension == "tif"){
         gdal_driver_str = "GTiff";
@@ -82,7 +85,7 @@ int data_convert_to_byte(argparse::ArgumentParser* args,std::shared_ptr<spdlog::
     };
 
     GDALDriver* dri_mem = GetGDALDriverManager()->GetDriverByName("MEM");
-    GDALDataset* ds_mem = dri_mem->Create("", width, height, 1, GDT_Byte, NULL);
+    GDALDataset* ds_mem = dri_mem->Create("", width, height, bandCount, GDT_Byte, NULL);
     
     unsigned char* arr_out = new unsigned char[width];
     switch (datatype)
@@ -90,7 +93,10 @@ int data_convert_to_byte(argparse::ArgumentParser* args,std::shared_ptr<spdlog::
     case GDT_Byte:{
         for(int i=0; i<height; i++){
             rb_in->RasterIO(GF_Read, 0, i, width, 1, arr_out, width, 1, datatype, 0, 0);
-            ds_mem->GetRasterBand(1)->RasterIO(GF_Write, 0, i, width, 1, arr_out, width, 1, GDT_Byte, 0, 0);
+            for(int b=1; b<= bandCount; b++){
+                ds_mem->GetRasterBand(b)->RasterIO(GF_Write, 0, i, width, 1, arr_out, width, 1, GDT_Byte, 0, 0);
+            }
+            
         }
 
     }break;
@@ -98,10 +104,12 @@ int data_convert_to_byte(argparse::ArgumentParser* args,std::shared_ptr<spdlog::
         unsigned short* arr = new unsigned short[width];
         for(int i=0; i<height; i++){
             rb_in->RasterIO(GF_Read, 0, i, width, 1, arr, width, 1, datatype, 0, 0);
-            for(int j=0; i<width; j++){
+            for(int j=0; j<width; j++){
                 arr_out[j] = value_map(arr[j]);
             }
-            ds_mem->GetRasterBand(1)->RasterIO(GF_Write, 0, i, width, 1, arr_out, width, 1, GDT_Byte, 0, 0);
+            for(int b=1; b<= bandCount; b++){
+                ds_mem->GetRasterBand(b)->RasterIO(GF_Write, 0, i, width, 1, arr_out, width, 1, GDT_Byte, 0, 0);
+            }
         }
         delete[] arr;
     }break;
@@ -109,10 +117,12 @@ int data_convert_to_byte(argparse::ArgumentParser* args,std::shared_ptr<spdlog::
         short* arr = new short[width];
         for(int i=0; i<height; i++){
             rb_in->RasterIO(GF_Read, 0, i, width, 1, arr, width, 1, datatype, 0, 0);
-            for(int j=0; i<width; j++){
+            for(int j=0; j<width; j++){
                 arr_out[j] = value_map(arr[j]);
             }
-            ds_mem->GetRasterBand(1)->RasterIO(GF_Write, 0, i, width, 1, arr_out, width, 1, GDT_Byte, 0, 0);
+            for(int b=1; b<= bandCount; b++){
+                ds_mem->GetRasterBand(b)->RasterIO(GF_Write, 0, i, width, 1, arr_out, width, 1, GDT_Byte, 0, 0);
+            }
         }
         delete[] arr;
     }break;
@@ -120,10 +130,12 @@ int data_convert_to_byte(argparse::ArgumentParser* args,std::shared_ptr<spdlog::
         unsigned int* arr = new unsigned int[width];
         for(int i=0; i<height; i++){
             rb_in->RasterIO(GF_Read, 0, i, width, 1, arr, width, 1, datatype, 0, 0);
-            for(int j=0; i<width; j++){
+            for(int j=0; j<width; j++){
                 arr_out[j] = value_map(arr[j]);
             }
-            ds_mem->GetRasterBand(1)->RasterIO(GF_Write, 0, i, width, 1, arr_out, width, 1, GDT_Byte, 0, 0);
+            for(int b=1; b<= bandCount; b++){
+                ds_mem->GetRasterBand(b)->RasterIO(GF_Write, 0, i, width, 1, arr_out, width, 1, GDT_Byte, 0, 0);
+            }
         }
         delete[] arr;
     }break;
@@ -131,10 +143,12 @@ int data_convert_to_byte(argparse::ArgumentParser* args,std::shared_ptr<spdlog::
         int* arr = new int[width];
         for(int i=0; i<height; i++){
             rb_in->RasterIO(GF_Read, 0, i, width, 1, arr, width, 1, datatype, 0, 0);
-            for(int j=0; i<width; j++){
+            for(int j=0; j<width; j++){
                 arr_out[j] = value_map(arr[j]);
             }
-            ds_mem->GetRasterBand(1)->RasterIO(GF_Write, 0, i, width, 1, arr_out, width, 1, GDT_Byte, 0, 0);
+            for(int b=1; b<= bandCount; b++){
+                ds_mem->GetRasterBand(b)->RasterIO(GF_Write, 0, i, width, 1, arr_out, width, 1, GDT_Byte, 0, 0);
+            }
         }
         delete[] arr;
     }break;
@@ -142,10 +156,12 @@ int data_convert_to_byte(argparse::ArgumentParser* args,std::shared_ptr<spdlog::
         float* arr = new float[width];
         for(int i=0; i<height; i++){
             rb_in->RasterIO(GF_Read, 0, i, width, 1, arr, width, 1, datatype, 0, 0);
-            for(int j=0; i<width; j++){
+            for(int j=0; j<width; j++){
                 arr_out[j] = value_map(arr[j]);
             }
-            ds_mem->GetRasterBand(1)->RasterIO(GF_Write, 0, i, width, 1, arr_out, width, 1, GDT_Byte, 0, 0);
+            for(int b=1; b<= bandCount; b++){
+                ds_mem->GetRasterBand(b)->RasterIO(GF_Write, 0, i, width, 1, arr_out, width, 1, GDT_Byte, 0, 0);
+            }
         }
         delete[] arr;
     }break;
@@ -153,10 +169,12 @@ int data_convert_to_byte(argparse::ArgumentParser* args,std::shared_ptr<spdlog::
         double* arr = new double[width];
         for(int i=0; i<height; i++){
             rb_in->RasterIO(GF_Read, 0, i, width, 1, arr, width, 1, datatype, 0, 0);
-            for(int j=0; i<width; j++){
+            for(int j=0; j<width; j++){
                 arr_out[j] = value_map(arr[j]);
             }
-            ds_mem->GetRasterBand(1)->RasterIO(GF_Write, 0, i, width, 1, arr_out, width, 1, GDT_Byte, 0, 0);
+            for(int b=1; b<= bandCount; b++){
+                ds_mem->GetRasterBand(b)->RasterIO(GF_Write, 0, i, width, 1, arr_out, width, 1, GDT_Byte, 0, 0);
+            }
         }
         delete[] arr;
     }break;
@@ -167,7 +185,11 @@ int data_convert_to_byte(argparse::ArgumentParser* args,std::shared_ptr<spdlog::
     delete[] arr_out;
     GDALClose(ds_in);
 
-    GDALDataset* ds_out = dri_out->CreateCopy(out_path.c_str(), ds_mem, false, nullptr, nullptr, nullptr);
+    char** papszOptions = nullptr;
+    if(gdal_driver_str == "JPEG"){
+        papszOptions = CSLSetNameValue(nullptr, "QUALITY", "100");
+    }
+    GDALDataset* ds_out = dri_out->CreateCopy(out_path.c_str(), ds_mem, true, papszOptions, nullptr, nullptr);
     if(!ds_out){
         GDALClose(ds_mem);
         PRINT_LOGGER(logger, error,"ds_out is nullptr");
