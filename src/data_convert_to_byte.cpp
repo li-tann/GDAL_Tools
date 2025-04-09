@@ -188,6 +188,7 @@ int data_convert_to_byte(argparse::ArgumentParser* args,std::shared_ptr<spdlog::
     char** papszOptions = nullptr;
     if(gdal_driver_str == "JPEG"){
         papszOptions = CSLSetNameValue(nullptr, "QUALITY", "100");
+        PRINT_LOGGER(logger, info, "set 'QUALITY VAL' as 100");
     }
     GDALDataset* ds_out = dri_out->CreateCopy(out_path.c_str(), ds_mem, true, papszOptions, nullptr, nullptr);
     if(!ds_out){
