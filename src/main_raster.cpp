@@ -399,9 +399,7 @@ int main(int argc, char* argv[])
     
 
     /// log
-    char* pgmptr = 0;
-    _get_pgmptr(&pgmptr);
-    fs::path exe_root(fs::path(pgmptr).parent_path());
+    fs::path exe_root = fs::absolute(argv[0]).parent_path();
     fs::path log_path = exe_root / "gdal_tool_raster.log";
     auto my_logger = spdlog::basic_logger_mt("gdal_tool_raster", log_path.string());
 

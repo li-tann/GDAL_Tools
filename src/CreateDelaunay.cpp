@@ -37,10 +37,8 @@ int main(int argc, char* argv[])
         return 1;
     }
 
-    /// log
-    char* pgmptr = 0;
-    _get_pgmptr(&pgmptr);
-    fs::path exe_root(fs::path(pgmptr).parent_path());
+    fs::path exe_root = fs::absolute(argv[0]).parent_path();
+    
     fs::path log_path = exe_root / "create_delaunay.log";
     auto my_logger = spdlog::basic_logger_mt("create_delaunay", log_path.string());
 
