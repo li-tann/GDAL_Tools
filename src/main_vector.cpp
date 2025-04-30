@@ -126,7 +126,7 @@ int main(int argc, char* argv[])
     }
 
     argparse::ArgumentParser sub_point_shp_dilution("shp_dilution");
-    sub_point_shp_dilution.add_description("create a linestring shapefile, base on points and arcs.");
+    sub_point_shp_dilution.add_description("dilute the target data of fieldDefn in the point shapefile to the same resolution as the reference DEM.");
     {
         sub_point_shp_dilution.add_argument("point_shapefile")
             .help("input points shapefile.");
@@ -135,7 +135,7 @@ int main(int argc, char* argv[])
             .help("reference DEM.");
 
         sub_point_shp_dilution.add_argument("target_defn")
-            .help("target FieldDefn.");    
+            .help("target FieldDefn, a column name in 'shapefile's table'.");    
 
         sub_point_shp_dilution.add_argument("diluted_shapefile")
             .help("diluted point shapefile.");

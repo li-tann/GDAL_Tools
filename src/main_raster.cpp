@@ -35,7 +35,7 @@ int main(int argc, char* argv[])
     program.add_description("gdal_tools about raster data, ...");
     
     argparse::ArgumentParser sub_value_translate("trans_val", "", argparse::default_arguments::help);
-    sub_value_translate.add_description("translate the source value in input image to  target value in output image.");
+    sub_value_translate.add_description("translate the [source value] to [target value], and save as [output_imgpath].");
     {
         sub_value_translate.add_argument("input_imgpath")
             .help("the original image with the source value.");
