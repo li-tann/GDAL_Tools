@@ -161,26 +161,25 @@ funcrst conv_2d(float* arr_in, int width, int height, float* arr_out, float* ker
 	if(arr_in == nullptr)
 		return funcrst(false, "filter::conv_2d, arr_in is nullptr.");
 	
-	if(dynamic_array_size(arr_in) != width * height)
-		return funcrst(false, fmt::format("filter::conv_2d, arr_in.size({}) is diff with width*height({}).",dynamic_array_size(arr_in),width * height));
+	// if(dynamic_array_size(arr_in) != width * height)
+	// 	return funcrst(false, fmt::format("filter::conv_2d, arr_in.size({}) is diff with width*height({}).",dynamic_array_size(arr_in),width * height));
 	
 	if(kernel == nullptr)
 		return funcrst(false, "filter::conv_2d, kernel is nullptr.");
 
-	if(dynamic_array_size(kernel) != size * size)
-		return funcrst(false, fmt::format("filter::conv_2d, kernel.size({}) is diff with size^2({}).",dynamic_array_size(kernel),size*size));
+	// if(dynamic_array_size(kernel) != size * size)
+	// 	return funcrst(false, fmt::format("filter::conv_2d, kernel.size({}) is diff with size^2({}).",dynamic_array_size(kernel),size*size));
 
 	float* kernel_overturn = new float[size*size];
 	for(int i=0; i<size*size; i++)
 		kernel_overturn[i] = kernel[size*size-1-i];
 
-	if(arr_out == nullptr){
-		arr_out = new float[height * width];
-	}
-	else if(dynamic_array_size(arr_out) != height * width){
+
+	if(arr_out){
 		delete[] arr_out;
-		arr_out = new float[height * width];
+		arr_out = nullptr;
 	}
+	arr_out = new float[height * width];
 
 	for(int i = 0; i < height; i++){
 		for(int j = 0; j < width; j++){
@@ -211,13 +210,11 @@ funcrst goldstein(std::complex<float>* arr_in, int height, int width, float alph
 	int overlap = 24;
 	int step = size - overlap;
 
-	if(arr_out == nullptr){
-		arr_out = new std::complex<float>[height * width];
-	}
-	else if(dynamic_array_size(arr_out) != height * width){
+	if(arr_out){
 		delete[] arr_out;
-		arr_out = new std::complex<float>[height * width];
+		arr_out = nullptr;
 	}
+	arr_out = new std::complex<float>[height * width];
 
 	int max_threads = omp_get_max_threads();
 
@@ -382,13 +379,11 @@ funcrst goldstein_single(std::complex<float>* arr_in, int height, int width, flo
 	fftwf_plan forward  = fftwf_plan_dft_2d(size, size, spatial_arr, frequency_arr, FFTW_FORWARD, FFTW_ESTIMATE);
 	fftwf_plan backward = fftwf_plan_dft_2d(size, size, frequency_arr, spatial_arr, FFTW_BACKWARD, FFTW_ESTIMATE);
 
-	if(arr_out == nullptr){
-		arr_out = new std::complex<float>[height * width];
-	}
-	else if(dynamic_array_size(arr_out) != height * width){
+	if(arr_out){
 		delete[] arr_out;
-		arr_out = new std::complex<float>[height * width];
+		arr_out = nullptr;
 	}
+	arr_out = new std::complex<float>[height * width];
 
     auto print_fftwf_arr = [](fftwf_complex* arr, int size){
         cout<<endl;
@@ -644,13 +639,11 @@ funcrst goldstein_single_float(float* arr_in, int height, int width, float alpha
 	fftwf_plan forward  = fftwf_plan_dft_r2c_2d(size, size, spatial_arr, frequency_arr, FFTW_ESTIMATE);
 	fftwf_plan backward = fftwf_plan_dft_c2r_2d(size, size, frequency_arr, spatial_arr, FFTW_ESTIMATE);
 
-	if(arr_out == nullptr){
-		arr_out = new float[height * width];
-	}
-	else if(dynamic_array_size(arr_out) != height * width){
+	if(arr_out){
 		delete[] arr_out;
-		arr_out = new float[height * width];
+		arr_out = nullptr;
 	}
+	arr_out = new float[height * width];
 
     auto print_fftwf_arr = [](fftwf_complex* arr, int size){
         cout<<endl;

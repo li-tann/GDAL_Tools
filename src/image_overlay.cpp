@@ -58,7 +58,7 @@ int image_overlay(argparse::ArgumentParser* args,std::shared_ptr<spdlog::logger>
     PRINT_LOGGER(logger, info, fmt::format("low_opacity: {}",low_opacity));
     PRINT_LOGGER(logger, info, fmt::format("method: \"{}\"",method));
 
-    std::function<rgba(rgba, rgba)> overlay_func;
+    std::function<rgba(rgba&, rgba&)> overlay_func;
 
     if(method == "normal"){
         overlay_func = normal_alpha_blending;

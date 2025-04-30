@@ -39,7 +39,7 @@ int import_points_extract(argparse::ArgumentParser* args, std::shared_ptr<spdlog
     GDALAllRegister();
     CPLSetConfigOption("GDAL_FILENAME_IS_UTF8", "NO");
 
-    auto dataset = (GDALDataset*)GDALOpen(input_path.c_str(), GA_ReadOnly());
+    auto dataset = (GDALDataset*)GDALOpen(input_path.c_str(), GA_ReadOnly);
     if(!dataset){
         PRINT_LOGGER(logger, error, "dataset is nullptr.");
         return -1;

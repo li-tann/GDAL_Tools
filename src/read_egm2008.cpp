@@ -398,7 +398,6 @@ bool _dem_(argparse::ArgumentParser* args, std::shared_ptr<spdlog::logger> logge
     for(int i=0; i<dem_height * dem_width; i++){
         interped_arr[i] = get_corrected_height(src_arr[i], interped_arr[i],sys);
     }
-    // cout<<"interped_arr.size():"<<dynamic_array_size(interped_arr)<<endl;
 
     GDALRasterBand* rb_out = ds_out->GetRasterBand(1);
     rb_out->RasterIO(GF_Write,0,0,dem_width, dem_height, interped_arr,dem_width, dem_height,GDT_Float32,0,0);

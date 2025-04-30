@@ -79,9 +79,15 @@ int data_convert_to_byte(argparse::ArgumentParser* args,std::shared_ptr<spdlog::
     }
 
     auto value_map = [&minmax](double value) -> unsigned char{
-        if(minmax[1] == minmax[0])
-            return unsigned char(0);
-        return unsigned char( (value - minmax[0]) / ( minmax[1] -  minmax[0]) * 255 );
+        unsigned char tmp;
+        if(minmax[1] == minmax[0]){
+            tmp = 0;
+        }
+        else{
+            tmp = (value - minmax[0]) / ( minmax[1] -  minmax[0]) * 255;
+        }
+
+        return tmp;
     };
 
     GDALDriver* dri_mem = GetGDALDriverManager()->GetDriverByName("MEM");

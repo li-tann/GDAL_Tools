@@ -28,18 +28,8 @@ int image_set_colortable(argparse::ArgumentParser* args,std::shared_ptr<spdlog::
         return -2;
     }
 
-    // /// *.cm
-    // for(int i=0; i<dynamic_array_size(cm2.node); i++){
-    //     GDALColorEntry ce;
-    //     ce.c1 = cm2.color[i].red;
-    //     ce.c2 = cm2.color[i].green;
-    //     ce.c3 = cm2.color[i].blue;
-    //     ce.c4 = cm2.color[i].alpha;
-    //     gdal_ct.SetColorEntry(i, &ce);
-    // }
-
     for(int i=0; i<256; i++){
-        int idx = i / 256.0 * dynamic_array_size(cm2.node);
+        int idx = i / 256.0 * cm2.node.size();
         GDALColorEntry ce;
         ce.c1 = cm2.color[idx].red;
         ce.c2 = cm2.color[idx].green;
@@ -48,7 +38,7 @@ int image_set_colortable(argparse::ArgumentParser* args,std::shared_ptr<spdlog::
         gdal_ct.SetColorEntry(i, &ce);
     }
 
-    PRINT_LOGGER(logger, info,fmt::format("dynamic_array_size(cm2.node): {}",dynamic_array_size(cm2.node)));
+    PRINT_LOGGER(logger, info,fmt::format("cm2.node.size: {}", cm2.node.size()));
 
     auto err = ds_in->GetRasterBand(1)->SetColorTable(&gdal_ct);
     if(err != CE_None){

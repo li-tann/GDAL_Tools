@@ -136,51 +136,6 @@ int filter_goldstein_baran(argparse::ArgumentParser* args, std::shared_ptr<spdlo
 	return 1;
 }
 
-// funcrst conv_2d(float* arr_in, int width, int height, float* arr_out, float* kernel, int size)
-// {
-// 	if(arr_in == nullptr)
-// 		return funcrst(false, "filter::conv_2d, arr_in is nullptr.");
-	
-// 	if(dynamic_array_size(arr_in) != width * height)
-// 		return funcrst(false, fmt::format("filter::conv_2d, arr_in.size({}) is diff with width*height({}).",dynamic_array_size(arr_in),width * height));
-	
-// 	if(kernel == nullptr)
-// 		return funcrst(false, "filter::conv_2d, kernel is nullptr.");
-
-// 	if(dynamic_array_size(kernel) != size * size)
-// 		return funcrst(false, fmt::format("filter::conv_2d, kernel.size({}) is diff with size^2({}).",dynamic_array_size(kernel),size*size));
-
-// 	float* kernel_overturn = new float[size*size];
-// 	for(int i=0; i<size*size; i++)
-// 		kernel_overturn[i] = kernel[size*size-1-i];
-
-// 	if(arr_out == nullptr){
-// 		arr_out = new float[height * width];
-// 	}
-// 	else if(dynamic_array_size(arr_out) != height * width){
-// 		delete[] arr_out;
-// 		arr_out = new float[height * width];
-// 	}
-
-// 	for(int i = 0; i < height; i++){
-// 		for(int j = 0; j < width; j++){
-// 			/// 这种重复计算的方式肯定会多耗费一些时间, 如果使用同行向右滑动, 逐列增减数据的方式, 可以大大减少耗时
-// 			float sum = 0;
-// 			for(int m = 0; m< size; m++){
-// 				for(int n = 0; n< size; n++){
-// 					if(i-size/2+m < 0 || i-size/2+m > height-1 || j-size/2+n < 0 || j-size/2+n > width-1)
-// 						continue;/// 超界
-// 					sum +=  kernel_overturn[m*size+n] * arr_in[(i-size/2+m)*width+(j-size/2+n)];
-// 				}
-// 			}
-// 			arr_out[i*width+j]=sum;
-// 		}
-// 	}
-
-// 	delete[] kernel_overturn;
-// 	return funcrst(true, "filter::conv_2d finished.");
-// }
-
 funcrst baran(std::complex<float>* arr_in, float* cor, int height, int width, std::complex<float>* arr_out, float* arr_alpha_out, bool write_alpha)
 {
 	auto start_time = std::chrono::system_clock::now();
@@ -189,13 +144,12 @@ funcrst baran(std::complex<float>* arr_in, float* cor, int height, int width, st
 	int overlap = 24;
 	int step = size - overlap;
 
-	if(arr_out == nullptr){
-		arr_out = new std::complex<float>[height * width];
-	}
-	else if(dynamic_array_size(arr_out) != height * width){
+	if(arr_out){
 		delete[] arr_out;
-		arr_out = new std::complex<float>[height * width];
+		arr_out = nullptr;
 	}
+	arr_out = new std::complex<float>[height * width];
+
 
 	int max_threads = omp_get_max_threads();
 

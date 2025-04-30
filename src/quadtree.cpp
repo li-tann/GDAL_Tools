@@ -115,10 +115,10 @@ struct quadtree{
         j["width"] = width;
         j["height"] = height;
         j["depth"] = depth;
-        j["quadtree_topleft"] = qd_topleft ? qd_topleft->to_json() : nlohmann::json();
-        j["quadtree_topright"] = qd_topright ? qd_topright->to_json() : nlohmann::json();
-        j["quadtree_downleft"] = qd_downleft ? qd_downleft->to_json() : nlohmann::json();
-        j["quadtree_downright"] = qd_downright ? qd_downright->to_json() : nlohmann::json();
+        j["quadtree_topleft"] = qd_topleft ? qd_topleft->to_json() : nlohmann::ordered_json();
+        j["quadtree_topright"] = qd_topright ? qd_topright->to_json() : nlohmann::ordered_json();
+        j["quadtree_downleft"] = qd_downleft ? qd_downleft->to_json() : nlohmann::ordered_json();
+        j["quadtree_downright"] = qd_downright ? qd_downright->to_json() : nlohmann::ordered_json();
         return std::move(j);
     }
 

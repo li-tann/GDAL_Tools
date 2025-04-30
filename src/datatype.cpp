@@ -4,6 +4,7 @@
 #include <iostream>
 #include <fstream>
 #include <gdal_priv.h>
+#include <algorithm>
 
 namespace fs = std::filesystem;
 
@@ -321,31 +322,27 @@ color_map::color_map(const char* color_map_filepath, color_map_type type)
 
 color_map::~color_map()
 {
-    if (node != nullptr) {
-        delete[] node;
-    }
-
-    if (color != nullptr) {
-        delete[] color;
-    }
 }
 
 funcrst color_map::is_opened()
 {
     std::string error_explain = "open failed, cause: ";
     bool return_bool = true;
-    if (node == nullptr) {
+
+    int node_size = node.size();
+    int color_size = color.size();
+
+    if (node_size < 1) {
         error_explain += "node is nullptr. ";
         return_bool = false;
     }
 
-    if (color == nullptr) {
+    if (color_size < 1) {
         error_explain += "color is nullptr. ";
         return_bool = false;
     }
 
-    int node_size = int(_msize(node) / sizeof(*node));
-    int color_size = int(_msize(color) / sizeof(*color));
+    
     if (node_size + 1 != color_size) {
         error_explain += fmt::format("node.size({})+1 != color.size({})", node_size, color_size);
         return_bool = false;
@@ -361,7 +358,7 @@ funcrst color_map::mapping(float node_min, float node_max)
         return funcrst(false, fmt::format("mapping failed, cause there is not open, '{}'.",rst.explain));
     }
 
-    int node_size = int(_msize(node) / sizeof(float));
+    int node_size = node.size();
     if (node_size < 2) {
         return funcrst(false, "node.size < 2, mapping failed.");
     }
@@ -385,7 +382,7 @@ funcrst color_map::mapping(float node_min, float node_max)
 
 rgba color_map::mapping_color(float value)
 {
-    int node_size = int(_msize(node) / sizeof(float));
+    int node_size = node.size();
     if (value <= node[0])return color[0];
     if (value > node[node_size - 1])return color[node_size];
     for (int i = 0; i < node_size - 1; i++) {
@@ -398,7 +395,7 @@ rgba color_map::mapping_color(float value)
 
 void color_map::print_colormap()
 {
-    int node_size =int(_msize(node) / sizeof(float));
+    int node_size = node.size();
 
     auto rgba_to_str = [](rgba c){
         return fmt::format("{},{},{},{}", c.red, c.green, c.blue, c.alpha);
@@ -435,8 +432,8 @@ void color_map::load_cm(const char* cm_path)
         return;
     }
 
-    node = new float[texts.size()];
-    color = new rgba[texts.size() + 1];
+    node.resize(texts.size());
+    color.resize(texts.size() + 1);
 
     for (int i = 0; i < texts.size(); i++) {
         std::vector<std::string> vec_splited;
@@ -560,8 +557,8 @@ void color_map::load_cpt(const char* cpt_path)
     std::cout<<"splited_size:"<<splited_size<<std::endl;
 
     if(splited_size == 2){
-        node = new float[line_end - line_start + 1];
-        color = new rgba[line_end - line_start + 2];
+        node.resize(line_end - line_start + 1);
+        color.resize(line_end - line_start + 2);
         for(int i=line_start; i<=line_end; i++)
         {
             std::vector<std::string> tmp_strlist;
@@ -571,15 +568,15 @@ void color_map::load_cpt(const char* cpt_path)
             if(is_colorname(tmp_strlist[1])){
                 if(!colorname_to_rgb(tmp_strlist[1], color_i)){
                     /// explain:   eror_str = "...unknown colorname:{}..., tmp_strlist[1]";
-                    delete[] node; node = nullptr;
-                    delete[] color; color = nullptr;
+                    node.clear();
+                    color.clear();
                     return;
                 }
             }else{
                 if(!colorstr_to_rgb(tmp_strlist[1], spliter, color_i)){
                     /// explain
-                    delete[] node; node = nullptr;
-                    delete[] color; color = nullptr;
+                    node.clear();
+                    color.clear();
                     return ;
                 }
             }
@@ -592,8 +589,8 @@ void color_map::load_cpt(const char* cpt_path)
     }
     else if(splited_size == 4)
     {
-        node = new float[line_end - line_start + 2];
-        color = new rgba[line_end - line_start + 3];
+        node.resize(line_end - line_start + 2);
+        color.resize(line_end - line_start + 3);
         for(int i=line_start; i<=line_end; i++)
         {
             std::vector<std::string> tmp_strlist;
@@ -603,15 +600,15 @@ void color_map::load_cpt(const char* cpt_path)
             if(is_colorname(tmp_strlist[1])){
                 if(!colorname_to_rgb(tmp_strlist[1], color_i)){
                     /// explain:   eror_str = "...unknown colorname:{}..., tmp_strlist[1]";
-                    delete[] node; node = nullptr;
-                    delete[] color; color = nullptr;
+                    node.clear();
+                    color.clear();
                     return;
                 }
             }else{
                 if(!colorstr_to_rgb(tmp_strlist[1], spliter, color_i)){
                     /// explain
-                    delete[] node; node = nullptr;
-                    delete[] color; color = nullptr;
+                    node.clear();
+                    color.clear();
                     return ;
                 }
             }
@@ -625,15 +622,15 @@ void color_map::load_cpt(const char* cpt_path)
                 if(is_colorname(tmp_strlist[3])){
                     if(!colorname_to_rgb(tmp_strlist[3], color_i2)){
                         /// explain:   eror_str = "...unknown colorname:{}..., tmp_strlist[1]";
-                        delete[] node; node = nullptr;
-                        delete[] color; color = nullptr;
+                        node.clear();
+                        color.clear();
                         return;
                     }
                 }else{
                     if(!colorstr_to_rgb(tmp_strlist[3], spliter, color_i2)){
                         /// explain
-                        delete[] node; node = nullptr;
-                        delete[] color; color = nullptr;
+                        node.clear();
+                        color.clear();
                         return ;
                     }
                 }

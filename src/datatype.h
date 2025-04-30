@@ -38,11 +38,13 @@ double spend_time(decltype (std::chrono::system_clock::now()) start, decltype (s
 void strTrim(string &s);
 
 
+/* @note 在gcc里面没办法搞平替, 不用了
 template<typename _Ty>
 inline size_t dynamic_array_size(_Ty* array)
 {
     return _msize(array) / sizeof(*array);
 }
+*/
 
 struct hsv;
 /// @brief RGBA
@@ -107,8 +109,8 @@ public:
 	/// @brief 输入value值, 匹配对应的rgba
 	rgba mapping_color(float);
 
-	float* node = nullptr;
-	rgba* color = nullptr;
+	std::vector<float> node;
+	std::vector<rgba> color;
 
 	/// rgba.size = node.size + 1, cause:
 	///			  node[0]		node[1]			node[2]		...		node[n-1]		node[n]
