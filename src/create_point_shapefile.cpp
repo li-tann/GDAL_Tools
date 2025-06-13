@@ -23,6 +23,22 @@ int create_2dpoint_shp(argparse::ArgumentParser* args, std::shared_ptr<spdlog::l
     string unit = args->get<string>("input_unit");
     vector<xy> points;
 
+    std::string vector_driver = "ESRI Shapefile";
+    fs::path p_out_shp(shp_file);
+    if(p_out_shp.extension().string() == ".shp"){
+        vector_driver = "ESRI Shapefile";
+    }
+    else if(p_out_shp.extension().string() == ".kml"){
+        vector_driver = "LIBKML";
+    }
+    else if(p_out_shp.extension().string() == ".json"){
+        vector_driver = "GeoJSON";
+    }
+    else{
+        PRINT_LOGGER(logger, error, "unknown extension (not .shp .kml or .json).");
+        return -1;
+    }
+
     double flag = 1;
     if(unit == "pixel"){
         flag = -1;
@@ -77,7 +93,7 @@ int create_2dpoint_shp(argparse::ArgumentParser* args, std::shared_ptr<spdlog::l
     OGRRegisterAll();
     CPLSetConfigOption("GDAL_FILENAME_IS_UTF8", "NO");
 
-    GDALDriver* shp_driver = GetGDALDriverManager()->GetDriverByName("ESRI Shapefile");
+    GDALDriver* shp_driver = GetGDALDriverManager()->GetDriverByName(vector_driver.c_str());
     if (shp_driver == nullptr) {
         PRINT_LOGGER(logger, error, "shp_driver is nullptr.");
         return -3;

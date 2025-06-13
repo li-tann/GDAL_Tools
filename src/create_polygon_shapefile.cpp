@@ -17,6 +17,22 @@ int create_polygon_shp(argparse::ArgumentParser* args, std::shared_ptr<spdlog::l
     string shp_file = args->get<string>("output_shapefile");
     vector<xy> points;
 
+    std::string vector_driver = "ESRI Shapefile";
+    fs::path p_out_shp(shp_file);
+    if(p_out_shp.extension().string() == ".shp"){
+        vector_driver = "ESRI Shapefile";
+    }
+    else if(p_out_shp.extension().string() == ".kml"){
+        vector_driver = "LIBKML";
+    }
+    else if(p_out_shp.extension().string() == ".json"){
+        vector_driver = "GeoJSON";
+    }
+    else{
+        PRINT_LOGGER(logger, error, "-unknown extension (not .shp .kml or .json).");
+        return -1;
+    }
+
     if(args->is_used("--file")){
         string filepath = args->get<string>("--file");
         fs::path point_path(filepath.c_str());
@@ -82,7 +98,7 @@ int create_polygon_shp(argparse::ArgumentParser* args, std::shared_ptr<spdlog::l
     polygen->addRing(ring);
 
 
-    GDALDriver* shp_driver = GetGDALDriverManager()->GetDriverByName("ESRI Shapefile");
+    GDALDriver* shp_driver = GetGDALDriverManager()->GetDriverByName(vector_driver.c_str());
     if (shp_driver == nullptr) {
         return funcrst(false, "shp driver is nullptr.");
     }
