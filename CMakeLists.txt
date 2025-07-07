@@ -194,6 +194,8 @@ target_link_libraries(float32_16 PRIVATE GDAL::GDAL)
 target_link_libraries(float32_16 PRIVATE spdlog::spdlog spdlog::spdlog_header_only)
 
 target_include_directories(float32_16 PRIVATE ${HALF_INCLUDE_DIRS})
+
+set(EXE_LIST ${EXE_LIST} float32_16)
 else()
 message(STATUS "there is not found half.hpp")
 endif()
@@ -210,6 +212,23 @@ file(COPY_FILE
 
 file(COPY_FILE ${CMAKE_CURRENT_LIST_DIR}/scripts/add_path_template.ps1 ${CMAKE_CURRENT_LIST_DIR}/build/${CMAKE_BUILD_TYPE}/add_path_template.ps1 ONLY_IF_DIFFERENT)
 
+
+# 如果是linux系统, 则需要设置rpath, 并且创建lib文件夹(暂未实现) 
+if(UNIX)
+message("it's UNIX")
+message("EXE_LIST:" "${EXE_LIST}")
+foreach(EXE_NAME IN LISTS EXE_LIST)
+        set_target_properties(${EXE_NAME} PROPERTIES
+                INSTALL_RPATH "\$ORIGIN/lib"
+                BUILD_WITH_INSTALL_RPATH TRUE  # 构建时即使用 INSTALL_RPATH
+        )
+endforeach()
+else()
+message("it't not UNIX")
+endif()
+
+
+
 # INSTALL
 
 set(CMAKE_INSTALL_PREFIX ${CMAKE_CURRENT_LIST_DIR}/install)
@@ -222,14 +241,12 @@ install(TARGETS ${EXE_LIST}
         ARCHIVE DESTINATION library
 )
 
+# 仅在windows系统下 需要拷贝*.dll, *.bat/ps1 到安装目录
+if(WIN32)
 # GET_RUNTIME_DEPENDENCIES 可以导入第三方库, 但没有摸清楚怎么使用, 从网上找了个临时替代的方法, 如下所示
 file(GLOB DLLS "${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE}/*.dll") # 假设DLLs在构建目录中
 install(FILES ${DLLS} DESTINATION binary CONFIGURATIONS Release)
 # message("DLLS: ${DLLS}")
-
-install(FILES ${CMAKE_CURRENT_LIST_DIR}/proj.db DESTINATION binary CONFIGURATIONS Release)
-install(FILES ${CMAKE_CURRENT_LIST_DIR}/data/Und_min10x10_egm2008_isw=82_WGS84_TideFree_SE DESTINATION binary/data CONFIGURATIONS Release)
-# install(FILES ${CMAKE_CURRENT_LIST_DIR}/vcruntime140d.dll ${CMAKE_CURRENT_LIST_DIR}/vcruntime140_1d.dll DESTINATION binary/vc CONFIGURATIONS Release)
 
 file(GLOB scripts "scripts/*.ps1" "scripts/*.bat") # 假设DLLs在构建目录中
 install(FILES ${scripts} DESTINATION binary CONFIGURATIONS Release)
@@ -237,3 +254,9 @@ install(FILES ${scripts} DESTINATION binary CONFIGURATIONS Release)
 file(GLOB vcruntime "vcruntime/*.dll" ) # 假设DLLs在构建目录中
 install(FILES ${vcruntime} DESTINATION binary CONFIGURATIONS Release)
 # message("scripts: ${scripts}")
+endif(WIN32)
+
+install(FILES ${CMAKE_CURRENT_LIST_DIR}/proj.db DESTINATION binary CONFIGURATIONS Release)
+install(FILES ${CMAKE_CURRENT_LIST_DIR}/data/Und_min10x10_egm2008_isw=82_WGS84_TideFree_SE DESTINATION binary/data CONFIGURATIONS Release)
+# install(FILES ${CMAKE_CURRENT_LIST_DIR}/vcruntime140d.dll ${CMAKE_CURRENT_LIST_DIR}/vcruntime140_1d.dll DESTINATION binary/vc CONFIGURATIONS Release)
+
