@@ -38,3 +38,5 @@ int create_3dpoint_shp(argparse::ArgumentParser* args, std::shared_ptr<spdlog::l
 int create_linestring_shp(argparse::ArgumentParser* args, std::shared_ptr<spdlog::logger> logger);
 
 int points_shapefile_dilution(argparse::ArgumentParser* args, std::shared_ptr<spdlog::logger> logger);
+
+int points_shapefile_dilution_v2(argparse::ArgumentParser* args, std::shared_ptr<spdlog::logger> logger);

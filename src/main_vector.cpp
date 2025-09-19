@@ -141,6 +141,24 @@ int main(int argc, char* argv[])
             .help("diluted point shapefile.");
 
     }
+    
+    argparse::ArgumentParser sub_point_shp_dilution_v2("shp_dilution_v2");
+    sub_point_shp_dilution_v2.add_description("dilute shapefile as new shapfile.");
+    {
+        sub_point_shp_dilution_v2.add_argument("point_shapefile")
+            .help("input points shapefile.");
+
+        sub_point_shp_dilution_v2.add_argument("diluted_shapefile")
+            .help("diluted point shapefile.");
+
+        sub_point_shp_dilution_v2.add_argument("new_width")
+            .help("new width.")
+            .scan<'i', int>();
+
+        sub_point_shp_dilution_v2.add_argument("new_height")
+            .help("new height.")
+            .scan<'i', int>();
+    }
 
     std::map<argparse::ArgumentParser* , 
             std::function<int(argparse::ArgumentParser* args,std::shared_ptr<spdlog::logger>)>> 
@@ -153,6 +171,7 @@ int main(int argc, char* argv[])
         {&sub_create_3dpoint_shp,   create_3dpoint_shp},
         {&sub_create_linestr_shp,   create_linestring_shp},
         {&sub_point_shp_dilution,   points_shapefile_dilution},
+        {&sub_point_shp_dilution_v2,points_shapefile_dilution_v2},
     };
 
     for(auto prog_map : parser_map_func){
