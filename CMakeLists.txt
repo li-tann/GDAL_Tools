@@ -172,6 +172,12 @@ add_executable(landsar_ps_points_transto_tif src/landsar_ps_points_transto_tif.c
 target_link_libraries(landsar_ps_points_transto_tif PRIVATE GDAL::GDAL)
 # set(EXE_LIST ${EXE_LIST} landsar_ps_points_transto_tif)
 
+
+# GDAL MEM:::POINTER功能测试
+add_executable(mem_pointer src/mem_pointer_test.cpp)
+target_link_libraries(mem_pointer PRIVATE GDAL::GDAL)
+target_link_libraries(mem_pointer PRIVATE fmt::fmt)
+
 # 读写hdf5文件-测试
 find_package(hdf5 CONFIG REQUIRED)
 
