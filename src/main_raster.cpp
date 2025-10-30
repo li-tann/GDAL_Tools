@@ -351,6 +351,20 @@ int main(int argc, char* argv[])
 
     }
 
+    argparse::ArgumentParser sub_epsg_trans("epsg_trans", "", argparse::default_arguments::help);
+    sub_epsg_trans.add_description("input geo-tiff, output epsg number, and write transfered geo-tiff.");
+    {
+        sub_epsg_trans.add_argument("input")
+            .help("input geo-data.");
+        
+        sub_epsg_trans.add_argument("epsg")
+            .help("epsg number.");
+
+        sub_epsg_trans.add_argument("output")
+            .help("transfered geo-data")
+            .scan<'i',int>();
+    }
+
     std::map<argparse::ArgumentParser* , 
             std::function<int(argparse::ArgumentParser* args,std::shared_ptr<spdlog::logger>)>> 
     parser_map_func = {
@@ -375,6 +389,7 @@ int main(int argc, char* argv[])
         {&sub_jpg2png,              jpg_to_png},
         {&sub_geo2pix,              cal_geo2pix},
         {&sub_pix2geo,              cal_pix2geo},
+        {&sub_epsg_trans,           epsg_transform},
     };
 
     for(auto prog_map : parser_map_func){

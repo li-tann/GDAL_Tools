@@ -70,6 +70,7 @@ add_executable(gdal_tool_raster
         src/jpg_to_png.cpp              # jpg栅格图转png栅格图
         src/triangle_network.cpp        # 调用trignaleLib执行构网操作, 对输入输出进行修改
         src/geotransform_trans.cpp      # 六参数与坐标的转换
+        src/epsg_transform.cpp          # tif转换坐标基准
         #获取图像在某条直线上的值
         )
 target_link_libraries(gdal_tool_raster PRIVATE GDAL::GDAL)

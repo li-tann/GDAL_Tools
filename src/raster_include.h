@@ -63,3 +63,5 @@ int triangle_network(argparse::ArgumentParser* args, std::shared_ptr<spdlog::log
 int cal_geo2pix(argparse::ArgumentParser* args, std::shared_ptr<spdlog::logger> logger);
 
 int cal_pix2geo(argparse::ArgumentParser* args, std::shared_ptr<spdlog::logger> logger);
+
+int epsg_transform(argparse::ArgumentParser* args, std::shared_ptr<spdlog::logger> logger);
