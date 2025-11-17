@@ -40,14 +40,46 @@ int epsg_transform(argparse::ArgumentParser* args, std::shared_ptr<spdlog::logge
 
     auto spatial_ref_in = ds_in->GetSpatialRef();
     auto spatial_ref_in_epsg = spatial_ref_in->GetEPSGGeogCS();
+    double gt_in[6];
+    ds_in->GetGeoTransform(gt_in);
     GDALClose(ds_in);
     ds_in = nullptr;
+
+    PRINT_LOGGER(logger, info, fmt::format("ds_in.epsg: {}.", spatial_ref_in_epsg));
 
     OGRSpatialReference  spatial_ref_out;
     if(spatial_ref_out.importFromEPSG(epsg_num) !=CPLErr::CE_None){
         PRINT_LOGGER(logger, error, fmt::format("invalid epsg_num: {}.", epsg_num));
         return -1;
     }
+
+    /// TODO 需要考虑如何进行单位的转换
+    /// @note 计算gt_out;
+    std::vector<double> vX = {gt_in[0], gt_in[0], gt_in[0]+ width*gt_in[1], gt_in[0]+ width*gt_in[1]};
+    std::vector<double> vY = {gt_in[3], gt_in[3]+height*gt_in[5], gt_in[3], gt_in[3]+height*gt_in[5]};
+    
+    OGRCoordinateTransformation* coord_transformer = OGRCreateCoordinateTransformation(spatial_ref_in, &spatial_ref_out);
+    coord_transformer->Transform(vX.size(), vX.data(), vY.data());
+    OGRCoordinateTransformation::DestroyCT(coord_transformer);
+
+    // // 计算目标范围和尺寸
+    // double dfTgtMinX = *std::min_element(vX.begin(), vX.end());
+    // double dfTgtMaxX = *std::max_element(vX.begin(), vX.end());
+    // double dfTgtMinY = *std::min_element(vY.begin(), vY.end());
+    // double dfTgtMaxY = *std::max_element(vY.begin(), vY.end());
+
+    // double dfSrcResX = adfSrcGeoTransform[1];
+    // double dfSrcResY = fabs(adfSrcGeoTransform[5]);
+    // int nTgtCols = static_cast<int>((dfTgtMaxX - dfTgtMinX) / dfSrcResX + 0.5);
+    // int nTgtRows = static_cast<int>((dfTgtMaxY - dfTgtMinY) / dfSrcResY + 0.5);
+
+    // if (nTgtCols <= 0 || nTgtRows <= 0) {
+    //     std::cerr << "无效的输出尺寸" << std::endl;
+    //     GDALDestroyWarpOptions(psWarpOpts);
+    //     GDALClose((GDALDatasetH)poSrcDS);
+    //     return false;
+    // }
+    
 
 
     // 创建Warp选项
@@ -64,6 +96,8 @@ int epsg_transform(argparse::ArgumentParser* args, std::shared_ptr<spdlog::logge
         PRINT_LOGGER(logger, error, "ds_out is nullptr.");
         return -1;
     }
+    ds_out->SetSpatialRef(spatial_ref_out.Clone());
+
     ds_in = (GDALDataset*)GDALOpen(input.c_str(), GA_ReadOnly);
 
 
@@ -77,10 +111,12 @@ int epsg_transform(argparse::ArgumentParser* args, std::shared_ptr<spdlog::logge
         gdal_warp->panDstBands[i] = i + 1;
     }
     gdal_warp->eResampleAlg      = GRA_Bilinear;  // 可改为 GRA_Bilinear 等
-    gdal_warp->padfSrcNoDataReal = nullptr;
-    gdal_warp->padfDstNoDataReal = nullptr;
-    gdal_warp->papszWarpOptions  = CSLSetNameValue(nullptr, "INIT_DEST", "0");
-    gdal_warp->pfnProgress       = GDALTermProgress;
+    // gdal_warp->padfSrcNoDataReal = nullptr;
+    // gdal_warp->padfDstNoDataReal = nullptr;
+    // gdal_warp->papszWarpOptions  = CSLSetNameValue(nullptr, "INIT_DEST", "0");
+    // gdal_warp->pfnProgress       = GDALTermProgress;
+    gdal_warp->pTransformerArg   = GDALCreateGenImgProjTransformer(ds_in, ds_in->GetProjectionRef(), ds_out, ds_out->GetProjectionRef(), false, 0.0, 1);
+    gdal_warp->pfnTransformer    = GDALGenImgProjTransform;
 
     // 6. 执行重投影
     GDALWarpOperation oOperation;
@@ -88,6 +124,7 @@ int epsg_transform(argparse::ArgumentParser* args, std::shared_ptr<spdlog::logge
         GDALDestroyWarpOptions(gdal_warp);
         GDALClose(ds_in);
         GDALClose(ds_out);
+        remove(output.c_str());
         PRINT_LOGGER(logger, error, "oOperation.Initialize failed.");
         return -1;
     }
@@ -96,6 +133,7 @@ int epsg_transform(argparse::ArgumentParser* args, std::shared_ptr<spdlog::logge
         GDALDestroyWarpOptions(gdal_warp);
         GDALClose(ds_in);
         GDALClose(ds_out);
+        remove(output.c_str());
         PRINT_LOGGER(logger, error, "oOperation.ChunkAndWarpImage failed.");
         return -1;
     }
