@@ -1,5 +1,7 @@
-cmake_minimum_required(VERSION 3.0.0)
-project(execs VERSION 0.1.0)
+cmake_minimum_required(VERSION 3.17)
+project(execs 
+        VERSION 1.0.0
+        LANGUAGES C CXX CUDA)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_EXTENSIONS off)
@@ -28,11 +30,16 @@ find_package(GDAL CONFIG REQUIRED)
 find_package(spdlog CONFIG REQUIRED)
 find_package(fmt CONFIG REQUIRED)
 find_package(argparse CONFIG REQUIRED)
-find_package(OpenMP REQUIRED)
 find_package(FFTW3f CONFIG REQUIRED)
 find_package(nlohmann_json CONFIG REQUIRED)
 set(nlohmann_json_IMPLICIT_CONVERSIONS OFF)
 find_package(triangle CONFIG REQUIRED)
+
+if(${CMAKE_VERSION} VERSION_LESS 3.31)
+    find_package(OpenMP REQUIRED)
+else()
+    find_package(OpenMP REQUIRED CXX)
+endif()
 
 # find_package(Boost REQUIRED COMPONENTS graph)
 
