@@ -88,3 +88,121 @@ int image_cut_by_pixel(argparse::ArgumentParser* args,std::shared_ptr<spdlog::lo
     PRINT_LOGGER(logger, info, "image_cut_by_pixel success.");
     return 1;
 }
+
+
+
+/*
+    sub_image_cut_pixel.add_argument("input_imgpath")
+        .help("input image filepath");
+
+    sub_image_cut_pixel.add_argument("output_imgpath")
+        .help("output image filepath");   
+
+    sub_image_cut_pixel.add_argument("pars")
+        .help("4 pars with the order like: start_x start_y width height")
+        .scan<'i',int>()
+        .nargs(4);       
+*/
+
+
+int image_cut_by_geo_position(argparse::ArgumentParser* args,std::shared_ptr<spdlog::logger> logger)
+{
+    GDALAllRegister();
+    CPLSetConfigOption("GDAL_FILENAME_IS_UTF8", "NO");
+
+
+    string input_img = args->get<string>("input_imgpath");
+    string output_img = args->get<string>("output_imgpath");
+    double lon_min = args->get<double>("lon_min");
+    double lon_max = args->get<double>("lon_max");
+    double lat_min = args->get<double>("lat_min");
+    double lat_max = args->get<double>("lat_max");
+
+    GDALDataset* ds = (GDALDataset*)GDALOpen(input_img.c_str(), GA_ReadOnly);
+    if(!ds){
+        PRINT_LOGGER(logger, error, "ds is nullptr.");
+        return -1;
+    }
+    GDALRasterBand* rb = ds->GetRasterBand(1);
+
+    int width = ds->GetRasterXSize();
+    int height= ds->GetRasterYSize();
+    int bands = ds->GetRasterCount();
+    GDALDataType datatype = rb->GetRasterDataType();
+    int datasize = GDALGetDataTypeSize(datatype);
+    double geotransform[6];
+    auto cplerr = ds->GetGeoTransform(geotransform);
+    bool has_geotransform = (cplerr == CE_Failure ? false : true);
+
+    if(!has_geotransform){
+        PRINT_LOGGER(logger, error, "ds hasn't geotransform.");
+        GDALClose(ds);
+        return -1;
+    }
+
+    PRINT_LOGGER(logger, info, fmt::format("input_img.size(h*w): ({} * {})", height, width));
+    PRINT_LOGGER(logger, info, fmt::format("input_img.geotransform: [{:.6f}, {:.6f}, {:.6f}, {:.6f}, {:.6f}, {:.6f}]", geotransform[0], geotransform[1], geotransform[2], geotransform[3], geotransform[4], geotransform[5]));
+    
+    int start_x = floor((lon_min - geotransform[0]) / geotransform[1]);
+    int start_y = floor((lat_max - geotransform[3]) / geotransform[5]);
+    int end_x = ceil((lon_max - geotransform[0]) / geotransform[1]);
+    int end_y = ceil((lat_min - geotransform[3]) / geotransform[5]);
+    
+    PRINT_LOGGER(logger, info, fmt::format("translated pixel-range: y: ({}, {}), x: ({}, {})", start_y, end_y, start_x, end_x));
+    
+    if(start_x >= width-1 || start_y >= height-1 || end_x <= 0 || end_y <= 0 || start_x >= end_x || start_y >= end_y){
+        PRINT_LOGGER(logger, error, "invalid start_x/y or end_x/y.");
+        GDALClose(ds);
+        return -1;
+    }
+
+    /// 调整裁剪范围
+    start_x = start_x < 0 ? 0 : start_x;
+    start_y = start_y < 0 ? 0 : start_y;
+    end_x = end_x >= width ? width - 1 : end_x;
+    end_y = end_y >= height ? height - 1 : end_y;
+
+    int cutted_width = end_x - start_x;
+    int cutted_height = end_y - start_y;
+
+    PRINT_LOGGER(logger, info, fmt::format("last image_cut parameter(y,x,h,w): ({},{}), ({},{})", start_y, start_x, cutted_height, cutted_width));
+
+
+    GDALDriver* dv = GetGDALDriverManager()->GetDriverByName("GTiff");
+    GDALDataset* ds_out = dv->Create(output_img.c_str(), cutted_width, cutted_height, bands, datatype, NULL);
+    if(!ds_out){
+        PRINT_LOGGER(logger, error, "ds_out is nullptr, create failed.");
+        return -1;
+    }
+
+    for(int b = 1; b <= bands; b++)
+    {
+        GDALRasterBand* rb_in = ds->GetRasterBand(b);
+        GDALRasterBand* rb_out = ds_out->GetRasterBand(b);
+        void* arr = malloc(cutted_width * datasize);
+        for(int i=0; i< cutted_height; i++)
+        {
+            rb_in->RasterIO(GF_Read, start_x, i + start_y, cutted_width, 1, arr, cutted_width, 1, datatype, 0, 0);
+            rb_out->RasterIO(GF_Write, 0, i, cutted_width, 1, arr, cutted_width, 1, datatype, 0, 0);
+        }
+        free(arr);
+    }
+
+    if(has_geotransform){
+        double geotransform_out[6];
+        geotransform_out[0] = geotransform[0] + start_x * geotransform[1] + start_y * geotransform[2];
+        geotransform_out[1] = geotransform[1];
+        geotransform_out[2] = geotransform[2];
+        geotransform_out[3] = geotransform[3] + start_x * geotransform[4] + start_y * geotransform[5];
+        geotransform_out[4] = geotransform[4];
+        geotransform_out[5] = geotransform[5];
+        ds_out->SetGeoTransform(geotransform_out);
+        ds_out->SetProjection(ds->GetProjectionRef());
+    }
+
+    GDALClose(ds);
+    GDALClose(ds_out);
+
+    PRINT_LOGGER(logger, info, "image_cut_by_pixel success.");
+    return 1;
+}

@@ -171,6 +171,32 @@ int main(int argc, char* argv[])
             .nargs(4);        
     }
 
+    argparse::ArgumentParser sub_image_cut_geopos("image_cut_geo", "", argparse::default_arguments::help);
+    sub_image_cut_geopos.add_description("cut image by geo position, such as: input.tif output.tif 132.2 132.3 22.5 22.7");
+    {
+        sub_image_cut_geopos.add_argument("input_imgpath")
+            .help("input image filepath");
+
+        sub_image_cut_geopos.add_argument("output_imgpath")
+            .help("output image filepath (*.tif)");   
+
+        sub_image_cut_geopos.add_argument("lon_min")
+            .help("minimum longitude")
+            .scan<'g',double>();   
+        
+        sub_image_cut_geopos.add_argument("lon_max")
+            .help("maximum longitude")
+            .scan<'g',double>(); 
+            
+        sub_image_cut_geopos.add_argument("lat_min")
+            .help("minimum latitude")
+            .scan<'g',double>();   
+        
+        sub_image_cut_geopos.add_argument("lat_max")
+            .help("maximum latitude")
+            .scan<'g',double>();
+    }
+
     argparse::ArgumentParser sub_image_overlay("image_overlay", "", argparse::default_arguments::help);
     sub_image_overlay.add_description("image_overlay, such as: upper.png lower.png overlay.png 0.5 0.9 normal");
     {
@@ -351,19 +377,19 @@ int main(int argc, char* argv[])
 
     }
 
-    // argparse::ArgumentParser sub_epsg_trans("epsg_trans", "", argparse::default_arguments::help);
-    // sub_epsg_trans.add_description("input geo-tiff, transform it to a new geo-tiff with target epsg num.");
-    // {
-    //     sub_epsg_trans.add_argument("input")
-    //         .help("input geo-data.");
+    argparse::ArgumentParser sub_epsg_trans("epsg_trans", "", argparse::default_arguments::help);
+    sub_epsg_trans.add_description("input geo-tiff, transform it to a new geo-tiff with target epsg num.");
+    {
+        sub_epsg_trans.add_argument("input")
+            .help("input geo-data.");
         
-    //     sub_epsg_trans.add_argument("epsg")
-    //         .help("epsg number.")
-    //         .scan<'i',int>();
+        sub_epsg_trans.add_argument("epsg")
+            .help("epsg number.")
+            .scan<'i',int>();
 
-    //     sub_epsg_trans.add_argument("output")
-    //         .help("transfered geo-data");
-    // }
+        sub_epsg_trans.add_argument("output")
+            .help("transfered geo-data");
+    }
 
     std::map<argparse::ArgumentParser* , 
             std::function<int(argparse::ArgumentParser* args,std::shared_ptr<spdlog::logger>)>> 
@@ -378,6 +404,7 @@ int main(int argc, char* argv[])
         {&sub_over_resample,        over_resample},
         {&sub_trans_geoinfo,        trans_geoinformation},
         {&sub_image_cut_pixel,      image_cut_by_pixel},
+        {&sub_image_cut_geopos,     image_cut_by_geo_position},
         {&sub_image_overlay,        image_overlay},
         {&sub_image_set_colortable, image_set_colortable},
         {&sub_data_to_8bit,         data_convert_to_byte},
@@ -389,7 +416,7 @@ int main(int argc, char* argv[])
         {&sub_jpg2png,              jpg_to_png},
         {&sub_geo2pix,              cal_geo2pix},
         {&sub_pix2geo,              cal_pix2geo},
-        // {&sub_epsg_trans,           epsg_transform},
+        {&sub_epsg_trans,           epsg_transform},
     };
 
     for(auto prog_map : parser_map_func){
