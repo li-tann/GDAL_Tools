@@ -40,3 +40,5 @@ int create_linestring_shp(argparse::ArgumentParser* args, std::shared_ptr<spdlog
 int points_shapefile_dilution(argparse::ArgumentParser* args, std::shared_ptr<spdlog::logger> logger);
 
 int points_shapefile_dilution_v2(argparse::ArgumentParser* args, std::shared_ptr<spdlog::logger> logger);
+
+int raster_to_point(argparse::ArgumentParser* args, std::shared_ptr<spdlog::logger> logger);

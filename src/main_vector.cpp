@@ -160,6 +160,36 @@ int main(int argc, char* argv[])
             .scan<'i', int>();
     }
 
+    argparse::ArgumentParser sub_raster_to_point("raster_to_point");
+    sub_raster_to_point.add_description("convert the pixels of a raster image into a point vector (shp/kml/geojson)");
+    {
+        sub_raster_to_point.add_argument("raster_image")
+            .help("input raster image, datatype must be short int (Int16) or float (Float32), multi-band is supported.");
+        
+        sub_raster_to_point.add_argument("output_vector")
+            .help("output vector filepath, decided by the extension: .shp, .kml or .geojson.");
+
+        sub_raster_to_point.add_argument("-l", "--left")
+            .help("left boundary (inclusive), a pixel column by default, a geo coordinate with --geo. default is the left border.")
+            .scan<'g', double>();
+
+        sub_raster_to_point.add_argument("-r", "--right")
+            .help("right boundary (inclusive). default is the right border.")
+            .scan<'g', double>();
+
+        sub_raster_to_point.add_argument("-t", "--top")
+            .help("top boundary (inclusive), a pixel row by default, a geo coordinate with --geo. default is the top border.")
+            .scan<'g', double>();
+
+        sub_raster_to_point.add_argument("-d", "--down")
+            .help("down boundary (inclusive). default is the down border.")
+            .scan<'g', double>();
+
+        sub_raster_to_point.add_argument("-g", "--geo")
+            .help("take -l/-r/-t/-d as geo coordinates, which are transformed to pixels by the six geotransform parameters. it fails when the raster has no georeference information.")
+            .flag();
+    }
+
     std::map<argparse::ArgumentParser* , 
             std::function<int(argparse::ArgumentParser* args,std::shared_ptr<spdlog::logger>)>> 
     parser_map_func = {
@@ -172,6 +202,7 @@ int main(int argc, char* argv[])
         {&sub_create_linestr_shp,   create_linestring_shp},
         {&sub_point_shp_dilution,   points_shapefile_dilution},
         {&sub_point_shp_dilution_v2,points_shapefile_dilution_v2},
+        {&sub_raster_to_point,      raster_to_point},
     };
 
     for(auto prog_map : parser_map_func){
